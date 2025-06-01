@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //
-            $table->string('role')->default('teacher');
+            $table->unsignedBigInteger('role_id')->default(2); // Default: teacher
+            $table->foreign('role_id')->references('id')->on('roles');
         });
     }
 
