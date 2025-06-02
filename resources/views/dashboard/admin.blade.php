@@ -1,16 +1,80 @@
-<x-app-layout>
-    <div class="max-w-7xl mx-auto py-10 px-6">
-        <h1 class="text-3xl font-bold text-blue-800 mb-6">Admin Dashboard</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - UC Web Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sidebar {
+            transition: width 0.3s;
+            box-shadow: 4px 0 8px -2px rgba(0, 0, 0, 0.1);
+        }
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-blue-100 p-4 rounded-lg shadow">
-                <h2 class="text-lg font-semibold">Manage Users</h2>
-                <p class="text-sm text-gray-700">Register and monitor users</p>
-            </div>
-            <div class="bg-green-100 p-4 rounded-lg shadow">
-                <h2 class="text-lg font-semibold">Reports</h2>
-                <p class="text-sm text-gray-700">Generate and view system reports</p>
+        .sidebar:hover {
+            width: 240px;
+        }
+
+        .nav-label {
+            display: none;
+        }
+
+        .sidebar:hover .nav-label {
+            display: inline;
+        }
+
+        .sidebar:hover .nav-icon {
+            justify-content: flex-start;
+        }
+    </style>
+</head>
+<body class="[background-color:#ECFAFF] min-h-screen">
+
+    <!-- Top Bar -->
+    <div class="bg-white shadow-md flex items-center justify-between px-6 py-4">
+        <div class="flex items-center space-x-4">
+            <img src="{{ asset('images/UClogo.png') }}" alt="UC Logo" class="h-10" />
+            <div>
+                <h1 class="text-lg font-bold text-blue-800">University of Cebu</h1>
+                <p class="text-sm text-gray-600">Lapu-Lapu and Mandaue</p>
+                <p class="text-xs text-gray-500">ADMIN DASHBOARD</p>
             </div>
         </div>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Logout
+            </button>
+        </form>
     </div>
-</x-app-layout>
+
+    <!-- Layout -->
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="sidebar w-16 hover:w-60 [background-color:#ECFAFF] h-screen shadow-md overflow-hidden">
+            <ul class="space-y-2 mt-6 text-gray-700">
+                <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
+                    <span>👥</span>
+                    <span class="nav-label">Manage Users</span>
+                </li>
+                <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
+                    <span>📈</span>
+                    <span class="nav-label">Reports</span>
+                </li>
+                  <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
+                    <span>⚙️</span>
+                    <span class="nav-label">Change Geolocation Settings</span>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main content -->
+        <main class="flex-1 p-10">
+            <div class="bg-white rounded-lg shadow p-8 h-[500px] text-center">
+                <h2 class="text-xl font-semibold text-gray-700">Reports panel to be added soon</h2>
+            </div>
+        </main>
+    </div>
+
+</body>
+</html>

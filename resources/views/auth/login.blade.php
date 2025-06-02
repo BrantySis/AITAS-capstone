@@ -1,47 +1,95 @@
-<x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form method="POST" action="{{ route('login') }}">
-        @csrf
-
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University of Cebu - Web Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div class="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-500 to-blue-700 relative">
+        <!-- Floating Dots Animation -->
+        <div class="absolute inset-0 overflow-hidden z-0">
+            <div class="animate-pulse space-y-6">
+                @for ($i = 0; $i < 40; $i++)
+                    <div class="absolute w-1 h-1 bg-white rounded-full opacity-60" style="top: {{ rand(0,100) }}%; left: {{ rand(0,100) }}%;"></div>
+                @endfor
+            </div>
         </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
+        <div class="z-10 bg-white rounded-md shadow-lg p-8 w-full max-w-md text-center">
+            <!-- Logo -->
+            <div class="mb-6">
+                <img src="{{ asset('images/UClogo.png') }}" alt="UC Logo" class="mx-auto h-16 mb-2">
+                <h1 class="text-md font-semibold text-blue-800">University of Cebu</h1>
+                <h2 class="text-sm text-blue-600">Lapu-Lapu and Mandaue</h2>
+                <p class="text-xs text-gray-500 mt-1">WEB PORTAL</p>
+            </div>
 
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
-            </label>
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
+            <!-- Error Messages (if any) -->
+            @if($errors->any())
+                <div class="mb-4 text-red-600 text-sm">
+                    {{ $errors->first() }}
+                </div>
             @endif
 
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
+            @if(session('status'))
+                <div class="mb-4 text-green-600 text-sm">
+                    {{ session('status') }}
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('login') }}" class="space-y-4 text-left">
+                @csrf
+
+                <!-- Email or ID -->
+                <div>
+                    <label for="email" class="block text-gray-700 text-sm mb-1">ID Number or Email</label>
+                    <input id="email" type="text" name="email" value="{{ old('email') }}" required autofocus
+                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    @if($errors->has('email'))
+                        <div class="mt-2 text-red-600 text-sm">{{ $errors->first('email') }}</div>
+                    @endif
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label for="password" class="block text-gray-700 text-sm mb-1">Password</label>
+                    <input id="password" type="password" name="password" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    @if($errors->has('password'))
+                        <div class="mt-2 text-red-600 text-sm">{{ $errors->first('password') }}</div>
+                    @endif
+                </div>
+
+                <!-- Remember Me -->
+                <div class="flex items-center">
+                    <input id="remember_me" type="checkbox" name="remember"
+                        class="text-blue-600 rounded border-gray-300 shadow-sm focus:ring-blue-500">
+                    <label for="remember_me" class="ml-2 text-sm text-gray-600">Remember Me</label>
+                </div>
+
+                <!-- Login Button -->
+                <div class="mt-4">
+                    <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold flex items-center justify-center">
+                        <svg class="w-4 h-4 mr-2" fill="white" xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 512 512">
+                            <path
+                                d="M192 128c0-35.3 28.7-64 64-64s64 28.7 64 64v48h-32v-48c0-17.7-14.3-32-32-32s-32 14.3-32 32v48h-32v-48zm96 192c0 17.7-14.3 32-32 32s-32-14.3-32-32V224h-48l80-80 80 80h-48v96z" />
+                        </svg>
+                        Login
+                    </button>
+                </div>
+
+                <!-- Links -->
+                <div class="mt-4 text-sm text-center text-blue-700">
+                    <a href="{{ route('register') }}" class="hover:underline">Register</a> |
+                    <a href="{{ route('password.request') }}" class="hover:underline">Forgot Your Password?</a> |
+                    <a href="#" class="hover:underline">Need Help?</a>
+                </div>
+            </form>
         </div>
-    </form>
-</x-guest-layout>
+    </div>
+</body>
+</html>
