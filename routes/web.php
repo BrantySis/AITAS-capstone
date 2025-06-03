@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RegisterTeacherController;
+use App\Http\Controllers\Admin\ScheduleController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -31,6 +32,14 @@ Route::middleware('auth')->group(function () {
     // Admin-only: Register new teacher routes
     Route::get('/admin/register-teacher', [RegisterTeacherController::class, 'create'])->name('register.teacher');
     Route::post('/admin/register-teacher', [RegisterTeacherController::class, 'store'])->name('register.teacher.store');
+});
+
+//  Admin routes for Teacher CRUD
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('teachers', App\Http\Controllers\Admin\TeacherController::class);
+});
+Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('schedules', ScheduleController::class);
 });
 
 require __DIR__.'/auth.php';

@@ -1,36 +1,94 @@
 <!DOCTYPE html>
+
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+<title>{{ config('app.name', 'UC Admin Dashboard') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    .sidebar {
+        transition: width 0.3s;
+        box-shadow: 4px 0 8px -2px rgba(0, 0, 0, 0.1);
+    }
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
-            @include('layouts.navigation')
+    .sidebar:hover {
+        width: 240px;
+    }
 
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white dark:bg-gray-800 shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
+    .nav-label {
+        display: none;
+    }
 
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
+    .sidebar:hover .nav-label {
+        display: inline;
+    }
+
+    .sidebar:hover .nav-icon {
+        justify-content: flex-start;
+    }
+</style>
+
+
+</head>
+<body class="[background-color:#ECFAFF] min-h-screen">
+
+
+<!-- Top Bar -->
+<div class="bg-white shadow-md flex items-center justify-between px-6 py-4">
+    <div class="flex items-center space-x-4">
+        <img src="{{ asset('images/UClogo.png') }}" alt="UC Logo" class="h-10" />
+        <div>
+            <h1 class="text-lg font-bold text-blue-800">University of Cebu</h1>
+            <p class="text-sm text-gray-600">Lapu-Lapu and Mandaue</p>
+            <p class="text-xs text-gray-500">ADMIN DASHBOARD</p>
         </div>
-    </body>
+    </div>
+    <form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Logout
+        </button>
+    </form>
+</div>
+
+<!-- Layout -->
+<div class="flex">
+    <!-- Sidebar -->
+    <aside class="sidebar w-16 hover:w-60 [background-color:#ECFAFF] h-screen shadow-md overflow-hidden">
+        <ul class="space-y-2 mt-6 text-gray-700">
+            <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
+                <span>👥</span>
+                <a href="{{ route('admin.teachers.index') }}" class="block py-2 px-4 text-gray-800 hover:bg-blue-100">
+                    Manage Teachers
+                </a>
+                <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
+                    <span>📈</span>
+                    <a href="{{ route('admin.schedules.index') }}" class="block py-2 px-4 text-gray-800 hover:bg-blue-100">
+                    Manage Schedule
+                </a>
+                </li>
+            </li>
+            <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
+                <span>📈</span>
+                <span class="nav-label">Reports</span>
+            </li>
+            <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
+                <span>⚙️</span>
+                <span class="nav-label">Change Geolocation Settings</span>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 p-10">
+        {{ $slot }}
+    </main>
+</div>
+```
+
+</body>
 </html>
