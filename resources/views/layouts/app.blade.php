@@ -55,33 +55,8 @@
     </form>
 </div>
 
-<!-- Layout -->
-<div class="flex">
-    <!-- Sidebar -->
-    <aside class="sidebar w-16 hover:w-60 [background-color:#ECFAFF] h-screen shadow-md overflow-hidden">
-        <ul class="space-y-2 mt-6 text-gray-700">
-            <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
-                <span>👥</span>
-                <a href="{{ route('admin.teachers.index') }}" class="block py-2 px-4 text-gray-800 hover:bg-blue-100">
-                    Manage Teachers
-                </a>
-                <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
-                    <span>📈</span>
-                    <a href="{{ route('admin.schedules.index') }}" class="block py-2 px-4 text-gray-800 hover:bg-blue-100">
-                    Manage Schedule
-                </a>
-                </li>
-            </li>
-            <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
-                <span>📈</span>
-                <span class="nav-label">Reports</span>
-            </li>
-            <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
-                <span>⚙️</span>
-                <span class="nav-label">Change Geolocation Settings</span>
-            </li>
-        </ul>
-    </aside>
+
+    
 
     <!-- Main content -->
     <main class="flex-1 p-10">
