@@ -2,6 +2,14 @@
 <x-app-layout>
     <div class="max-w-2xl mx-auto">
         <h2 class="text-xl font-bold mb-4">Edit Schedule</h2>
+        
+        <!-- Show custom conflict error if it exists -->
+        @if ($errors->has('conflict'))
+            <div class="bg-red-100 text-red-700 px-4 py-2 mb-4 rounded">
+                {{ $errors->first('conflict') }}
+            </div>
+        @endif
+        
         <form action="{{ route('admin.schedules.update', $schedule) }}" method="POST" class="space-y-4">
             @csrf @method('PUT')
             <!-- Pass :users and :rooms (not :teacher) -->

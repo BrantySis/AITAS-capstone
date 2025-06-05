@@ -44,6 +44,24 @@ class ScheduleController extends Controller
             'time_end' => 'required|date_format:H:i|after:time_start',
         ]);
 
+        // Prevent overlapping schedule for the same teacher
+        $conflict = Schedule::where('user_id', $request->user_id)
+            ->where('day', $request->day)
+            ->where(function ($query) use ($request) {
+                $query->whereBetween('time_start', [$request->time_start, $request->time_end])
+                    ->orWhereBetween('time_end', [$request->time_start, $request->time_end])
+                    ->orWhere(function ($q) use ($request) {
+                        $q->where('time_start', '<=', $request->time_start)
+                            ->where('time_end', '>=', $request->time_end);
+                    });
+            })->exists();
+
+        if ($conflict) {
+            return redirect()->back()
+                ->withErrors(['conflict' => 'This teacher already has a schedule during that time.'])
+                ->withInput();
+        }
+
         Schedule::create($request->all());
 
         return redirect()->route('admin.schedules.index')->with('success', 'Schedule created successfully.');
@@ -73,6 +91,25 @@ class ScheduleController extends Controller
             'time_start' => 'required|date_format:H:i',
             'time_end' => 'required|date_format:H:i|after:time_start',
         ]);
+
+        // Check for conflicts excluding the current schedule
+        $conflict = Schedule::where('user_id', $request->user_id)
+            ->where('day', $request->day)
+            ->where('id', '!=', $schedule->id)
+            ->where(function ($query) use ($request) {
+                $query->whereBetween('time_start', [$request->time_start, $request->time_end])
+                    ->orWhereBetween('time_end', [$request->time_start, $request->time_end])
+                    ->orWhere(function ($q) use ($request) {
+                        $q->where('time_start', '<=', $request->time_start)
+                            ->where('time_end', '>=', $request->time_end);
+                    });
+            })->exists();
+
+        if ($conflict) {
+            return redirect()->back()
+                ->withErrors(['conflict' => 'This teacher already has a schedule during that time.'])
+                ->withInput();
+        }
 
         $schedule->update($request->all());
 
