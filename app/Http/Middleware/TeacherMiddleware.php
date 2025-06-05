@@ -7,11 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class AdminMiddleware
+class TeacherMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && optional(Auth::user()->role)->name === 'admin') {
+        if (Auth::check() && optional(Auth::user()->role)->name === 'teacher') {
             return $next($request);
         }
         

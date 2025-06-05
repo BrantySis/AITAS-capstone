@@ -14,7 +14,7 @@
             </div>
             <div class="mb-4">
             <label for="faculty_number">Faculty Number</label>
-            <input type="text" name="faculty_number" id="faculty_number" maxlength="8" value="{{ old('faculty_number', $teacher->faculty_number ?? '') }}" required>
+            <input type="text" name="faculty_number" id="faculty_number" maxlength="7" value="{{ old('faculty_number', $teacher->faculty_number ?? '') }}" required>
             </div>
             
             <div class="mb-4">
