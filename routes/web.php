@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RegisterTeacherController;
 use App\Http\Controllers\Admin\ScheduleController;
+use App\Http\Controllers\Admin\RoomController;
+use App\Http\Controllers\Admin\TeacherController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -41,5 +43,14 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('schedules', ScheduleController::class);
 });
+Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('rooms', RoomController::class);
+});
+
+//teacher load
+Route::middleware(['auth'])->group(function () {
+    Route::get('/teacher/load', [App\Http\Controllers\Teacher\LoadController::class, 'index'])->name('teacher.load');
+});
+
 
 require __DIR__.'/auth.php';

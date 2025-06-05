@@ -56,11 +56,18 @@
                 <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
                     <span>👥</span>
                     <a href="{{ route('admin.teachers.index') }}" class="block py-2 px-4 text-gray-800 hover:bg-blue-100">
-    Manage Teachers
-</a>
-<li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
+                     Manage Teachers
+                    </a>
+                    <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
                     <span>📈</span>
-                    <span class="nav-label">manage subjects</span>
+                    <a href="{{ route('admin.schedules.index') }}" class="block py-2 px-4 text-gray-800 hover:bg-blue-100">
+                    Manage Schedule
+                </a>   
+                <li class="nav-icon flex items-center space-x-3 hover:bg-blue-100 rounded-md px-4 py-2 cursor-pointer">
+                    <span>📈</span>
+                    <a href="{{ route('admin.rooms.index') }}" class="block py-2 px-4 text-gray-800 hover:bg-blue-100">
+                    Manage Rooms
+                </a>   
                 </li>
 
                 </li>

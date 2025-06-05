@@ -19,6 +19,8 @@ class Schedule extends Model
         'time_end',
     ];
     
+
+    
     public function teacher()
     {
         return $this->belongsTo(User::class, 'user_id');

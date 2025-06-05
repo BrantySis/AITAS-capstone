@@ -56,11 +56,22 @@
     <div class="flex">
         <!-- Sidebar -->
         <aside class="sidebar w-16 hover:w-60 [background-color:#ECFAFF] h-screen shadow-md overflow-hidden">
-            <!-- Profile Section -->
-            <div class="flex items-center px-4 py-4 space-x-3">
-                <img src="{{ asset('images/profile.png') }}" alt="Profile" class="w-10 h-10 rounded-full border-2 border-blue-300" />
-                <span class="profile-name text-sm font-semibold text-blue-800">Mr. Alexander Bucol</span>
-            </div>
+          <!-- Profile Section -->
+                    <div class="flex flex-col items-center px-4 py-4 space-y-2">
+                        <img src="{{ asset('images/profile.png') }}" alt="Profile" class="w-10 h-10 rounded-full border-2 border-blue-300" />
+                        <div class="text-center">
+                            <span class="profile-name block text-sm font-semibold text-blue-800">
+                                {{ Auth::user()->name }}
+                            </span>
+                            <span class="profile-name block text-xs text-gray-600">
+                                {{ Auth::user()->role->name ?? 'No role' }}
+                            </span>
+                            <span class="profile-name block text-xs text-gray-600">
+                                Faculty #: {{ Auth::user()->faculty_number ?? 'N/A' }}
+                            </span>
+                        </div>
+                    </div>
+
             <!-- Divider -->
             <div class="border-b border-gray-300 mx-4"></div>
 
@@ -86,9 +97,11 @@
                     <span>📝</span>
                     <span class="nav-label">E Grade</span>
                 </li>
-                <li class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
-                    <span>📚</span>
-                    <span class="nav-label">Teacher's Load</span>
+                <li class="nav-icon hover:bg-blue-100 rounded px-3 py-2">
+                    <a href="{{ route('teacher.load') }}" class="flex items-center space-x-2">
+                        <span>📅</span>
+                        <span>My Load</span>
+                    </a>
                 </li>
                 <li class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
                     <span>✅</span>
@@ -99,8 +112,10 @@
                     <span class="nav-label">Attendance Checker</span>
                 </li>
                 <li class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
-                    <span>🧾</span>
-                    <span class="nav-label">Profile</span>
+                <a href="{{ route('profile.edit') }}" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer block">
+    <span>🧾</span>
+    <span class="nav-label">Profile</span>
+</a>
                 </li>
             </ul>
         </aside>

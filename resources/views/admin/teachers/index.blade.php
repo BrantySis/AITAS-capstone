@@ -11,6 +11,7 @@
                     <tr class="bg-gray-100">
                         <th class="px-4 py-2 text-left">Name</th>
                         <th class="px-4 py-2 text-left">Email</th>
+                        <th class="px-4 py-2 text-left">Faculty Number</th>
                         <th class="px-4 py-2 text-left">Actions</th>
                     </tr>
                 </thead>
@@ -19,6 +20,7 @@
                     <tr class="border-b">
                         <td class="px-4 py-2">{{ $teacher->name }}</td>
                         <td class="px-4 py-2">{{ $teacher->email }}</td>
+                        <td class="px-4 py-2">{{ $teacher->faculty_number }}</td>
                         <td class="px-4 py-2 space-x-2">
                             <a href="{{ route('admin.teachers.edit', $teacher) }}" class="text-blue-600 hover:underline">Edit</a>
                             <form action="{{ route('admin.teachers.destroy', $teacher) }}" method="POST" class="inline">
