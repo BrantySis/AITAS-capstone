@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'faculty_number',
+        
     ];
 
     /**
@@ -38,14 +39,14 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
     public function isAdmin()
-{
-    return $this->role->name === 'admin';
-}
-
-public function isTeacher()
-{
-    return $this->role->name === 'teacher';
-}
+    {
+        return optional($this->role)->name === 'admin';
+    }
+    
+    public function isTeacher()
+    {
+        return optional($this->role)->name === 'teacher';
+    }
     /**
      * Get the attributes that should be cast.
      *
