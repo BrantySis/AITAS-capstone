@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\RoomController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Teacher\LoadController;
+use App\Http\Controllers\Teacher\AttendanceController;
 
 // Public welcome page
 Route::get('/', function () {
@@ -48,6 +49,7 @@ Route::middleware(['auth', 'verified', 'teacher'])
     ->name('teacher.')
     ->group(function () {
         Route::get('/load', [LoadController::class, 'index'])->name('load');
+        Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     });
 
 // Authentication routes

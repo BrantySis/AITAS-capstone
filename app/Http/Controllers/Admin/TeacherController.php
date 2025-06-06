@@ -40,7 +40,7 @@ class TeacherController extends Controller
         $teacher->role()->associate(Role::where('name', 'teacher')->first());
         $teacher->save();
 
-        return redirect()->route('admin.teachers.index')->with('success', 'Teacher created.');
+        return redirect()->route('admin.teachers.index')->with('success', 'Teacher created successfully.');
     }
 
     public function edit(User $teacher)
@@ -53,7 +53,7 @@ class TeacherController extends Controller
         $request->validate([
             'name' => 'required|string',
             'email' => 'required|email|unique:users,email,' . $teacher->id,
-            'faculty_number' => 'required|string|max:7|unique:users,faculty_number,' . $teacher->id,
+            'faculty_number' => 'required|string|max:10|unique:users,faculty_number,' . $teacher->id,
         ]);
 
         $teacher->update([
@@ -62,12 +62,12 @@ class TeacherController extends Controller
             'faculty_number' => $request->faculty_number,
         ]);
 
-        return redirect()->route('admin.teachers.index')->with('success', 'Teacher updated.');
+        return redirect()->route('admin.teachers.index')->with('success', 'Teacher updated successfully.');
     }
 
     public function destroy(User $teacher)
     {
         $teacher->delete();
-        return redirect()->route('admin.teachers.index')->with('success', 'Teacher deleted.');
+        return redirect()->route('admin.teachers.index')->with('success', 'Teacher deleted successfully.');
     }
 }
