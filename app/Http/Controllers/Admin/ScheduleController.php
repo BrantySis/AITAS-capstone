@@ -39,22 +39,21 @@ class ScheduleController extends Controller
             'subject' => 'required|string|max:255',
             'units' => 'required|integer|min:1',
             'type' => 'required|in:lecture,lab',
-            'day' => 'required|string',
-            'time_start' => 'required|date_format:H:i',
-            'time_end' => 'required|date_format:H:i|after:time_start',
+             'starts_at' => 'required|date',
+             'ends_at' => 'required|date|after:starts_at',
         ]);
 
         // Prevent overlapping schedule for the same teacher
-        $conflict = Schedule::where('user_id', $request->user_id)
-            ->where('day', $request->day)
-            ->where(function ($query) use ($request) {
-                $query->whereBetween('time_start', [$request->time_start, $request->time_end])
-                    ->orWhereBetween('time_end', [$request->time_start, $request->time_end])
-                    ->orWhere(function ($q) use ($request) {
-                        $q->where('time_start', '<=', $request->time_start)
-                            ->where('time_end', '>=', $request->time_end);
-                    });
-            })->exists();
+      $conflict = Schedule::where('user_id', $request->user_id)
+    ->where(function ($query) use ($request) {
+        $query->whereBetween('starts_at', [$request->starts_at, $request->ends_at])
+              ->orWhereBetween('ends_at', [$request->starts_at, $request->ends_at])
+              ->orWhere(function ($q) use ($request) {
+                  $q->where('starts_at', '<=', $request->starts_at)
+                    ->where('ends_at', '>=', $request->ends_at);
+              });
+    })->exists();
+
 
         if ($conflict) {
             return redirect()->back()
@@ -87,23 +86,21 @@ class ScheduleController extends Controller
             'subject' => 'required|string|max:255',
             'units' => 'required|integer|min:1',
             'type' => 'required|in:lecture,lab',
-            'day' => 'required|string',
-            'time_start' => 'required|date_format:H:i',
-            'time_end' => 'required|date_format:H:i|after:time_start',
+            'starts_at' => 'required|date',
+             'ends_at' => 'required|date|after:starts_at',
         ]);
 
         // Check for conflicts excluding the current schedule
-        $conflict = Schedule::where('user_id', $request->user_id)
-            ->where('day', $request->day)
-            ->where('id', '!=', $schedule->id)
-            ->where(function ($query) use ($request) {
-                $query->whereBetween('time_start', [$request->time_start, $request->time_end])
-                    ->orWhereBetween('time_end', [$request->time_start, $request->time_end])
-                    ->orWhere(function ($q) use ($request) {
-                        $q->where('time_start', '<=', $request->time_start)
-                            ->where('time_end', '>=', $request->time_end);
-                    });
-            })->exists();
+       $conflict = Schedule::where('user_id', $request->user_id)
+    ->where('id', '!=', $schedule->id)
+    ->where(function ($query) use ($request) {
+        $query->whereBetween('starts_at', [$request->starts_at, $request->ends_at])
+              ->orWhereBetween('ends_at', [$request->starts_at, $request->ends_at])
+              ->orWhere(function ($q) use ($request) {
+                  $q->where('starts_at', '<=', $request->starts_at)
+                    ->where('ends_at', '>=', $request->ends_at);
+              });
+    })->exists();
 
         if ($conflict) {
             return redirect()->back()

@@ -11,7 +11,7 @@
                 <th class="p-2">Teacher</th>
                 <th class="p-2">Subject</th>
                 <th class="p-2">Room</th>
-                <th class="p-2">Day</th>
+                <th class="p-2">Date&Day</th>
                 <th class="p-2">Time</th>
                 <th class="p-2">Actions</th>
             </tr>
@@ -23,8 +23,11 @@
                     <td class="p-2">{{ $schedule->teacher->name ?? 'N/A' }}</td>
                     <td class="p-2">{{ $schedule->subject }}</td>
                     <td class="p-2">{{ $schedule->room->room_code ?? 'N/A' }}</td>
-                    <td class="p-2">{{ $schedule->day }}</td>
-                    <td class="p-2">{{ $schedule->time_start }} - {{ $schedule->time_end }}</td>
+                    <td class="p-2">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('D, M j') }}</td>
+<td class="p-2">
+    {{ \Carbon\Carbon::parse($schedule->starts_at)->format('h:i A') }} -
+    {{ \Carbon\Carbon::parse($schedule->ends_at)->format('h:i A') }}
+</td>
                     <td class="p-2">
                         <a href="{{ route('admin.schedules.edit', $schedule) }}" class="text-blue-600 hover:underline">Edit</a>
                         <form action="{{ route('admin.schedules.destroy', $schedule) }}" method="POST" class="inline">

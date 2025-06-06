@@ -11,8 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('faculty_number', 10)->unique()->nullable();
+        Schema::table('attendances', function (Blueprint $table) {
+              $table->foreignId('schedule_id')->constrained()->after('user_id');
+        $table->dropColumn('date'); // if previously used
         });
     }
 
@@ -21,8 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('faculty_number');
+        Schema::table('attendances', function (Blueprint $table) {
+            //
         });
     }
 };

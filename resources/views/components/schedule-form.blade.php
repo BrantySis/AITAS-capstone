@@ -64,25 +64,21 @@
 </div>
 
 <div>
-    <label class="block">Day</label>
-    <input type="text" name="day" class="w-full border p-2 rounded" value="{{ old('day', $schedule->day ?? '') }}" required>
-    @error('day')
+    <label class="block">Start Date & Time</label>
+    <input type="datetime-local" name="starts_at" class="w-full border p-2 rounded"
+        value="{{ old('starts_at', isset($schedule) ? \Carbon\Carbon::parse($schedule->starts_at)->format('Y-m-d\TH:i') : '') }}"
+        required>
+    @error('starts_at')
         <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
     @enderror
 </div>
 
 <div>
-    <label class="block">Time Start</label>
-    <input type="time" name="time_start" class="w-full border p-2 rounded" value="{{ old('time_start', $schedule->time_start ?? '') }}" required>
-    @error('time_start')
-        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
-    @enderror
-</div>
-
-<div>
-    <label class="block">Time End</label>
-    <input type="time" name="time_end" class="w-full border p-2 rounded" value="{{ old('time_end', $schedule->time_end ?? '') }}" required>
-    @error('time_end')
+    <label class="block">End Date & Time</label>
+    <input type="datetime-local" name="ends_at" class="w-full border p-2 rounded"
+        value="{{ old('ends_at', isset($schedule) ? \Carbon\Carbon::parse($schedule->ends_at)->format('Y-m-d\TH:i') : '') }}"
+        required>
+    @error('ends_at')
         <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
     @enderror
 </div>

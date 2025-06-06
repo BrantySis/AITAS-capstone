@@ -14,9 +14,8 @@ class Schedule extends Model
         'subject',
         'units',
         'type',
-        'day',
-        'time_start',
-        'time_end',
+         'starts_at',
+    'ends_at',
     ];
     
 

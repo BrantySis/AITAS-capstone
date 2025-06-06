@@ -6,27 +6,24 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Attendance;
 use App\Models\Schedule;
-use App\Models\User;
-
+use App\Models\Room;
+use Illuminate\Support\Facades\Auth;
 
 class AttendanceController extends Controller
 {
-    public function index()
-    {
-        $user = auth()->user();
+   public function index()
+{
+    $teacher = auth()->user();
+    $now = now();
 
-        // Get today's day (e.g. Monday)
-        $today = now()->format('l'); // 'Monday', 'Tuesday', etc.
+    $schedules = Schedule::with('room') // this is critical
+        ->where('user_id', $teacher->id)
+        ->where('starts_at', '>=', $now)
+        ->orderBy('starts_at')
+        ->get();
 
-        // Optional: filter to today's schedules
-        $schedules = Schedule::with('room')
-            ->where('user_id', $user->id)
-           // ->where('day', $today) // optional: show only today's schedules
-            ->orderBy('time_start')
-            ->get();
-
-        return view('teacher.index', compact('schedules'));
-    }
+    return view('teacher.index', compact('schedules'));
+}
 
     public function store(Request $request)
     {
@@ -43,7 +40,7 @@ class AttendanceController extends Controller
             'check_in_time' => now(),
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
-            'is_valid' => true // This can be updated later using radius logic
+            'is_valid' => true // Temporary, can be updated based on radius logic
         ]);
 
         return back()->with('success', 'Attendance recorded.');

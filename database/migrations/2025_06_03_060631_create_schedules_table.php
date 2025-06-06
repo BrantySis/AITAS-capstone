@@ -19,9 +19,8 @@ return new class extends Migration
             $table->string('subject');
             $table->integer('units');
             $table->enum('type', ['lecture', 'lab']); // or your actual types
-            $table->string('day');
-            $table->time('time_start');
-            $table->time('time_end');
+            $table->dateTime('starts_at');
+            $table->dateTime('ends_at');
             $table->timestamps();
         });
     }
