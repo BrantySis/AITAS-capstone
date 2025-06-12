@@ -5,16 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>University of Cebu - Web Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes snow-fall {
+            0% {
+                transform: translateY(-10vh);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(110vh);
+                opacity: 0;
+            }
+        }
+
+        .snow-dot {
+            position: absolute;
+            top: 0;
+            border-radius: 9999px;
+            background-color: white;
+            opacity: 0.7;
+            animation-name: snow-fall;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+    </style>
 </head>
 <body>
-    <div class="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-500 to-blue-700 relative">
-        <!-- Floating Dots Animation -->
-        <div class="absolute inset-0 overflow-hidden z-0">
-            <div class="animate-pulse space-y-6">
-                @for ($i = 0; $i < 40; $i++)
-                    <div class="absolute w-1 h-1 bg-white rounded-full opacity-60" style="top: {{ rand(0,100) }}%; left: {{ rand(0,100) }}%;"></div>
-                @endfor
-            </div>
+    <div class="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-500 to-blue-700 relative overflow-hidden">
+        <!-- Snowfall Background -->
+        <div class="absolute inset-0 z-0 pointer-events-none">
+           @for ($i = 0; $i < 50; $i++)
+    @php
+        $duration = rand(10, 20); // seconds
+        $delay = 0; // no delay for immediate fall
+        $size = rand(2, 10); // snowflake size in px
+        $left = rand(0, 100); // % from left
+        $top = rand(-100, 100); // random vertical start
+        $drift = rand(3, 6); // drift duration
+    @endphp
+    <div class="snow-dot"
+        style="
+            width: {{ $size }}px;
+            height: {{ $size }}px;
+            left: {{ $left }}%;
+            top: {{ $top }}vh;
+            animation: snow-fall {{ $duration }}s linear 0s infinite,
+                       snow-drift {{ $drift }}s ease-in-out 0s infinite;
+        ">
+    </div>
+@endfor
         </div>
 
         <div class="z-10 bg-white rounded-md shadow-lg p-8 w-full max-w-md text-center">
@@ -26,7 +64,7 @@
                 <p class="text-xs text-gray-500 mt-1">WEB PORTAL</p>
             </div>
 
-            <!-- Error Messages (if any) -->
+            <!-- Error Messages -->
             @if($errors->any())
                 <div class="mb-4 text-red-600 text-sm">
                     {{ $errors->first() }}
