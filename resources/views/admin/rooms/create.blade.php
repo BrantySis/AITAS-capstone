@@ -1,7 +1,7 @@
 <x-app-layout>
     <h2 class="text-2xl font-bold mb-4">Add Room</h2>
 
-    {{-- Error/Validation messages --}}
+    {{-- Validation Errors --}}
     @if ($errors->has('duplicate'))
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {{ $errors->first('duplicate') }}
@@ -34,19 +34,17 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="block font-semibold">Latitude</label>
-                <input type="text" name="latitude" id="latitude" class="w-full border px-4 py-2 rounded" readonly>
+                <input type="text" name="latitude" id="latitude" value="{{ old('latitude') }}" class="w-full border px-4 py-2 rounded">
             </div>
             <div>
                 <label class="block font-semibold">Longitude</label>
-                <input type="text" name="longitude" id="longitude" class="w-full border px-4 py-2 rounded" readonly>
+                <input type="text" name="longitude" id="longitude" value="{{ old('longitude') }}" class="w-full border px-4 py-2 rounded">
             </div>
         </div>
 
-        <button type="button" onclick="getLocation()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-            📍 Detect Location
-        </button>
+        <button type="button" onclick="getLocation()" class="text-sm text-blue-600 underline">📍 Use My Current Location</button>
 
-        <div id="map" class="w-full h-64 my-4 rounded shadow border"></div>
+        <div id="map" class="w-full h-64 mt-4 rounded shadow border"></div>
 
         <div class="flex gap-4">
             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save</button>
@@ -54,43 +52,53 @@
         </div>
     </form>
 
-    {{-- Leaflet CSS --}}
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    {{-- Leaflet JS --}}
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
+    {{-- Leaflet --}}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         let map, marker;
 
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function (position) {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
+        function initMap(lat, lng) {
+            if (!map) {
+                map = L.map('map').setView([lat, lng], 17);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
 
-                        document.getElementById('latitude').value = lat;
-                        document.getElementById('longitude').value = lng;
+                marker = L.marker([lat, lng], { draggable: true }).addTo(map)
+                    .bindPopup("Drag to adjust location").openPopup();
 
-                        // Initialize or update the map
-                        if (!map) {
-                            map = L.map('map').setView([lat, lng], 18);
-                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                attribution: '&copy; OpenStreetMap contributors'
-                            }).addTo(map);
-                            marker = L.marker([lat, lng]).addTo(map).bindPopup('You are here.').openPopup();
-                        } else {
-                            map.setView([lat, lng], 18);
-                            marker.setLatLng([lat, lng]);
-                        }
-                    },
-                    function (error) {
-                        alert("⚠️ Location access failed: " + error.message);
-                    }
-                );
+                marker.on('dragend', function (e) {
+                    const position = marker.getLatLng();
+                    document.getElementById('latitude').value = position.lat.toFixed(6);
+                    document.getElementById('longitude').value = position.lng.toFixed(6);
+                });
             } else {
-                alert("🚫 Geolocation is not supported by your browser.");
+                map.setView([lat, lng], 17);
+                marker.setLatLng([lat, lng]);
             }
         }
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('latitude').value = lat;
+                    document.getElementById('longitude').value = lng;
+                    initMap(lat, lng);
+                }, function (error) {
+                    alert("❌ Error: " + error.message);
+                });
+            } else {
+                alert("Geolocation not supported.");
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const lat = parseFloat(document.getElementById('latitude').value) || 14.5995;
+            const lng = parseFloat(document.getElementById('longitude').value) || 120.9842;
+            initMap(lat, lng);
+        });
     </script>
 </x-app-layout>

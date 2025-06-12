@@ -37,26 +37,29 @@
                                 <td class="px-6 py-4">{{ optional($schedule->room)->room_code ?? 'No Room' }}</td>
                                 <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('F j, Y') }}</td>
                                 <td class="px-6 py-4">
-                                    @if(in_array($schedule->id, $checkedInSchedules))
-                                        <button class="bg-gray-400 text-white px-3 py-1 rounded cursor-not-allowed" disabled>
-                                            Already Checked In
-                                        </button>
-                                    @else
-                                        <form method="POST" action="{{ route('teacher.attendance.store') }}">
-                                            @csrf
-                                            <input type="hidden" name="user_id" value="{{ auth()->id() }}">
-                                            <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
-                                            <input type="hidden" name="latitude" id="lat-{{ $schedule->id }}">
-                                            <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
+                                @php
+                                    $hasCheckedIn = in_array($schedule->id, $checkedInSchedules);
+                                @endphp
 
-                                            <button type="button"
-                                                onclick="getLocationAndSubmit({{ $schedule->id }})"
-                                                class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                                                {{ in_array($schedule->id, $checkedInSchedules) ? 'disabled class=opacity-50 cursor-not-allowed' : '' }}>
-                                                Check In
-                                            </button>
-                                        </form>
-                                    @endif
+                                @if($hasCheckedIn)
+                                    <button class="bg-gray-400 text-white px-3 py-1 rounded cursor-not-allowed" disabled>
+                                        Already Checked In
+                                    </button>
+                                @else
+                                    <form method="POST" action="{{ route('teacher.attendance.store') }}">
+                                        @csrf
+                                        <input type="hidden" name="user_id" value="{{ auth()->id() }}">
+                                        <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
+                                        <input type="hidden" name="latitude" id="lat-{{ $schedule->id }}">
+                                        <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
+
+                                        <button type="button"
+                                            onclick="getLocationAndSubmit({{ $schedule->id }})"
+                                            class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
+                                            Check In
+                                        </button>
+                                    </form>
+                                @endif
                                 </td>
                             </tr>
                         @endforeach

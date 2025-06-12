@@ -44,7 +44,7 @@ class AttendanceController extends Controller
         $scheduleId = $request->schedule_id;
         $userId = $request->user_id;
     
-        // Prevent duplicate check-ins for the same day and schedule
+        // Prevent duplicate check-ins
         $existing = Attendance::where('user_id', $userId)
             ->where('schedule_id', $scheduleId)
             ->whereDate('created_at', now()->toDateString())
@@ -56,16 +56,21 @@ class AttendanceController extends Controller
     
         $schedule = Schedule::with('room')->findOrFail($scheduleId);
         $room = $schedule->room;
-        $isValid = false;
     
-        if ($room && $room->latitude && $room->longitude) {
-            $isValid = $this->isWithinRadius(
-                $request->latitude,
-                $request->longitude,
-                $room->latitude,
-                $room->longitude,
-                50 // radius in meters
-            );
+        if (!$room || !$room->latitude || !$room->longitude) {
+            return back()->with('error', '❌ Room location is not properly set. Please contact the admin.');
+        }
+    
+        $isValid = $this->isWithinRadius(
+            $request->latitude,
+            $request->longitude,
+            $room->latitude,
+            $room->longitude,
+            50 // meters
+        );
+    
+        if (!$isValid) {
+            return back()->with('error', '❌ You are not within the allowed room location. Check-in denied.');
         }
     
         Attendance::create([
@@ -74,13 +79,10 @@ class AttendanceController extends Controller
             'time_in' => now(),
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
-            'is_valid' => $isValid,
+            'is_valid' => true,
         ]);
     
-        return back()->with(
-            $isValid ? 'success' : 'error',
-            $isValid ? '✅ Check-in successful and within location.' : '❌ You are not within the allowed room location.'
-        );
+        return back()->with('success', '✅ Check-in successful and within location.');
     }
 
     private function isWithinRadius($lat1, $lon1, $lat2, $lon2, $radius = 50)
