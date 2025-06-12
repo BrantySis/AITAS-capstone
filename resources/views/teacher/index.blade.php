@@ -52,12 +52,15 @@
                                         <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
                                         <input type="hidden" name="latitude" id="lat-{{ $schedule->id }}">
                                         <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
-
+                                        <input type="hidden" id="room-lat-{{ $schedule->id }}" value="{{ optional($schedule->room)->latitude }}">
+                                        <input type="hidden" id="room-lng-{{ $schedule->id }}" value="{{ optional($schedule->room)->longitude }}">
+                                        <span id="distance-msg-{{ $schedule->id }}" class="text-sm text-red-600 block mt-2"></span>
                                         <button type="button"
                                             onclick="getLocationAndSubmit({{ $schedule->id }})"
                                             class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
                                             Check In
                                         </button>
+                                        
                                     </form>
                                 @endif
                                 </td>
@@ -73,34 +76,84 @@
     <div id="map" class="mt-6 w-full h-64 rounded-lg shadow hidden"></div>
 
     <script>
-        function getLocationAndSubmit(scheduleId) {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function (position) {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
+       function getLocationAndSubmit(scheduleId) {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
 
-                    document.getElementById('lat-' + scheduleId).value = lat;
-                    document.getElementById('lng-' + scheduleId).value = lng;
+                document.getElementById('lat-' + scheduleId).value = userLat;
+                document.getElementById('lng-' + scheduleId).value = userLng;
 
-                    // Optional map preview
-                    const mapContainer = document.getElementById("map");
-                    mapContainer.classList.remove('hidden');
-                    const map = L.map('map').setView([lat, lng], 17);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '&copy; OpenStreetMap contributors'
-                    }).addTo(map);
-                    L.marker([lat, lng]).addTo(map).bindPopup("You are here").openPopup();
+                const roomLat = parseFloat(document.getElementById('room-lat-' + scheduleId).value);
+                const roomLng = parseFloat(document.getElementById('room-lng-' + scheduleId).value);
 
-                    // Submit form
+                // Calculate distance in meters
+                const distance = getDistanceInMeters(userLat, userLng, roomLat, roomLng);
+
+                const msgElement = document.getElementById('distance-msg-' + scheduleId);
+
+                // Show distance message
+                msgElement.textContent = `📍 You are approximately ${distance.toFixed(2)} meters from the room.`;
+
+                // Optional map preview
+                const mapContainer = document.getElementById("map");
+                mapContainer.classList.remove('hidden');
+                mapContainer.innerHTML = ""; // Clear old map
+                const map = L.map('map').setView([userLat, userLng], 18);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                // Mark user's location
+                L.marker([userLat, userLng]).addTo(map)
+                    .bindPopup("You are here").openPopup();
+
+                // Room marker and 50m radius
+                L.circle([roomLat, roomLng], {
+                    color: 'blue',
+                    fillColor: '#cce5ff',
+                    fillOpacity: 0.3,
+                    radius: 12 // buffer radius
+                }).addTo(map).bindPopup("Allowed Check-In Area");
+
+                L.marker([roomLat, roomLng], {
+                    icon: L.icon({
+                        iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+                        iconSize: [25, 25]
+                    })
+                }).addTo(map).bindPopup("Room Location");
+
+                // Only submit if within 50 meters
+                if (distance <= 12) {
                     document.querySelector(`#lat-${scheduleId}`).closest('form').submit();
-                }, function (error) {
-                    alert("❌ Location error: " + error.message);
-                });
-            } else {
-                alert("Geolocation is not supported.");
-            }
+                } else {
+                    msgElement.textContent += " ❌ You are outside the allowed range (12m). Check-in blocked.";
+                }
+
+            }, function (error) {
+                alert("❌ Location error: " + error.message);
+            });
+        } else {
+            alert("Geolocation is not supported.");
         }
-    </script>
+        }
+
+                    function getDistanceInMeters(lat1, lon1, lat2, lon2) {
+                        const R = 6371000; // Earth radius in meters
+                        const dLat = toRad(lat2 - lat1);
+                        const dLon = toRad(lon2 - lon1);
+                        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                        return R * c;
+                    }
+
+                    function toRad(deg) {
+                        return deg * (Math.PI / 180);
+                    }
+                    </script>
 
     {{-- Load Leaflet --}}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
