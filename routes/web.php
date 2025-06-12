@@ -50,6 +50,7 @@ Route::middleware(['auth', 'verified', 'teacher'])
     ->group(function () {
         Route::get('/load', [LoadController::class, 'index'])->name('load');
         Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+        Route::post('/attendance', [App\Http\Controllers\Teacher\AttendanceController::class, 'store'])->name('attendance.store');
     });
 
 // Authentication routes

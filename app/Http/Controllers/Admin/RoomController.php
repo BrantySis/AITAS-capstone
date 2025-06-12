@@ -36,10 +36,14 @@ class RoomController extends Controller
                 ->withInput();
         }
 
+        // Optional: fallback to null if lat/lng not provided
+        $validated['latitude'] = $validated['latitude'] ?? null;
+        $validated['longitude'] = $validated['longitude'] ?? null;
+
         Room::create($validated);
 
         return redirect()->route('admin.rooms.index')
-            ->with('success', 'Room successfully created.');
+            ->with('success', 'Room successfully created with current location.');
     }
 
     public function edit(Room $room)
