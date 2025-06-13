@@ -108,7 +108,8 @@
                     <span class="nav-label">Teacher's Evaluation</span>
                 </li>
                 <li class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
-                    <span>👤</span>
+                <a href="{{ route('teacher.attendance.index') }}" class="flex items-center space-x-2">    
+                <span>👤</span>
                     <span class="nav-label">Attendance Checker</span>
                 </li>
                 <li class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">

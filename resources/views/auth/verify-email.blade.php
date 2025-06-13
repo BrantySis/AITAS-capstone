@@ -4,16 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Verification - University of Cebu</title>
+            <style>
+        @keyframes snow-fall {
+            0% {
+                transform: translateY(-10vh);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(110vh);
+                opacity: 0;
+            }
+        }
+
+        .snow-dot {
+            position: absolute;
+            top: 0;
+            border-radius: 9999px;
+            background-color: white;
+            opacity: 0.7;
+            animation-name: snow-fall;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+    </style>
+
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
     <div class="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-500 to-blue-700 relative">
-        <!-- Floating dots background -->
-        <div class="absolute inset-0 z-0 overflow-hidden">
-            @for ($i = 0; $i < 40; $i++)
-                <div class="absolute w-1 h-1 bg-white rounded-full opacity-50 animate-pulse"
-                     style="top: {{ rand(0, 100) }}%; left: {{ rand(0, 100) }}%;"></div>
-            @endfor
+        <!-- Snowfall Background -->
+        <div class="absolute inset-0 z-0 pointer-events-none">
+           @for ($i = 0; $i < 50; $i++)
+    @php
+        $duration = rand(10, 20); // seconds
+        $delay = 0; // no delay for immediate fall
+        $size = rand(2, 10); // snowflake size in px
+        $left = rand(0, 100); // % from left
+        $top = rand(-100, 100); // random vertical start
+        $drift = rand(3, 6); // drift duration
+    @endphp
+    <div class="snow-dot"
+        style="
+            width: {{ $size }}px;
+            height: {{ $size }}px;
+            left: {{ $left }}%;
+            top: {{ $top }}vh;
+            animation: snow-fall {{ $duration }}s linear 0s infinite,
+                       snow-drift {{ $drift }}s ease-in-out 0s infinite;
+        ">
+    </div>
+@endfor
         </div>
 
         <!-- Main Card -->

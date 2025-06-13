@@ -1,6 +1,17 @@
 <x-app-layout>
     <div class="max-w-4xl mx-auto p-6">
-        <h2 class="text-2xl font-bold mb-6 text-blue-700 text-center">Upcoming Schedule</h2>
+        
+    <div class="flex items-center justify-between mb-6">
+        <a href="{{ url()->previous() }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+            <!-- Left arrow icon -->
+            <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back
+        </a>
+        <h2 class="text-2xl font-bold text-blue-700 text-center flex-grow">Upcoming Schedule</h2>
+    </div>
 
         @if(session('success'))
             <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">

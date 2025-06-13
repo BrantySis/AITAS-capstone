@@ -1,10 +1,23 @@
 {{-- resources/views/admin/teachers/index.blade.php --}}
 <x-app-layout>
+
+            <!-- Back Button Outside the Frame -->
+    <div class="max-w-7xl pl-6 mx-auto mt-6">
+        <a href="{{ url()->previous() }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium">
+            <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+        </a>
+    </div>
+
     <div class="max-w-7xl mx-auto py-10 px-6">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-semibold text-gray-800">Teachers</h2>
             <a href="{{ route('admin.teachers.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Add Teacher</a>
-        </div>
+        </div>    
+
         <div class="bg-white shadow rounded-lg p-6">
             <table class="min-w-full table-auto">
                 <thead>
