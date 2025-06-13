@@ -75,8 +75,17 @@
                                         </button>
                                         
                                     </form>
+                                    
                                 @endif
                                 </td>
+                                <form method="POST" action="{{ route('teacher.attendance.timeout') }}" class="inline">
+                                        @csrf
+                                        <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
+                                        <button type="submit"
+                                                class="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 mt-2">
+                                            Time Out
+                                        </button>
+                                    </form>
                             </tr>
                         @endforeach
                     </tbody>

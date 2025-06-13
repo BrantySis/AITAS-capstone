@@ -31,6 +31,9 @@ Route::get('/', function () {
 
     return view('welcome');
 });
+Route::get('/test-time', function () {
+    dd(now()); // or dd(Carbon::now());
+});
 
 // Dashboard routes
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -71,6 +74,7 @@ Route::middleware(['auth', 'verified', 'teacher'])
         Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
         Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
         Route::get('/calendar', [DashboardController::class, 'calendar'])->name('calendar');
+        Route::post('/attendance/timeout', [AttendanceController::class, 'timeout'])->name('attendance.timeout'); 
     });
 
 require __DIR__.'/auth.php';
