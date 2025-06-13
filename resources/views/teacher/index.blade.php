@@ -1,8 +1,10 @@
 <x-app-layout>
+    
+    
     <div class="max-w-4xl mx-auto p-6">
         
     <div class="flex items-center justify-between mb-6">
-        <a href="{{ url()->previous() }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+        <a href="{{ route('dashboard.teacher') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
             <!-- Left arrow icon -->
             <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg">
@@ -125,7 +127,7 @@
                     color: 'blue',
                     fillColor: '#cce5ff',
                     fillOpacity: 0.3,
-                    radius: 12 // buffer radius
+                    radius: 5 // buffer radius
                 }).addTo(map).bindPopup("Allowed Check-In Area");
 
                 L.marker([roomLat, roomLng], {
@@ -136,7 +138,7 @@
                 }).addTo(map).bindPopup("Room Location");
 
                 // Only submit if within 50 meters
-                if (distance <= 12) {
+                if (distance <= 5) {
                     document.querySelector(`#lat-${scheduleId}`).closest('form').submit();
                 } else {
                     msgElement.textContent += " ❌ You are outside the allowed range (12m). Check-in blocked.";

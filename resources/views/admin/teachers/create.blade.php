@@ -1,5 +1,15 @@
 {{-- resources/views/admin/teachers/create.blade.php --}}
 <x-app-layout>
+     <!-- Back Button -->
+     <div class="max-w-7xl -ml-1 mx-auto mb-6">
+        <a href="{{ route('dashboard.admin') }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium">
+            <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+        </a>
+    </div>
+    
     <div class="max-w-2xl mx-auto py-10 px-6">
         <h2 class="text-2xl font-semibold mb-4">Add New Teacher</h2>
         <form action="{{ route('admin.teachers.store') }}" method="POST">
@@ -14,7 +24,7 @@
             </div>
             <div class="mb-4">
             <label for="faculty_number">Faculty Number</label>
-            <input type="text" name="faculty_number" id="faculty_number" maxlength="7" value="{{ old('faculty_number', $teacher->faculty_number ?? '') }}" required>
+            <input type="text" name="faculty_number" id="faculty_number" class="w-full border-gray-300 rounded mt-1" maxlength="8" value="{{ old('faculty_number', $teacher->faculty_number ?? '') }}" required>
             </div>
             
             <div class="mb-4">

@@ -1,4 +1,14 @@
 <x-app-layout>
+     <!-- Back Button -->
+     <div class="max-w-7xl -ml-1 mx-auto mb-6">
+        <a href="{{ route('dashboard.admin') }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium">
+            <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+        </a>
+    </div>
+    
     <h2 class="text-2xl font-bold mb-4">Add Room</h2>
 
     {{-- Validation Errors --}}

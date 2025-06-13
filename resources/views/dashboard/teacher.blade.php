@@ -97,10 +97,10 @@
                     <span>📝</span>
                     <span class="nav-label">E Grade</span>
                 </li>
-                <li class="nav-icon hover:bg-blue-100 rounded px-3 py-2">
+                <li class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
                     <a href="{{ route('teacher.load') }}" class="flex items-center space-x-2">
                         <span>📅</span>
-                        <span>My Load</span>
+                        <span class="nav-label">My Load</span>
                     </a>
                 </li>
                 <li class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
@@ -108,15 +108,21 @@
                     <span class="nav-label">Teacher's Evaluation</span>
                 </li>
                 <li class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
+                    <a href="{{ route('teacher.calendar') }}" class="flex items-center space-x-2">
+                        <span>📆</span>
+                        <span class="nav-label">My Calendar</span>
+                    </a>
+                </li>
+                <li class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
                 <a href="{{ route('teacher.attendance.index') }}" class="flex items-center space-x-2">    
                 <span>👤</span>
                     <span class="nav-label">Attendance Checker</span>
                 </li>
                 <li class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
-                <a href="{{ route('profile.edit') }}" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer block">
-    <span>🧾</span>
-    <span class="nav-label">Profile</span>
-</a>
+                <a href="{{ route('profile.edit') }}" class="flex items-center space-x-2">  
+                        <span>🧾</span>
+                        <span class="nav-label">Profile</span>
+                    </a>
                 </li>
             </ul>
         </aside>
@@ -126,8 +132,34 @@
             <h2 class="text-2xl font-bold text-blue-700 mb-4">Attendance Checker</h2>
 
             <div class="border rounded-lg bg-white p-10 h-[500px] flex items-center justify-center text-gray-400 text-lg">
-                Calendar View (Coming Soon)
-            </div>
+            <div id="calendar" class="bg-white border rounded-lg p-4 shadow-md h-[400px] w-full"></div>
+
+                        <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
+                        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
+                        <script>
+                              document.addEventListener('DOMContentLoaded', function () {
+                            const calendarEl = document.getElementById('calendar');
+                            const calendar = new FullCalendar.Calendar(calendarEl, {
+                                initialView: 'dayGridMonth',
+                                height: 600,
+                                headerToolbar: {
+                                    left: 'prev,next today',
+                                    center: 'title',
+                                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                                },
+                                events: [
+                                    {
+                                        title: 'Test Class',
+                                        start: '2025-06-14T10:00:00',
+                                        end: '2025-06-14T12:00:00'
+                                    }
+                                    ]
+                            });
+                            calendar.render();
+                        });
+                           
+                        </script>
+                </div>
         </main>
     </div>
 

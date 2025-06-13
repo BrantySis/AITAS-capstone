@@ -7,15 +7,30 @@ use Illuminate\Http\Request;
 use App\Models\Schedule;
 use App\Models\User;
 use App\Models\Room;
+use App\Models\Attendance;
 
 class ScheduleController extends Controller
 {
-    public function index()
+    
+    public function index(Request $request)
     {
-        // Load schedules with 'teacher' relationship (not 'user')
-        $schedules = Schedule::with(['teacher', 'room'])->get();
-        return view('admin.schedules.index', compact('schedules'));
+        $query = Schedule::with(['teacher', 'room']);
+    
+        // Filter: show only in-progress if requested
+        if ($request->has('filter') && $request->filter === 'in-progress') {
+            $now = now();
+            $query->where('starts_at', '<=', $now)
+                  ->where('ends_at', '>=', $now);
+        }
+    
+        $schedules = $query->orderBy('starts_at')->get();
+    
+        // Mark which schedules were attended
+        $attendanceMap = Attendance::pluck('schedule_id')->unique()->toArray();
+    
+        return view('admin.schedules.index', compact('schedules', 'attendanceMap'));
     }
+    
 
     public function create()
     {
@@ -113,8 +128,16 @@ class ScheduleController extends Controller
         return redirect()->route('admin.schedules.index')->with('success', 'Schedule updated successfully.');
     }
 
+    
+
     public function destroy(Schedule $schedule)
     {
+        // Prevent deletion if attendance exists
+        if ($schedule->attendances()->exists()) {
+            return redirect()->route('admin.schedules.index')
+                ->with('error', '❌ Cannot delete schedule with recorded attendance.');
+        }
+    
         $schedule->delete();
         return redirect()->route('admin.schedules.index')->with('success', 'Schedule deleted successfully.');
     }

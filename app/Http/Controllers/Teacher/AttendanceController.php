@@ -67,7 +67,7 @@ class AttendanceController extends Controller
             $request->longitude,
             $room->latitude,
             $room->longitude,
-            12 // ← changed from 50 to 12 meters
+            5 // ← changed from 50 to 12 meters
         );
 
         if (!$isValid) {
@@ -86,7 +86,7 @@ class AttendanceController extends Controller
         return back()->with('success', '✅ Check-in successful and within 12-meter range.');
     }
 
-    private function isWithinRadius($lat1, $lon1, $lat2, $lon2, $radius = 12)
+    private function isWithinRadius($lat1, $lon1, $lat2, $lon2, $radius = 5)
     {
         $earthRadius = 6371000; // meters
         $dLat = deg2rad($lat2 - $lat1);
