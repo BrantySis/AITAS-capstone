@@ -22,7 +22,7 @@ class LoadController extends Controller
                         ->pluck('schedule_id')
                         ->toArray();
 
-                    $query = Schedule::with('room')->where('user_id', $teacherId);
+                    $query = Schedule::with(['room', 'subject'])->where('user_id', $teacherId);
 
                     if ($filter === 'in-progress') {
                         $query->where('starts_at', '<=', $now)->where('ends_at', '>=', $now);

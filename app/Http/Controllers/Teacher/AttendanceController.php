@@ -16,7 +16,7 @@ class AttendanceController extends Controller
         $now = now();
 
         // Filter only today's schedules that haven't ended yet
-        $schedules = Schedule::with('room')
+        $schedules = Schedule::with(['room', 'subject'])
             ->where('user_id', $teacher->id)
             ->whereDate('starts_at', $now->toDateString()) // Only today
             ->where('ends_at', '>=', $now) // Not yet ended

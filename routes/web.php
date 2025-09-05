@@ -76,20 +76,43 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::resource('schedules', ScheduleController::class);
     });
 
-// Teacher-only routes
-Route::middleware(['auth', 'verified', 'teacher'])
-    ->prefix('teacher')
-    ->name('teacher.')
-    ->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        Route::get('/load', [LoadController::class, 'index'])->name('load');
-        Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
-        Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
-        Route::get('/calendar', [DashboardController::class, 'calendar'])->name('calendar');
-        Route::post('/attendance/timeout', [AttendanceController::class, 'timeout'])->name('attendance.timeout'); 
-    });
+// Teacher Routes
+Route::middleware(['auth', 'teacher'])->prefix('teacher')->name('teacher.')->group(function () {
+    Route::get('/dashboard', function () {
+        return view('dashboard.teacher');
+    })->name('dashboard');
+    
+    Route::get('/notifications', function () {
+        return view('teacher.notifications');
+    })->name('notifications');
+    
+    Route::get('/forms', function () {
+        return view('teacher.forms');
+    })->name('forms');
+    
+    Route::get('/biometrics', function () {
+        return view('teacher.biometrics');
+    })->name('biometrics');
+    
+    Route::get('/grades', function () {
+        return view('teacher.grades');
+    })->name('grades');
+    
+    Route::get('/evaluation', function () {
+        return view('teacher.evaluation');
+    })->name('evaluation');
+    
+    Route::get('/load', [LoadController::class, 'index'])->name('load');
+    Route::get('/calendar', [DashboardController::class, 'calendar'])->name('calendar');
+    
+    Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
+    Route::post('/attendance/timeout', [AttendanceController::class, 'timeout'])->name('attendance.timeout');
+    Route::post('/attendance/verify', [AttendanceController::class, 'verifyFace'])->name('attendance.verify');
+});
 
 require __DIR__.'/auth.php';
+
 
 
 

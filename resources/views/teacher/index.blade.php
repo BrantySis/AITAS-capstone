@@ -42,7 +42,7 @@
                     <tbody class="text-gray-700">
                     @foreach($schedules as $schedule)
                             <tr class="border-b hover:bg-gray-50">
-                                <td class="px-6 py-4">{{ $schedule->subject }}</td>
+                                <td class="px-6 py-4">{{ $schedule->subject->subject_name ?? 'Unknown Subject' }}</td>
                                 <td class="px-6 py-4">
                                     {{ \Carbon\Carbon::parse($schedule->starts_at)->format('g:i A') }} -
                                     {{ \Carbon\Carbon::parse($schedule->ends_at)->format('g:i A') }}

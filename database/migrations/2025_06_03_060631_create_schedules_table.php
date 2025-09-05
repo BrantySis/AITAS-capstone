@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // assigned teacher
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('room_id')->constrained()->onDelete('cascade');
+            $table->foreignId('subject_id')->constrained()->onDelete('cascade');
             $table->string('edp_code');
-            $table->string('subject');
             $table->integer('units');
-            $table->enum('type', ['lecture', 'lab']); // or your actual types
+            $table->enum('type', ['lecture', 'lab']);
             $table->dateTime('starts_at');
             $table->dateTime('ends_at');
             $table->timestamps();
@@ -33,3 +33,5 @@ return new class extends Migration
         Schema::dropIfExists('schedules');
     }
 };
+
+

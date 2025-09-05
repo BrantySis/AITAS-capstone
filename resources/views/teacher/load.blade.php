@@ -70,7 +70,7 @@
 
                             <tr class="border-b hover:bg-gray-50">
                                 <td class="px-6 py-4">{{ $schedule->edp_code }}</td>
-                                <td class="px-6 py-4">{{ $schedule->subject }}</td>
+                                <td class="px-6 py-4">{{ $schedule->subject->subject_name ?? 'Unknown Subject' }}</td>
                                 <td class="px-6 py-4">{{ $schedule->units }}</td>
                                 <td class="px-6 py-4 capitalize">{{ $schedule->type }}</td>
                                 <td class="px-6 py-4">

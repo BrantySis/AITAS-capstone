@@ -11,9 +11,9 @@ class DashboardController extends Controller
 {
     public function index()
         {
-            $events = Schedule::where('user_id', auth()->id())->get()->map(function ($schedule) {
+            $events = Schedule::with('subject')->where('user_id', auth()->id())->get()->map(function ($schedule) {
                 return [
-                    'title' => $schedule->subject,
+                    'title' => $schedule->subject->subject_name ?? 'Unknown Subject',
                     'start' => Carbon::parse($schedule->starts_at)->toIso8601String(),
                     'end' => Carbon::parse($schedule->ends_at)->toIso8601String(),
                 ];
@@ -24,11 +24,22 @@ class DashboardController extends Controller
 
         public function calendar()
             {
-                $events = Schedule::where('user_id', auth()->id())->get()->map(function ($schedule) {
+                $events = Schedule::with(['subject', 'room'])->where('user_id', auth()->id())->get()->map(function ($schedule) {
+                    // Generate different colors based on schedule type
+                    $backgroundColor = $schedule->type === 'lab' ? '#10B981' : '#3B82F6';
+
                     return [
-                        'title' => $schedule->subject,
+                        'title' => ($schedule->subject->subject_name ?? 'Unknown Subject') . ' (' . ($schedule->room->room_code ?? 'TBA') . ')',
                         'start' => Carbon::parse($schedule->starts_at)->toIso8601String(),
                         'end' => Carbon::parse($schedule->ends_at)->toIso8601String(),
+                        'backgroundColor' => $backgroundColor,
+                        'borderColor' => $backgroundColor,
+                        'extendedProps' => [
+                            'edp_code' => $schedule->edp_code,
+                            'type' => $schedule->type,
+                            'room' => $schedule->room->room_code ?? 'TBA',
+                            'units' => $schedule->units
+                        ]
                     ];
                 });
 

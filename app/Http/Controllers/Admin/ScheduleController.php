@@ -110,25 +110,28 @@ class ScheduleController extends Controller
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'room_id' => 'required|exists:rooms,id',
+            'subject_id' => 'required|exists:subjects,id', // Changed from 'subject'
             'edp_code' => 'required|string|max:255',
-            'subject' => 'required|string|max:255',
             'units' => 'required|integer|min:1',
             'type' => 'required|in:lecture,lab',
             'starts_at' => 'required|date',
-             'ends_at' => 'required|date|after:starts_at',
+            'ends_at' => 'required|date|after:starts_at',
         ]);
 
+        // Get units from selected subject
+        $subject = Subject::find($request->subject_id);
+
         // Check for conflicts excluding the current schedule
-       $conflict = Schedule::where('user_id', $request->user_id)
-    ->where('id', '!=', $schedule->id)
-    ->where(function ($query) use ($request) {
-        $query->whereBetween('starts_at', [$request->starts_at, $request->ends_at])
-              ->orWhereBetween('ends_at', [$request->starts_at, $request->ends_at])
-              ->orWhere(function ($q) use ($request) {
-                  $q->where('starts_at', '<=', $request->starts_at)
-                    ->where('ends_at', '>=', $request->ends_at);
-              });
-    })->exists();
+        $conflict = Schedule::where('user_id', $request->user_id)
+            ->where('id', '!=', $schedule->id)
+            ->where(function ($query) use ($request) {
+                $query->whereBetween('starts_at', [$request->starts_at, $request->ends_at])
+                      ->orWhereBetween('ends_at', [$request->starts_at, $request->ends_at])
+                      ->orWhere(function ($q) use ($request) {
+                          $q->where('starts_at', '<=', $request->starts_at)
+                            ->where('ends_at', '>=', $request->ends_at);
+                      });
+            })->exists();
 
         if ($conflict) {
             return redirect()->back()
@@ -136,7 +139,16 @@ class ScheduleController extends Controller
                 ->withInput();
         }
 
-        $schedule->update($request->all());
+        $schedule->update([
+            'user_id' => $request->user_id,
+            'room_id' => $request->room_id,
+            'subject_id' => $request->subject_id,
+            'edp_code' => $request->edp_code,
+            'units' => $subject->units, // Auto-fill from subject
+            'type' => $request->type,
+            'starts_at' => $request->starts_at,
+            'ends_at' => $request->ends_at,
+        ]);
 
         return redirect()->route('admin.schedules.index')->with('success', 'Schedule updated successfully.');
     }
@@ -155,5 +167,6 @@ class ScheduleController extends Controller
         return redirect()->route('admin.schedules.index')->with('success', 'Schedule deleted successfully.');
     }
 }
+
 
 
