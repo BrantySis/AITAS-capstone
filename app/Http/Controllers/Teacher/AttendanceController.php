@@ -43,7 +43,7 @@ class AttendanceController extends Controller
 
         $userId = $request->user_id;
         $scheduleId = $request->schedule_id;
-        $now = now();
+        $now = now('Asia/Manila'); // Use configured timezone
 
         // Check for duplicate check-in
         $existing = Attendance::where('user_id', $userId)
@@ -56,10 +56,20 @@ class AttendanceController extends Controller
         }
 
         $schedule = Schedule::with('room')->findOrFail($scheduleId);
+        $scheduleStart = \Carbon\Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
+        $scheduleEnd = \Carbon\Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
 
-        // 🕒 Prevent check-in before schedule start
-        if ($now->lt($schedule->starts_at)) {
-            return back()->with('error', '⏳ Check-in not allowed yet. Please wait until the schedule starts.');
+        // Allow check-in 15 minutes before schedule starts
+        $allowedCheckInTime = $scheduleStart->copy()->subMinutes(15);
+
+        // Prevent early check-in
+        if ($now->lt($allowedCheckInTime)) {
+            return back()->with('error', '⏳ Check-in not allowed yet. You can check in 15 minutes before the schedule starts.');
+        }
+
+        // Prevent late check-in (after schedule ends)
+        if ($now->gt($scheduleEnd)) {
+            return back()->with('error', '⏰ Check-in period has ended for this schedule.');
         }
 
         $room = $schedule->room;
@@ -148,3 +158,4 @@ class AttendanceController extends Controller
         return $distance <= $radius;
     }
 }
+

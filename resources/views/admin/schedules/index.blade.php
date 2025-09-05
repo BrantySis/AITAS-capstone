@@ -46,7 +46,7 @@
                 @foreach ($schedules as $schedule)
                     <tr class="border-t hover:bg-gray-50">
                         <td class="px-4 py-2">{{ $schedule->teacher->name ?? 'N/A' }}</td>
-                        <td class="px-4 py-2">{{ $schedule->subject }}</td>
+                        <td class="px-4 py-2">{{ $schedule->subject->subject_name ?? $schedule->subject ?? 'N/A' }}</td>
                         <td class="px-4 py-2">{{ $schedule->room->room_code ?? 'N/A' }}</td>
                         <td class="px-4 py-2">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('D, M j') }}</td>
                         <td class="px-4 py-2">
@@ -81,3 +81,4 @@
         </table>
     </div>
 </x-app-layout>
+

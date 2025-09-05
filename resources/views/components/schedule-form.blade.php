@@ -1,4 +1,4 @@
-@props(['schedule' => null, 'users', 'rooms'])
+@props(['schedule' => null, 'users', 'rooms', 'subjects'])
 
 <div>
     <label class="block">Teacher</label>
@@ -29,6 +29,23 @@
 </div>
 
 <div>
+    <label class="block">Subject</label>
+    <select name="subject_id" class="w-full border p-2 rounded" required id="subject-select">
+        <option value="">Select Subject</option>
+        @foreach ($subjects as $subject)
+            <option value="{{ $subject->id }}" 
+                    data-units="{{ $subject->units }}"
+                    @selected(old('subject_id', $schedule->subject_id ?? '') == $subject->id)>
+                {{ $subject->subject_code }} - {{ $subject->subject_name }}
+            </option>
+        @endforeach
+    </select>
+    @error('subject_id')
+        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+    @enderror
+</div>
+
+<div>
     <label class="block">EDP Code</label>
     <input type="text" name="edp_code" class="w-full border p-2 rounded" value="{{ old('edp_code', $schedule->edp_code ?? '') }}" required>
     @error('edp_code')
@@ -37,20 +54,21 @@
 </div>
 
 <div>
-    <label class="block">Subject</label>
-    <input type="text" name="subject" class="w-full border p-2 rounded" value="{{ old('subject', $schedule->subject ?? '') }}" required>
-    @error('subject')
-        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
-    @enderror
-</div>
-
-<div>
-    <label class="block">Units</label>
-    <input type="number" name="units" class="w-full border p-2 rounded" value="{{ old('units', $schedule->units ?? '') }}" min="1" required>
+    <label class="block">Units (Auto-filled from subject)</label>
+    <input type="number" name="units" id="units-field" class="w-full border p-2 rounded bg-gray-100" 
+           value="{{ old('units', $schedule->units ?? '') }}" min="1" readonly>
     @error('units')
         <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
     @enderror
 </div>
+
+<script>
+document.getElementById('subject-select').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const units = selectedOption.getAttribute('data-units');
+    document.getElementById('units-field').value = units || '';
+});
+</script>
 
 <div>
     <label class="block">Type</label>
@@ -82,3 +100,4 @@
         <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
     @enderror
 </div>
+

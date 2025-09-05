@@ -22,9 +22,9 @@
         
         <form action="{{ route('admin.schedules.update', $schedule) }}" method="POST" class="space-y-4">
             @csrf @method('PUT')
-            <!-- Pass :users and :rooms (not :teacher) -->
-            <x-schedule-form :schedule="$schedule" :users="$teachers" :rooms="$rooms" />
+            <x-schedule-form :schedule="$schedule" :users="$teachers" :rooms="$rooms" :subjects="$subjects" />
             <button class="bg-blue-600 text-white px-4 py-2 rounded">Update</button>
         </form>
     </div>
 </x-app-layout>
+

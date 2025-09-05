@@ -58,9 +58,21 @@ Route::middleware(['auth', 'verified', 'admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+        // Teachers
         Route::resource('teachers', TeacherController::class);
-        Route::resource('rooms', RoomController::class);
+        Route::get('teachers/import/form', [TeacherController::class, 'import'])->name('teachers.import');
+        Route::post('teachers/import', [TeacherController::class, 'processImport'])->name('teachers.import.process');
+        
+        // Subjects
         Route::resource('subjects', SubjectController::class);
+        Route::get('subjects/import/form', [SubjectController::class, 'import'])->name('subjects.import');
+        Route::post('subjects/import', [SubjectController::class, 'processImport'])->name('subjects.import.process');
+        Route::get('subjects/template', [SubjectController::class, 'downloadTemplate'])->name('subjects.downloadTemplate');
+        
+        // Rooms
+        Route::resource('rooms', RoomController::class);
+        
+        // Schedules
         Route::resource('schedules', ScheduleController::class);
     });
 
@@ -78,3 +90,6 @@ Route::middleware(['auth', 'verified', 'teacher'])
     });
 
 require __DIR__.'/auth.php';
+
+
+

@@ -10,8 +10,8 @@ class Schedule extends Model
     protected $fillable = [
         'user_id',
         'room_id',
+        'subject_id',
         'edp_code',
-        'subject',
         'units',
         'type',
          'starts_at',
@@ -30,9 +30,15 @@ class Schedule extends Model
                     return $this->belongsTo(Room::class);
                 }
 
+            public function subject()
+                {
+                    return $this->belongsTo(Subject::class);
+                }
+
                 public function attendances()
                 {
                     return $this->hasMany(Attendance::class);
                 }
 
 }
+

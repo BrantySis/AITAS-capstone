@@ -101,6 +101,11 @@
        function getLocationAndSubmit(scheduleId) {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function (position) {
+                const accuracy = position.coords.accuracy;
+                if (accuracy > 10) {
+                    alert("⚠️ GPS accuracy is low (" + accuracy + "m). Please wait for better signal.");
+                    return;
+                }
                 const userLat = position.coords.latitude;
                 const userLng = position.coords.longitude;
 
@@ -112,7 +117,6 @@
 
                 // Calculate distance in meters
                 const distance = getDistanceInMeters(userLat, userLng, roomLat, roomLng);
-
                 const msgElement = document.getElementById('distance-msg-' + scheduleId);
 
                 // Show distance message
@@ -121,7 +125,7 @@
                 // Optional map preview
                 const mapContainer = document.getElementById("map");
                 mapContainer.classList.remove('hidden');
-                mapContainer.innerHTML = ""; // Clear old map
+                mapContainer.innerHTML = "";
                 const map = L.map('map').setView([userLat, userLng], 18);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; OpenStreetMap contributors'
@@ -131,12 +135,12 @@
                 L.marker([userLat, userLng]).addTo(map)
                     .bindPopup("You are here").openPopup();
 
-                // Room marker and 50m radius
+                // Room marker and 5m radius
                 L.circle([roomLat, roomLng], {
                     color: 'blue',
                     fillColor: '#cce5ff',
                     fillOpacity: 0.3,
-                    radius: 5 // buffer radius
+                    radius: 5
                 }).addTo(map).bindPopup("Allowed Check-In Area");
 
                 L.marker([roomLat, roomLng], {
@@ -146,38 +150,40 @@
                     })
                 }).addTo(map).bindPopup("Room Location");
 
-                // Only submit if within 50 meters
+                // Submit if within 5 meters
                 if (distance <= 5) {
                     document.querySelector(`#lat-${scheduleId}`).closest('form').submit();
                 } else {
-                    msgElement.textContent += " ❌ You are outside the allowed range (12m). Check-in blocked.";
+                    msgElement.textContent += " ❌ You are outside the allowed range (5m). Check-in blocked.";
                 }
 
             }, function (error) {
                 alert("❌ Location error: " + error.message);
+            }, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
             });
         } else {
             alert("Geolocation is not supported.");
         }
         }
 
-                    function getDistanceInMeters(lat1, lon1, lat2, lon2) {
-                        const R = 6371000; // Earth radius in meters
-                        const dLat = toRad(lat2 - lat1);
-                        const dLon = toRad(lon2 - lon1);
-                        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-                                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                        return R * c;
-                    }
-
-                    function toRad(deg) {
-                        return deg * (Math.PI / 180);
-                    }
+        function getDistanceInMeters(lat1, lng1, lat2, lng2) {
+            const R = 6371000; // Earth's radius in meters
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
                     </script>
 
     {{-- Load Leaflet --}}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </x-app-layout>
+
+

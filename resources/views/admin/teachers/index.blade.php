@@ -15,7 +15,10 @@
     <div class="max-w-7xl mx-auto py-10 px-6">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-semibold text-gray-800">Teachers</h2>
-            <a href="{{ route('admin.teachers.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Add Teacher</a>
+            <div class="space-x-2">
+                <a href="{{ route('admin.teachers.import') }}" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">📁 Import Teachers</a>
+                <a href="{{ route('admin.teachers.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Add Teacher</a>
+            </div>
         </div>    
 
         <div class="bg-white shadow rounded-lg p-6">
@@ -49,3 +52,4 @@
         </div>
     </div>
 </x-app-layout>
+

@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Imports\TeachersImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TeacherController extends Controller
 {
@@ -70,4 +72,25 @@ class TeacherController extends Controller
         $teacher->delete();
         return redirect()->route('admin.teachers.index')->with('success', 'Teacher deleted successfully.');
     }
+
+    public function import()
+    {
+        return view('admin.teachers.import');
+    }
+
+    public function processImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,csv|max:2048'
+        ]);
+
+        try {
+            Excel::import(new TeachersImport, $request->file('file'));
+            return redirect()->route('admin.teachers.index')
+                ->with('success', 'Teachers imported successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
 }
+

@@ -22,8 +22,9 @@
         <form action="{{ route('admin.schedules.store') }}" method="POST" class="space-y-4">
             @csrf
             <!-- Pass :users and :rooms -->
-            <x-schedule-form :users="$teachers" :rooms="$rooms" />
+            <x-schedule-form :users="$teachers" :rooms="$rooms" :subjects="$subjects" />
             <button class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
         </form>
     </div>
 </x-app-layout>
+
