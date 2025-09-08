@@ -35,6 +35,10 @@ Route::get('/test-time', function () {
     dd(now()); // or dd(Carbon::now());
 });
 
+Route::get('/face-register', function () {
+    return view('facerecognition.face_register');
+});
+
 // Dashboard routes
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard/admin', function () {
