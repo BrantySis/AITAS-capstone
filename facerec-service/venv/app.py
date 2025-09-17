@@ -1,61 +1,113 @@
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from typing import List
 import cv2
 import numpy as np
 import insightface
+import requests  # NEW: for talking to Laravel
 
 # Initialize FastAPI app
-app = FastAPI()
+app = FastAPI(title="Face Recognition API")
+
+# Allow all origins (for local testing with Laravel frontend)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # later restrict to Laravel domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Load InsightFace model (ArcFace)
 model = insightface.app.FaceAnalysis()
 model.prepare(ctx_id=0)  # 0 = GPU if available, -1 = CPU only
 
-# Store known faces
-known_face_embeddings = []
-known_face_names = []
+# Laravel backend URL (adjust if needed)
+LARAVEL_API = "http://127.0.0.1:8001"
 
-
+# ---------------------------
+# REGISTER FACE
+# ---------------------------
 @app.post("/register")
-async def register_face(image: UploadFile = File(...), name: str = Form(...)):
-    # Read image into numpy array
-    file_bytes = await image.read()
-    npimg = np.frombuffer(file_bytes, np.uint8)
-    img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+async def register_face(
+    images: List[UploadFile] = File(...),
+    user_id: int = Form(...)
+):
+    """
+    Register multiple images for a single user (front, left, right).
+    Store embeddings in Laravel DB.
+    """
+    embeddings = []
 
-    faces = model.get(img)
+    for image in images:
+        file_bytes = await image.read()
+        npimg = np.frombuffer(file_bytes, np.uint8)
+        img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
-    if len(faces) > 0:
-        # Take first face embedding
-        embedding = faces[0].embedding
-        known_face_embeddings.append(embedding)
-        known_face_names.append(name)
-        return JSONResponse({"status": "success", "message": f"Face registered for {name}"})
+        faces = model.get(img)
+
+        if len(faces) > 0:
+            for face in faces:
+                embeddings.append(face.embedding.tolist())
+
+    if not embeddings:
+        return JSONResponse({
+            "status": "error",
+            "message": "No faces detected"
+        }, status_code=400)
+
+    # Average embedding (optional)
+    avg_embedding = np.mean(embeddings, axis=0).tolist()
+
+    # Send to Laravel DB
+    resp = requests.post(
+        f"{LARAVEL_API}/store-embedding",
+        json={"user_id": user_id, "embeddings": avg_embedding}
+    )
+
+    if resp.status_code == 200:
+        return JSONResponse({
+            "status": "success",
+            "message": "Embeddings saved to DB",
+            "count": len(embeddings)
+        })
     else:
-        return JSONResponse({"status": "error", "message": "No face detected"}, status_code=400)
+        return JSONResponse({
+            "status": "error",
+            "message": "Failed to save embeddings to DB",
+            "laravel_response": resp.text
+        }, status_code=500)
 
-
+# ---------------------------
+# RECOGNIZE FACE
+# ---------------------------
 @app.post("/recognize")
 async def recognize_face(image: UploadFile = File(...)):
-    # Read image into numpy array
+    """
+    Recognize a face against all users stored in Laravel DB.
+    """
     file_bytes = await image.read()
     npimg = np.frombuffer(file_bytes, np.uint8)
     img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
     faces = model.get(img)
-
     if len(faces) == 0:
         return JSONResponse({"status": "error", "message": "No face detected"}, status_code=400)
 
-    # Compare embedding with known ones
-    embedding = faces[0].embedding
-    name = "Unknown"
+    embedding = faces[0].embedding.tolist()
 
-    if known_face_embeddings:
-        similarities = [np.dot(embedding, kf) / (np.linalg.norm(embedding) * np.linalg.norm(kf)) for kf in known_face_embeddings]
-        best_match_idx = int(np.argmax(similarities))
-        if similarities[best_match_idx] > 0.4:  # threshold (tune as needed)
-            name = known_face_names[best_match_idx]
+    # Ask Laravel to compare
+    resp = requests.post(
+        f"{LARAVEL_API}/recognize-embedding",
+        json={"embedding": embedding}
+    )
 
-    return JSONResponse({"status": "success", "recognized_as": name})
-
+    if resp.status_code == 200:
+        return JSONResponse(resp.json())
+    else:
+        return JSONResponse({
+            "status": "error",
+            "message": "Failed to connect to Laravel",
+            "laravel_response": resp.text
+        }, status_code=500)

@@ -11,6 +11,7 @@ use App\Http\Controllers\Teacher\LoadController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Teacher\DashboardController;
 
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -113,6 +114,13 @@ Route::middleware(['auth', 'teacher'])->prefix('teacher')->name('teacher.')->gro
     Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
     Route::post('/attendance/timeout', [AttendanceController::class, 'timeout'])->name('attendance.timeout');
     Route::post('/attendance/verify', [AttendanceController::class, 'verifyFace'])->name('attendance.verify');
+
+    Route::get('/face-verification', [AttendanceController::class, 'faceVerification'])->name('teacher.face.verification');
+    Route::post('/face-verification/process', [AttendanceController::class, 'processFaceVerification'])->name('teacher.face.process');
+
+    Route::get('/location-verify', [AttendanceController::class, 'locationVerify'])->name('teacher.location.verify');
+    Route::post('/location-verify/process', [AttendanceController::class, 'processLocationVerify'])->name('teacher.location.process');
+
 });
 
 require __DIR__.'/auth.php';
