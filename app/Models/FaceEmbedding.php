@@ -11,10 +11,10 @@ class FaceEmbedding extends Model
 
     protected $fillable = [
         'user_id',
-        'embeddings'
+        'embedding'
     ];
 
     protected $casts = [
-        'embeddings' => 'array'
+        'embedding' => 'array'
     ];
 }

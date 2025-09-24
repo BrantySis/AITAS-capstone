@@ -35,8 +35,6 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
     
-    Route::post('/store-embedding', [FaceController::class, 'store']);
-    Route::post('/recognize-embedding', [FaceController::class, 'recognize']);
 });
 
 Route::middleware('auth')->group(function () {
