@@ -34,6 +34,15 @@ class AttendanceController extends Controller
 
         public function store(Request $request)
     {
+        // If frontend sends recognized_name instead of user_id
+        if ($request->has('recognized_name') && !$request->has('user_id')) {
+            $user = \App\Models\User::where('name', $request->recognized_name)->first();
+            if (!$user) {
+                return back()->with('error', '❌ User not found for recognized face.');
+            }
+            $request->merge(['user_id' => $user->id]);
+        }
+
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'schedule_id' => 'required|exists:schedules,id',
@@ -48,7 +57,7 @@ class AttendanceController extends Controller
         // Check for duplicate check-in
         $existing = Attendance::where('user_id', $userId)
             ->where('schedule_id', $scheduleId)
-            ->whereDate('created_at', $now->toDateString())
+            ->whereDate('time_in', $now->toDateString())
             ->first();
 
         if ($existing) {
@@ -157,5 +166,27 @@ class AttendanceController extends Controller
 
         return $distance <= $radius;
     }
+
+    public function faceVerification(Request $request)
+{
+    $scheduleId = $request->schedule_id;
+
+    return view('facerecognition.face_verification', compact('scheduleId'));
+}
+
+public function processFaceVerification(Request $request)
+{
+    // Example: check face recognition result
+    if ($request->face_status !== 'verified') {
+        return back()->with('error', '❌ Face not recognized. Check-in blocked.');
+    }
+
+    // Store schedule id in session to pass to location step
+    session(['schedule_id' => $request->schedule_id]);
+
+    // Redirect to location check page
+    return redirect()->route('teacher.location.verify');
+}
+
 }
 
