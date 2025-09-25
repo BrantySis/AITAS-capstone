@@ -13,18 +13,6 @@
         <h2 class="flex-grow text-2xl font-bold text-center text-blue-700">Upcoming Schedule</h2>
     </div>
 
-    <!-- Notifications -->
-    @if(session('success'))
-        <div class="mb-4 rounded bg-green-100 border border-green-400 px-4 py-3 text-green-700">
-            {{ session('success') }}
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="mb-4 rounded bg-red-100 border border-red-400 px-4 py-3 text-red-700">
-            {{ session('error') }}
-        </div>
-    @endif
-
     <!-- Schedules -->
     @if($schedules->isEmpty())
         <p class="text-center text-gray-500">You don't have any upcoming schedules.</p>
@@ -66,7 +54,6 @@
                                         <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
                                         <input type="hidden" id="room-lat-{{ $schedule->id }}" value="{{ optional($schedule->room)->latitude }}">
                                         <input type="hidden" id="room-lng-{{ $schedule->id }}" value="{{ optional($schedule->room)->longitude }}">
-                                        <span id="distance-msg-{{ $schedule->id }}" class="block mt-2 text-sm text-red-600"></span>
 
                                         <button type="button"
                                                 onclick="openFaceScanner({{ $schedule->id }})"
@@ -97,7 +84,7 @@
 <div id="face-scanner-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded-lg w-96 text-center">
         <h3 class="text-lg font-bold mb-4">Face Verification</h3>
-        <video id="scanner-video" autoplay class="w-full h-64 rounded border mb-4"></video>
+        <video id="scanner-video" autoplay playsinline class="w-full h-64 rounded border mb-4"></video>
         <p id="scanner-message" class="text-gray-700 mb-4">Please align your face in front of the camera...</p>
         <button onclick="closeFaceScanner()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Cancel</button>
     </div>
@@ -112,33 +99,72 @@
 let scannerVideo = document.getElementById('scanner-video');
 let scannerStream = null;
 let currentScheduleId = null;
+let scanningActive = false; 
+let scanTimeout = null;
+
+function showNotification(message, type = "success") {
+    if (type === "success") {
+        alert("✅ SUCCESS: " + message);
+    } else if (type === "error") {
+        alert("❌ ERROR: " + message);
+    } else {
+        alert("ℹ️ " + message);
+    }
+}
 
 function openFaceScanner(scheduleId) {
     currentScheduleId = scheduleId;
+    document.getElementById('scanner-message').textContent = "Please align your face in front of the camera...";
     document.getElementById('face-scanner-modal').classList.remove('hidden');
     startScannerCamera();
 }
 
 function closeFaceScanner() {
     document.getElementById('face-scanner-modal').classList.add('hidden');
+    scanningActive = false; 
+
+    if (scanTimeout) {
+        clearTimeout(scanTimeout);
+        scanTimeout = null;
+    }
+
     if (scannerStream) {
         scannerStream.getTracks().forEach(track => track.stop());
         scannerStream = null;
     }
+
+    // Reset video so old frame won't freeze
+    scannerVideo.pause();
+    scannerVideo.srcObject = null;
+    scannerVideo.removeAttribute("src");
+    scannerVideo.load();
 }
 
 async function startScannerCamera() {
     try {
         scannerStream = await navigator.mediaDevices.getUserMedia({ video: true });
         scannerVideo.srcObject = scannerStream;
-        scanFaceLoop();
+
+        await new Promise(resolve => {
+            scannerVideo.onloadedmetadata = () => {
+                scannerVideo.play();
+                resolve();
+            };
+        });
+
+        // Delay scanning for 3 seconds so you’re not frozen on old face
+        scanningActive = true;
+        scanTimeout = setTimeout(() => {
+            if (scanningActive) scanFaceLoop();
+        }, 3000);
+
     } catch(err) {
         document.getElementById('scanner-message').textContent = "❌ Camera error: " + err;
     }
 }
 
 async function scanFaceLoop() {
-    if (!scannerStream) return;
+    if (!scanningActive || !scannerStream) return;
 
     const canvas = document.createElement('canvas');
     canvas.width = scannerVideo.videoWidth || 320;
@@ -158,6 +184,7 @@ async function scanFaceLoop() {
         if (data.status === "success" && recognized !== "Unknown") {
             document.getElementById('scanner-message').textContent = "✅ Face verified: " + recognized;
             closeFaceScanner();
+            showNotification("Face verified successfully!", "success");
             getLocationAndSubmit(currentScheduleId);
             return;
         } else {
@@ -166,20 +193,26 @@ async function scanFaceLoop() {
     } catch(err) {
         console.error("Face scan error:", err);
         document.getElementById('scanner-message').textContent = "❌ Error scanning face.";
+        showNotification("Error scanning face.", "error");
     }
 
-    requestAnimationFrame(scanFaceLoop);
+    if (scanningActive) {
+        requestAnimationFrame(scanFaceLoop);
+    }
 }
 
 function getLocationAndSubmit(scheduleId) {
-    if (!navigator.geolocation) return alert("❌ Geolocation not supported.");
+    if (!navigator.geolocation) return showNotification("Geolocation not supported.", "error");
 
     navigator.geolocation.getCurrentPosition(pos => {
         const userLat = pos.coords.latitude;
         const userLng = pos.coords.longitude;
         const acc = pos.coords.accuracy;
 
-        if (acc > 10) return alert("⚠️ GPS accuracy is low (" + acc + "m). Please wait.");
+        if (acc > 10) {
+            showNotification("GPS accuracy is low (" + acc + "m).", "error");
+            return;
+        }
 
         document.getElementById('lat-' + scheduleId).value = userLat;
         document.getElementById('lng-' + scheduleId).value = userLng;
@@ -188,24 +221,20 @@ function getLocationAndSubmit(scheduleId) {
         const roomLng = parseFloat(document.getElementById('room-lng-' + scheduleId).value);
         const dist = getDistanceInMeters(userLat, userLng, roomLat, roomLng);
 
-        const msg = document.getElementById('distance-msg-' + scheduleId);
-        msg.textContent = `📍 You are ${dist.toFixed(2)}m from room.`;
-
-        const mapDiv = document.getElementById("map");
-        mapDiv.classList.remove("hidden");
-        mapDiv.innerHTML = "";
-        const map = L.map("map").setView([userLat, userLng], 18);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-        L.marker([userLat, userLng]).addTo(map).bindPopup("You are here").openPopup();
-        L.circle([roomLat, roomLng], {color:"blue", radius:5}).addTo(map);
-        L.marker([roomLat, roomLng]).addTo(map).bindPopup("Room");
+        alert(`📍 Location Info:
+- Your Position: (${userLat.toFixed(6)}, ${userLng.toFixed(6)})
+- Room Position: (${roomLat.toFixed(6)}, ${roomLng.toFixed(6)})
+- Distance: ${dist.toFixed(2)} meters`);
 
         if (dist <= 5) {
+            showNotification("Checked in successfully!", "success");
             document.getElementById('checkin-form-' + scheduleId).submit();
         } else {
-            msg.textContent += " ❌ Outside allowed range.";
+            showNotification("Outside allowed range. Distance: " + dist.toFixed(2) + "m", "error");
         }
-    }, e => alert("❌ Location error: " + e.message), { enableHighAccuracy:true, timeout:10000, maximumAge:0 });
+    }, e => {
+        showNotification("Location error: " + e.message, "error");
+    }, { enableHighAccuracy:true, timeout:10000, maximumAge:0 });
 }
 
 function getDistanceInMeters(lat1, lng1, lat2, lng2) {
@@ -216,4 +245,5 @@ function getDistanceInMeters(lat1, lng1, lat2, lng2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 </script>
+
 </x-app-layout>

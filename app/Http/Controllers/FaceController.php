@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\FaceEmbedding; 
+use App\Models\FaceEmbedding;
 use App\Models\User;
 
 class FaceController extends Controller
@@ -21,7 +21,7 @@ class FaceController extends Controller
         // Save embeddings into DB (column 'embedding')
         $face = FaceEmbedding::updateOrCreate(
             ['user_id' => $request->user_id],
-            ['embedding' => $request->embeddings] // left side = DB column, right side = FastAPI array
+            ['embedding' => $request->embeddings] // Store as JSON
         );
 
         return response()->json([
@@ -46,40 +46,51 @@ class FaceController extends Controller
         $allEmbeddings = FaceEmbedding::all();
 
         $matchedUser = null;
-        $threshold = 0.5; // distance threshold for match (tune as needed)
+        $bestScore = -1; // higher is better
+        $threshold = 0.5; // tune between 0.4 - 0.6
 
         foreach ($allEmbeddings as $face) {
             $dbEmbedding = $face->embedding;
 
-            // Compute cosine similarity or Euclidean distance
-            $distance = $this->cosineSimilarity($inputEmbedding, $dbEmbedding);
+            // Compute cosine similarity
+            $similarity = $this->cosineSimilarity($inputEmbedding, $dbEmbedding);
 
-            if ($distance < $threshold) {
+            if ($similarity > $bestScore) {
+                $bestScore = $similarity;
                 $matchedUser = $face->user_id;
-                break;
             }
         }
 
-        return response()->json([
-            'status' => 'success',
-            'match' => $matchedUser // null if no match
-        ]);
+        if ($bestScore >= $threshold) {
+            return response()->json([
+                'status' => 'success',
+                'match' => $matchedUser,
+                'similarity' => $bestScore
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No matching face found',
+                'similarity' => $bestScore
+            ], 401);
+        }
     }
 
     /**
-     * Simple Euclidean distance between two vectors
+     * Cosine Similarity between two vectors
      */
     private function cosineSimilarity(array $a, array $b): float
-{
-    $dot = 0;
-    $normA = 0;
-    $normB = 0;
-    foreach ($a as $i => $val) {
-        $dot += $val * $b[$i];
-        $normA += $val * $val;
-        $normB += $b[$i] * $b[$i];
-    }
-    return $dot / (sqrt($normA) * sqrt($normB));
-}
+    {
+        $dot = 0;
+        $normA = 0;
+        $normB = 0;
 
+        foreach ($a as $i => $val) {
+            $dot += $val * $b[$i];
+            $normA += $val * $val;
+            $normB += $b[$i] * $b[$i];
+        }
+
+        return $dot / (sqrt($normA) * sqrt($normB));
+    }
 }

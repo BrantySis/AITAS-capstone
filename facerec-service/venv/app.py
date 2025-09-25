@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import insightface
 import requests
-import os
+from numpy.linalg import norm
 
 # -------------------------------
 # FastAPI app initialization
@@ -25,8 +25,6 @@ app.add_middleware(
 # Laravel backend URL
 LARAVEL_API = "https://aitas-capstone.test/api"
 
-# Path to Herd SSL certificate
-#HERD_CERT_PATH = r"C:\Users\Kurt\.config\herd\config\valet\Certificates\aitas-capstone.test.crt"
 # -------------------------------
 # InsightFace model (lazy load)
 # -------------------------------
@@ -40,6 +38,12 @@ def get_model():
         model.prepare(ctx_id=-1)  # CPU mode
         print("[DEBUG] Model loaded successfully.")
     return model
+
+# -------------------------------
+# Cosine similarity function
+# -------------------------------
+def cosine_similarity(vec1, vec2):
+    return np.dot(vec1, vec2) / (norm(vec1) * norm(vec2))
 
 # -------------------------------
 # REGISTER FACE
@@ -63,8 +67,20 @@ async def register_face(
             faces = get_model().get(img)
             print(f"[DEBUG] Detected {len(faces)} faces in image {idx+1}")
 
-            for face in faces:
-                embeddings.append(face.embedding.tolist())
+            if len(faces) == 0:
+                return JSONResponse({
+                    "status": "error",
+                    "message": f"No face detected in image {idx+1}"
+                }, status_code=400)
+
+            if len(faces) > 1:
+                return JSONResponse({
+                    "status": "error",
+                    "message": f"Multiple faces detected in image {idx+1}. Please upload images with only one person."
+                }, status_code=400)
+
+            embeddings.append(faces[0].embedding.tolist())
+
         except Exception as e:
             print(f"[ERROR] Failed processing image {idx+1}: {e}")
 
@@ -72,10 +88,33 @@ async def register_face(
         print("[DEBUG] No faces detected in any image")
         return JSONResponse({"status":"error","message":"No faces detected"}, status_code=400)
 
-    avg_embedding = np.mean(embeddings, axis=0).tolist()
-    print(f"[DEBUG] Total embeddings: {len(embeddings)}")
+    # -------------------------------
+    # Validate consistency of embeddings
+    # -------------------------------
+    threshold = 0.5  # adjust for strictness
+    consistent = True
 
-    # Send embeddings to Laravel using Herd cert
+    for i in range(len(embeddings)):
+        for j in range(i+1, len(embeddings)):
+            sim = cosine_similarity(embeddings[i], embeddings[j])
+            print(f"[DEBUG] Similarity between image {i+1} and {j+1}: {sim:.4f}")
+            if sim < threshold:
+                consistent = False
+                break
+        if not consistent:
+            break
+
+    if not consistent:
+        return JSONResponse({
+            "status": "error",
+            "message": "Uploaded images do not belong to the same person"
+        }, status_code=400)
+
+    # Average embedding only if consistent
+    avg_embedding = np.mean(embeddings, axis=0).tolist()
+    print(f"[DEBUG] Total embeddings collected: {len(embeddings)}")
+
+    # Send embeddings to Laravel
     try:
         resp = requests.post(
             f"{LARAVEL_API}/store-embedding",
@@ -110,19 +149,49 @@ async def recognize_face(image: UploadFile = File(...)):
         if len(faces) == 0:
             return JSONResponse({"status":"error","message":"No face detected"}, status_code=400)
 
-        embedding = faces[0].embedding.tolist()
+        if len(faces) > 1:
+            return JSONResponse({"status":"error","message":"Multiple faces detected. Please upload an image with only one person."}, status_code=400)
 
-        resp = requests.post(
-            f"{LARAVEL_API}/recognize-embedding",
-            json={"embedding": embedding},
-            timeout=10,
-            verify=False
-        )
+        # New face embedding
+        new_embedding = faces[0].embedding
 
-        if resp.status_code == 200:
-            return JSONResponse(resp.json())
+        # 🔹 Get all stored embeddings from Laravel
+        resp = requests.get(f"{LARAVEL_API}/get-embeddings", timeout=10, verify=False)
+        if resp.status_code != 200:
+            return JSONResponse({"status":"error","message":"Failed to fetch embeddings from Laravel"}, status_code=500)
+
+        data = resp.json()
+        if "embeddings" not in data:
+            return JSONResponse({"status":"error","message":"No embeddings found in DB"}, status_code=404)
+
+        stored_embeddings = data["embeddings"]  # [{ "user_id": 1, "embedding": [..] }, ...]
+
+        best_match = None
+        best_score = -1
+        threshold = 0.6  # tune this
+
+        for item in stored_embeddings:
+            db_vec = np.array(item["embedding"])
+            score = cosine_similarity(new_embedding, db_vec)
+
+            if score > best_score:
+                best_score = score
+                best_match = item["user_id"]
+
+        if best_score >= threshold:
+            return JSONResponse({
+                "status": "success",
+                "match": best_match,       # ✅ Blade will see this
+                "similarity": float(best_score)
+            })
         else:
-            return JSONResponse({"status":"error","message":"Failed to connect to Laravel","laravel_response":resp.text}, status_code=500)
+            return JSONResponse({
+                "status": "fail",
+                "match": None,             # ✅ ensures Blade reads "Unknown"
+                "message": "Face not recognized",
+                "best_score": float(best_score)
+            })
 
     except Exception as e:
         return JSONResponse({"status":"error","message":f"Recognition failed: {e}"}, status_code=500)
+
