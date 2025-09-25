@@ -21,5 +21,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
-venv/
+facerec-service/venv/
+__pycache__/
+*.pyc
 
