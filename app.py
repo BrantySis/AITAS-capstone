@@ -55,7 +55,7 @@ app.openapi = custom_openapi
 # -------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[LARAVEL_URL],
+    allow_origins=["https://aitas-capstone.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
