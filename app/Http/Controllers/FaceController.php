@@ -47,7 +47,7 @@ class FaceController extends Controller
 
         $matchedUser = null;
         $bestScore = -1; // higher is better
-        $threshold = 0.5; // tune between 0.4 - 0.6
+        $threshold = 0.55; // tune between 0.4 - 0.6
 
         foreach ($allEmbeddings as $face) {
             $dbEmbedding = $face->embedding;

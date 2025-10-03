@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+     // 👇 Add your own services here
+    'fastapi' => [
+        'url' => env('FASTAPI_URL', 'http://127.0.0.1:8001'),
+    ],
+ 
+    'laravel' => [
+        'url' => env('LARAVEL_URL', 'http://127.0.0.1:8000/api'),
+    ],
+
 ];

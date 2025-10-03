@@ -102,6 +102,8 @@ let currentScheduleId = null;
 let scanningActive = false; 
 let scanTimeout = null;
 
+const FASTAPI_URL = @json($fastapiUrl);
+
 function showNotification(message, type = "success") {
     if (type === "success") {
         alert("✅ SUCCESS: " + message);
@@ -177,7 +179,7 @@ async function scanFaceLoop() {
     formData.append("image", blob);
 
     try {
-        const res = await fetch("http://127.0.0.1:8001/recognize", { method: "POST", body: formData });
+        const res = await fetch(`${FASTAPI_URL}/recognize`, { method: "POST", body: formData });
         const data = await res.json();
         const recognized = data.match ?? "Unknown";
 

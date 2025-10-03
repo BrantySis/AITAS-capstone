@@ -151,6 +151,9 @@ const registerFaceBtn = document.getElementById('registerFaceBtn');
 const faceStatus = document.getElementById('faceStatus');
 const regBtn = document.getElementById('registerBtn');
 
+const FASTAPI_URL = @json($fastapiUrl);
+const LARAVEL_API_URL = @json($laravelApiUrl);
+
 // Open modal & camera
 openFaceModal.addEventListener('click', async () => {
     faceModal.classList.remove('hidden');
@@ -195,7 +198,7 @@ async function registerFacePhases(userId) {
     captures.forEach(img => formData.append('images', img));
     formData.append('user_id', userId);
 
-    const response = await fetch('http://127.0.0.1:8001/register', {
+    const response = await fetch(`${FASTAPI_URL}/register`, {
         method: 'POST',
         body: formData
     });
@@ -217,7 +220,7 @@ registerFaceBtn.addEventListener('click', async () => {
 
     try {
         // Step 1: Create user in Laravel
-        let laravelResp = await fetch("https://aitas-capstone.test/api/teacher/register", {
+        let laravelResp = await fetch(`${LARAVEL_API_URL}/teacher/register`, {
             method: "POST",
             headers: {
                 "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
