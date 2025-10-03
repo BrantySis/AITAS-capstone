@@ -152,7 +152,7 @@ const faceStatus = document.getElementById('faceStatus');
 const regBtn = document.getElementById('registerBtn');
 
 const FASTAPI_URL = @json($fastapiUrl);
-const LARAVEL_API_URL = @json($laravelApiUrl);
+const LARAVEL_URL = @json($laravelApiUrl);
 
 // Open modal & camera
 openFaceModal.addEventListener('click', async () => {
@@ -220,7 +220,7 @@ registerFaceBtn.addEventListener('click', async () => {
 
     try {
         // Step 1: Create user in Laravel
-        let laravelResp = await fetch(`${LARAVEL_API_URL}/teacher/register`, {
+        let laravelResp = await fetch(`${LARAVEL_URL}/teacher/register`, {
             method: "POST",
             headers: {
                 "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
