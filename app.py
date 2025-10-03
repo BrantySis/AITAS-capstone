@@ -55,7 +55,7 @@ app.openapi = custom_openapi
 # -------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FASTAPI_URL, LARAVEL_URL],
+    allow_origins=[LARAVEL_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
