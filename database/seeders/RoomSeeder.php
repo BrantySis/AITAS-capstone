@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Room;
 
@@ -20,7 +19,14 @@ class RoomSeeder extends Seeder
         ];
 
         foreach ($rooms as $room) {
-            Room::create($room);
+            Room::updateOrCreate(
+                ['room_code' => $room['room_code']], // unique identifier
+                [
+                    'building_name' => $room['building_name'],
+                    'latitude' => $room['latitude'],
+                    'longitude' => $room['longitude'],
+                ]
+            );
         }
     }
 }
