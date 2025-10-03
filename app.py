@@ -129,7 +129,7 @@ async def register_face(
     # Send embeddings to Laravel
     try:
         resp = requests.post(
-            f"{LARAVEL_URL}/store-embedding",
+            f"{LARAVEL_URL}/api/store-embedding",
             json={"user_id": user_id, "embeddings": avg_embedding},
             timeout=10
         )
@@ -164,7 +164,7 @@ async def recognize_face(image: UploadFile = File(...)):
 
         new_embedding = faces[0].embedding
 
-        resp = requests.get(f"{LARAVEL_URL}/get-embeddings", timeout=10)
+        resp = requests.get(f"{LARAVEL_URL}/api/get-embeddings", timeout=10)
         if resp.status_code != 200:
             return JSONResponse({"status": "error", "message": "Failed to fetch embeddings from Laravel"}, status_code=500)
 

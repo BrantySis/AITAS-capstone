@@ -220,10 +220,9 @@ registerFaceBtn.addEventListener('click', async () => {
 
     try {
         // Step 1: Create user in Laravel
-        let laravelResp = await fetch(`${LARAVEL_URL}/teacher/register`, {
+        let laravelResp = await fetch(`${LARAVEL_URL}/api/teacher/register`, {
             method: "POST",
             headers: {
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
                 "Accept": "application/json",
                 "Content-Type": "application/x-www-form-urlencoded"
             },
