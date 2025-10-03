@@ -9,6 +9,15 @@ use Illuminate\Support\Facades\Validator;
 
 class RegisterTeacherController extends Controller
 {
+    // Show the registration page
+    public function create()
+    {
+        return view('register', [
+            'fastapiUrl'   => env('FASTAPI_URL', 'http://127.0.0.1:8001'),
+            'laravelApiUrl'=> env('LARAVEL_URL', 'http://127.0.0.1:8000/api'),
+        ]);
+    }
+    
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
