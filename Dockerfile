@@ -37,8 +37,13 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 # Set Apache DocumentRoot to Laravel public folder
 RUN sed -i 's#/var/www/html#/var/www/html/public#g' /etc/apache2/sites-available/000-default.conf
 
-# Run migrations on container startup, then start Apache
-CMD php artisan migrate --force && apache2-foreground
+# -------------------------
+# Add entrypoint script here
+# -------------------------
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["entrypoint.sh"]
 
 # Expose port 80
 EXPOSE 80
