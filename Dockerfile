@@ -22,8 +22,23 @@ RUN a2enmod rewrite
 # Set working directory inside container
 WORKDIR /var/www/html
 
+# -------------------------
+# Install Node & npm
+# -------------------------
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
+# Copy npm files and install dependencies
+COPY package*.json ./
+RUN npm install
+
 # Copy project files to container
 COPY . .
+
+# -------------------------
+# Build Vite assets
+# -------------------------
+RUN npm run build
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
