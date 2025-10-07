@@ -11,6 +11,8 @@ from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+import psutil
+
 
 # -------------------------------
 # Environment Variables (Render)
@@ -28,6 +30,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.info(f"FastAPI URL: {FASTAPI_URL}")
 logger.info(f"Laravel URL: {LARAVEL_URL}")
+
+def log_memory(stage: str):
+    process = psutil.Process(os.getpid())
+    used = process.memory_info().rss / 1024 ** 2  # MB
+    print(f"[MEMORY] {stage}: {used:.2f} MB used")
 
 # -------------------------------
 # FastAPI Initialization
@@ -69,9 +76,11 @@ def get_model():
     global model
     if model is None:
         logger.info("Loading InsightFace model...")
+        log_memory("Before model load")   # ✅ Added here
         model = insightface.app.FaceAnalysis()
         model.prepare(ctx_id=-1)  # CPU mode
         logger.info("Model loaded successfully.")
+        log_memory("After model load")    # ✅ Added here
     return model
 
 # -------------------------------
