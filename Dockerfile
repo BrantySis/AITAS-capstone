@@ -1,64 +1,82 @@
-# Use PHP 8.4 with Apache
+# -------------------------
+# 1. Base Image: PHP 8.4 with Apache
+# -------------------------
 FROM php:8.4-apache
 
-# Install PHP extensions and dependencies required for Laravel
+# -------------------------
+# 2. Install System Dependencies and PHP Extensions
+# -------------------------
 RUN apt-get update && apt-get install -y \
-        libfreetype6-dev \
-        libjpeg62-turbo-dev \
-        libpng-dev \
-        libzip-dev \
-        zip \
-        unzip \
-        git \
-        curl \
-        libonig-dev \
-        libxml2-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    git \
+    curl \
+    libonig-dev \
+    libxml2-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql zip mbstring bcmath xml opcache
+    && docker-php-ext-install gd pdo pdo_mysql zip mbstring bcmath xml opcache \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Enable Apache rewrite module
-RUN a2enmod rewrite
+# -------------------------
+# 3. Enable Apache rewrite and configure ports & document root
+# -------------------------
+RUN a2enmod rewrite && \
+    sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf && \
+    sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' /etc/apache2/sites-available/000-default.conf && \
+    echo "<Directory /var/www/html/public>\n\
+        AllowOverride All\n\
+        Require all granted\n\
+    </Directory>" >> /etc/apache2/apache2.conf
 
-# Set working directory inside container
+# -------------------------
+# 4. Set working directory
+# -------------------------
 WORKDIR /var/www/html
 
 # -------------------------
-# Install Node & npm
+# 5. Install Node.js and NPM for Vite build
 # -------------------------
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
-# Copy npm files and install dependencies
+# Copy package files first to cache dependencies
 COPY package*.json ./
 RUN npm install
 
-# Copy project files to container
+# -------------------------
+# 6. Copy Laravel files
+# -------------------------
 COPY . .
 
 # -------------------------
-# Build Vite assets
+# 7. Build frontend (Vite)
 # -------------------------
 RUN npm run build
 
-# Install Composer
+# -------------------------
+# 8. Install Composer dependencies
+# -------------------------
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-# Install Laravel dependencies
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-# Set storage permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-
-# Set Apache DocumentRoot to Laravel public folder
-RUN sed -i 's#/var/www/html#/var/www/html/public#g' /etc/apache2/sites-available/000-default.conf
+# -------------------------
+# 9. Set permissions
+# -------------------------
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # -------------------------
-# Add entrypoint script here
+# 10. Copy entrypoint script
 # -------------------------
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+# -------------------------
+# 11. Expose & Run
+# -------------------------
+EXPOSE 8080
 ENTRYPOINT ["entrypoint.sh"]
-
-# Expose port 80
-EXPOSE 80
