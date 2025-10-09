@@ -99,21 +99,50 @@
 let scannerVideo = document.getElementById('scanner-video');
 let scannerStream = null;
 let currentScheduleId = null;
-let scanningActive = false;
+let scanningActive = false; 
 let scanTimeout = null;
 let map, userMarker, roomMarker, accuracyCircle;
 let geoWatchId = null;
 
 const FASTAPI_URL = @json($fastapiUrl);
 
-// ---------- Notification ----------
+// ✅ Debug panel initialization
+function initDebugPanel() {
+    let debugPanel = document.getElementById("debug-panel");
+    if (!debugPanel) {
+        debugPanel = document.createElement("div");
+        debugPanel.id = "debug-panel";
+        debugPanel.style.position = "fixed";
+        debugPanel.style.bottom = "10px";
+        debugPanel.style.right = "10px";
+        debugPanel.style.width = "280px";
+        debugPanel.style.maxHeight = "40vh";
+        debugPanel.style.overflowY = "auto";
+        debugPanel.style.background = "rgba(0,0,0,0.8)";
+        debugPanel.style.color = "white";
+        debugPanel.style.fontSize = "12px";
+        debugPanel.style.padding = "10px";
+        debugPanel.style.borderRadius = "8px";
+        debugPanel.style.zIndex = "9999";
+        debugPanel.innerHTML = "<b>📡 Debug Panel</b><hr style='border-color:white'>";
+        document.body.appendChild(debugPanel);
+    }
+    return debugPanel;
+}
+
+function logDebug(msg) {
+    const panel = initDebugPanel();
+    const line = document.createElement("div");
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    panel.appendChild(line);
+    panel.scrollTop = panel.scrollHeight;
+}
+
 function showNotification(message, type = "success") {
-    const color = type === "error" ? "red" : "green";
-    const notif = document.createElement("div");
-    notif.textContent = message;
-    notif.className = `fixed bottom-4 right-4 bg-${color}-600 text-white px-4 py-2 rounded shadow-lg`;
-    document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 4000);
+    if (type === "success") alert("✅ " + message);
+    else if (type === "error") alert("❌ " + message);
+    else alert("ℹ️ " + message);
+    logDebug(`${type.toUpperCase()}: ${message}`);
 }
 
 // ---------- FACE SCANNER ----------
@@ -126,32 +155,53 @@ function openFaceScanner(scheduleId) {
 
 function closeFaceScanner() {
     document.getElementById('face-scanner-modal').classList.add('hidden');
-    scanningActive = false;
+    scanningActive = false; 
+
     if (scanTimeout) clearTimeout(scanTimeout);
     if (scannerStream) {
         scannerStream.getTracks().forEach(track => track.stop());
         scannerStream = null;
     }
+
+    scannerVideo.pause();
+    scannerVideo.srcObject = null;
+    scannerVideo.removeAttribute("src");
+    scannerVideo.load();
+    logDebug("🧠 Face scanner closed");
 }
 
 async function startScannerCamera() {
     try {
         scannerStream = await navigator.mediaDevices.getUserMedia({ video: true });
         scannerVideo.srcObject = scannerStream;
+        await new Promise(res => {
+            scannerVideo.onloadedmetadata = () => {
+                scannerVideo.play();
+                res();
+            };
+        });
+
         scanningActive = true;
-        scanTimeout = setTimeout(() => scanFaceLoop(), 2500);
-    } catch (err) {
-        showNotification("Camera error: " + err.message, "error");
+        scanTimeout = setTimeout(() => {
+            if (scanningActive) scanFaceLoop();
+        }, 3000);
+
+        logDebug("📸 Camera started successfully");
+    } catch(err) {
+        document.getElementById('scanner-message').textContent = "❌ Camera error: " + err;
+        logDebug("Camera error: " + err);
     }
 }
 
 async function scanFaceLoop() {
-    if (!scanningActive) return;
+    if (!scanningActive || !scannerStream) return;
+
     const canvas = document.createElement('canvas');
     canvas.width = scannerVideo.videoWidth || 320;
     canvas.height = scannerVideo.videoHeight || 240;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(scannerVideo, 0, 0, canvas.width, canvas.height);
+
     const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg'));
     const formData = new FormData();
     formData.append("image", blob);
@@ -159,19 +209,28 @@ async function scanFaceLoop() {
     try {
         const res = await fetch(`${FASTAPI_URL}/recognize`, { method: "POST", body: formData });
         const data = await res.json();
+
         if (data.status === "success" && data.match !== "Unknown") {
-            showNotification("✅ Face verified successfully!");
+            document.getElementById('scanner-message').textContent = "✅ Face verified!";
+            showNotification("Face verified successfully! Checking location...", "success");
+            logDebug(`✅ Face verified for ${data.match}`);
             closeFaceScanner();
-            initHighAccuracyTracking(currentScheduleId); // Start GPS verification
+            initHighAccuracyTracking(currentScheduleId);
             return;
+        } else {
+            document.getElementById('scanner-message').textContent = "🔄 Scanning face...";
+            logDebug("Scanning face... no match yet");
         }
-    } catch {
-        showNotification("Face scan failed.", "error");
+    } catch(err) {
+        document.getElementById('scanner-message').textContent = "❌ Error scanning face.";
+        showNotification("Error scanning face.", "error");
+        logDebug("Error scanning face: " + err);
     }
+
     if (scanningActive) requestAnimationFrame(scanFaceLoop);
 }
 
-// ---------- LOCATION CHECK ----------
+// ---------- HIGH ACCURACY GEO ----------
 function initHighAccuracyTracking(scheduleId) {
     if (!navigator.geolocation) {
         showNotification("Geolocation not supported.", "error");
@@ -180,47 +239,82 @@ function initHighAccuracyTracking(scheduleId) {
 
     const roomLat = parseFloat(document.getElementById('room-lat-' + scheduleId).value);
     const roomLng = parseFloat(document.getElementById('room-lng-' + scheduleId).value);
-    const allowedRadius = 5; // meters
 
-    document.getElementById("map").classList.remove("hidden");
+    logDebug(`🎯 Starting GPS tracking for schedule ${scheduleId} (room: ${roomLat}, ${roomLng})`);
+
+    const mapElement = document.getElementById("map");
+    mapElement.classList.remove("hidden");
 
     if (!map) {
         map = L.map("map").setView([roomLat, roomLng], 18);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
     }
 
     if (roomMarker) map.removeLayer(roomMarker);
     roomMarker = L.marker([roomLat, roomLng]).addTo(map).bindPopup("Room Location").openPopup();
 
+    let checkedIn = false;
+
     geoWatchId = navigator.geolocation.watchPosition(pos => {
         const userLat = pos.coords.latitude;
         const userLng = pos.coords.longitude;
+        const acc = pos.coords.accuracy;
         const dist = getDistanceInMeters(userLat, userLng, roomLat, roomLng);
 
-        if (userMarker) userMarker.setLatLng([userLat, userLng]);
-        else userMarker = L.marker([userLat, userLng]).addTo(map).bindPopup("You are here");
+        if (userMarker) {
+            userMarker.setLatLng([userLat, userLng]);
+            accuracyCircle.setLatLng([userLat, userLng]).setRadius(acc);
+        } else {
+            userMarker = L.marker([userLat, userLng], {
+                icon: L.icon({
+                    iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+                    iconSize: [32, 32]
+                })
+            }).addTo(map).bindPopup("You are here");
+            accuracyCircle = L.circle([userLat, userLng], { radius: acc, color: "blue", fillOpacity: 0.2 }).addTo(map);
+        }
 
         map.setView([userLat, userLng], 18);
 
-        if (dist <= allowedRadius) {
-            showNotification("✅ You are within the allowed area! Checked in successfully!");
-            document.getElementById('lat-' + scheduleId).value = userLat;
-            document.getElementById('lng-' + scheduleId).value = userLng;
-            document.getElementById('checkin-form-' + scheduleId).submit();
+        logDebug(`GPS → Lat:${userLat.toFixed(6)} Lng:${userLng.toFixed(6)} | Accuracy:${acc.toFixed(1)}m | Dist:${dist.toFixed(2)}m`);
+
+        if (acc <= 10 && dist <= 5 && !checkedIn) {
+            checkedIn = true;
+            showNotification("Checked in successfully!", "success");
+            logDebug("✅ Within 5m and accurate — submitting form!");
             stopTracking();
-        } else {
-            console.log(`Outside range (${dist.toFixed(2)}m)`);
+
+            mapElement.classList.add("hidden");
+            const btn = document.getElementById('checkin-btn-' + scheduleId);
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = "✅ Attended";
+                btn.classList.remove("bg-blue-600");
+                btn.classList.add("bg-green-600");
+            }
+
+            document.getElementById('checkin-form-' + scheduleId).submit();
+        } else if (!checkedIn) {
+            if (acc > 10) logDebug("⚠️ Waiting for better accuracy...");
+            else logDebug(`📍 Too far: ${dist.toFixed(2)}m`);
         }
+
     }, err => {
         showNotification("Location error: " + err.message, "error");
+        logDebug("Location error: " + err.message);
         stopTracking();
-    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+    }, {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0
+    });
 }
 
 function stopTracking() {
     if (geoWatchId !== null) {
         navigator.geolocation.clearWatch(geoWatchId);
         geoWatchId = null;
+        logDebug("🛑 Stopped GPS tracking");
     }
 }
 
