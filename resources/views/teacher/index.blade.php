@@ -278,7 +278,7 @@ function initHighAccuracyTracking(scheduleId) {
 
         logDebug(`GPS → Lat:${userLat.toFixed(6)} Lng:${userLng.toFixed(6)} | Accuracy:${acc.toFixed(1)}m | Dist:${dist.toFixed(2)}m`);
 
-        if (acc <= 10 && dist <= 5 && !checkedIn) {
+        if (acc <= 20 && dist <= 5 && !checkedIn) {
             checkedIn = true;
             showNotification("Checked in successfully!", "success");
             logDebug("✅ Within 5m and accurate — submitting form!");
