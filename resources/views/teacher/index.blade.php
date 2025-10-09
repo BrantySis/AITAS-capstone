@@ -15,7 +15,7 @@
 
     <!-- Schedules -->
     @if($schedules->isEmpty())
-        <p class="text-center text-gray-500">You don't have any upcoming schedules.</p>
+        <p class="text-center text-gray-500">You don't have any upcoming schedules for now.</p>
     @else
         <div class="overflow-x-auto">
             <table class="min-w-full border border-gray-200 bg-white text-sm shadow-md rounded-lg">
