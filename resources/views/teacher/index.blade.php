@@ -33,8 +33,20 @@
     @foreach($schedules as $schedule)
         @php
             $attendance = $schedule->attendance ?? null;
-            $status = $attendance->status ?? 'Upcoming';
-        @endphp
+            $now = \Carbon\Carbon::now('Asia/Manila'); // Current time in Manila
+            $scheduleStart = \Carbon\Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
+            $scheduleEnd = \Carbon\Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
+
+            if ($attendance) {
+                $status = $attendance->status; // Already checked in
+            } elseif ($now->between($scheduleStart, $scheduleEnd)) {
+                $status = 'Attending'; // Ongoing schedule
+            } elseif ($now->lt($scheduleStart)) {
+                $status = 'Upcoming'; // Not started yet
+            } else {
+                $status = 'Missed'; // Ended without check-in
+            }       
+     @endphp
 
         <tr class="border-b hover:bg-gray-50">
             <td class="px-6 py-4">{{ $schedule->subject->subject_name ?? 'Unknown Subject' }}</td>
