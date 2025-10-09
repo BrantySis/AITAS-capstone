@@ -96,7 +96,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-<script>
 let scannerVideo = document.getElementById('scanner-video');
 let scannerStream = null;
 let currentScheduleId = null;
