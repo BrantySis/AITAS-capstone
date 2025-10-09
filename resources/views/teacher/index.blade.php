@@ -96,11 +96,14 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
+<script>
 let scannerVideo = document.getElementById('scanner-video');
 let scannerStream = null;
 let currentScheduleId = null;
 let scanningActive = false; 
 let scanTimeout = null;
+let map, userMarker, roomMarker, accuracyCircle;
+let geoWatchId = null;
 
 const FASTAPI_URL = @json($fastapiUrl);
 
@@ -114,6 +117,7 @@ function showNotification(message, type = "success") {
     }
 }
 
+// ---------- FACE SCANNER ----------
 function openFaceScanner(scheduleId) {
     currentScheduleId = scheduleId;
     document.getElementById('scanner-message').textContent = "Please align your face in front of the camera...";
@@ -135,7 +139,6 @@ function closeFaceScanner() {
         scannerStream = null;
     }
 
-    // Reset video so old frame won't freeze
     scannerVideo.pause();
     scannerVideo.srcObject = null;
     scannerVideo.removeAttribute("src");
@@ -146,15 +149,13 @@ async function startScannerCamera() {
     try {
         scannerStream = await navigator.mediaDevices.getUserMedia({ video: true });
         scannerVideo.srcObject = scannerStream;
-
-        await new Promise(resolve => {
+        await new Promise(res => {
             scannerVideo.onloadedmetadata = () => {
                 scannerVideo.play();
-                resolve();
+                res();
             };
         });
 
-        // Delay scanning for 3 seconds so you’re not frozen on old face
         scanningActive = true;
         scanTimeout = setTimeout(() => {
             if (scanningActive) scanFaceLoop();
@@ -181,13 +182,12 @@ async function scanFaceLoop() {
     try {
         const res = await fetch(`${FASTAPI_URL}/recognize`, { method: "POST", body: formData });
         const data = await res.json();
-        const recognized = data.match ?? "Unknown";
 
-        if (data.status === "success" && recognized !== "Unknown") {
-            document.getElementById('scanner-message').textContent = "✅ Face verified: " + recognized;
+        if (data.status === "success" && data.match !== "Unknown") {
+            document.getElementById('scanner-message').textContent = "✅ Face verified!";
             closeFaceScanner();
             showNotification("Face verified successfully!", "success");
-            getLocationAndSubmit(currentScheduleId);
+            initHighAccuracyTracking(currentScheduleId);
             return;
         } else {
             document.getElementById('scanner-message').textContent = "🔄 Scanning face...";
@@ -198,54 +198,101 @@ async function scanFaceLoop() {
         showNotification("Error scanning face.", "error");
     }
 
-    if (scanningActive) {
-        requestAnimationFrame(scanFaceLoop);
-    }
+    if (scanningActive) requestAnimationFrame(scanFaceLoop);
 }
 
-function getLocationAndSubmit(scheduleId) {
-    if (!navigator.geolocation) return showNotification("Geolocation not supported.", "error");
+// ---------- HIGH ACCURACY GEO ----------
+function initHighAccuracyTracking(scheduleId) {
+    if (!navigator.geolocation) {
+        showNotification("Geolocation not supported.", "error");
+        return;
+    }
 
-    navigator.geolocation.getCurrentPosition(pos => {
+    const roomLat = parseFloat(document.getElementById('room-lat-' + scheduleId).value);
+    const roomLng = parseFloat(document.getElementById('room-lng-' + scheduleId).value);
+
+    // Show map
+    document.getElementById("map").classList.remove("hidden");
+
+    if (!map) {
+        map = L.map("map").setView([roomLat, roomLng], 18);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+        }).addTo(map);
+    }
+
+    // Add room marker
+    if (roomMarker) map.removeLayer(roomMarker);
+    roomMarker = L.marker([roomLat, roomLng]).addTo(map).bindPopup("Room Location").openPopup();
+
+    // Start watching GPS
+    geoWatchId = navigator.geolocation.watchPosition(pos => {
         const userLat = pos.coords.latitude;
         const userLng = pos.coords.longitude;
         const acc = pos.coords.accuracy;
 
-        if (acc > 10) {
-            showNotification("GPS accuracy is low (" + acc + "m).", "error");
-            return;
+        if (userMarker) {
+            userMarker.setLatLng([userLat, userLng]);
+            accuracyCircle.setLatLng([userLat, userLng]).setRadius(acc);
+        } else {
+            userMarker = L.marker([userLat, userLng], {icon: L.icon({
+                iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+                iconSize: [32, 32]
+            })}).addTo(map).bindPopup("You are here");
+            accuracyCircle = L.circle([userLat, userLng], { radius: acc, color: "blue", fillOpacity: 0.2 }).addTo(map);
         }
 
-        document.getElementById('lat-' + scheduleId).value = userLat;
-        document.getElementById('lng-' + scheduleId).value = userLng;
+        map.setView([userLat, userLng], 18);
 
-        const roomLat = parseFloat(document.getElementById('room-lat-' + scheduleId).value);
-        const roomLng = parseFloat(document.getElementById('room-lng-' + scheduleId).value);
-        const dist = getDistanceInMeters(userLat, userLng, roomLat, roomLng);
+        console.log(`GPS accuracy: ${acc.toFixed(1)}m`);
+        if (acc <= 10) {
+            document.getElementById('lat-' + scheduleId).value = userLat;
+            document.getElementById('lng-' + scheduleId).value = userLng;
 
-        alert(`📍 Location Info:
+            const dist = getDistanceInMeters(userLat, userLng, roomLat, roomLng);
+
+            alert(`📍 Location Info:
 - Your Position: (${userLat.toFixed(6)}, ${userLng.toFixed(6)})
 - Room Position: (${roomLat.toFixed(6)}, ${roomLng.toFixed(6)})
-- Distance: ${dist.toFixed(2)} meters`);
+- Accuracy: ${acc.toFixed(1)}m
+- Distance: ${dist.toFixed(2)}m`);
 
-        if (dist <= 5) {
-            showNotification("Checked in successfully!", "success");
-            document.getElementById('checkin-form-' + scheduleId).submit();
+            if (dist <= 5) {
+                showNotification("Checked in successfully!", "success");
+                document.getElementById('checkin-form-' + scheduleId).submit();
+                stopTracking();
+            } else {
+                showNotification("Outside allowed range (" + dist.toFixed(2) + "m)", "error");
+            }
         } else {
-            showNotification("Outside allowed range. Distance: " + dist.toFixed(2) + "m", "error");
+            console.log("Waiting for better accuracy...");
         }
-    }, e => {
-        showNotification("Location error: " + e.message, "error");
-    }, { enableHighAccuracy:true, timeout:10000, maximumAge:0 });
+
+    }, err => {
+        showNotification("Location error: " + err.message, "error");
+        stopTracking();
+    }, {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0
+    });
+}
+
+function stopTracking() {
+    if (geoWatchId !== null) {
+        navigator.geolocation.clearWatch(geoWatchId);
+        geoWatchId = null;
+    }
 }
 
 function getDistanceInMeters(lat1, lng1, lat2, lng2) {
     const R = 6371000;
-    const dLat = (lat2-lat1) * Math.PI/180;
-    const dLng = (lng2-lng1) * Math.PI/180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 </script>
-
 </x-app-layout>
