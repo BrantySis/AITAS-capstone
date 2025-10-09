@@ -20,94 +20,94 @@
         <div class="overflow-x-auto">
             <table class="min-w-full border border-gray-200 bg-white text-sm shadow-md rounded-lg">
                 <thead class="bg-blue-100 text-blue-800 uppercase text-xs">
-    <tr>
-        <th class="px-6 py-3 text-left border-b">Subject</th>
-        <th class="px-6 py-3 text-left border-b">Time</th>
-        <th class="px-6 py-3 text-left border-b">Room</th>
-        <th class="px-6 py-3 text-left border-b">Date</th>
-        <th class="px-6 py-3 text-left border-b">Status</th>
-        <th class="px-6 py-3 text-left border-b">Actions</th>
-    </tr>
-</thead>
-<tbody class="text-gray-700">
-    @foreach($schedules as $schedule)
-        @php
-            $attendance = $schedule->attendance ?? null;
-            $now = \Carbon\Carbon::now('Asia/Manila'); // Current time in Manila
-            $scheduleStart = \Carbon\Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
-            $scheduleEnd = \Carbon\Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
+                    <tr>
+                        <th class="px-6 py-3 text-left border-b">Subject</th>
+                        <th class="px-6 py-3 text-left border-b">Time</th>
+                        <th class="px-6 py-3 text-left border-b">Room</th>
+                        <th class="px-6 py-3 text-left border-b">Date</th>
+                        <th class="px-6 py-3 text-left border-b">Status</th>
+                        <th class="px-6 py-3 text-left border-b">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-700">
+                    @foreach($schedules as $schedule)
+                        @php
+                            $attendance = $schedule->attendance ?? null;
+                            $now = \Carbon\Carbon::now('Asia/Manila'); 
+                            $scheduleStart = \Carbon\Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
+                            $scheduleEnd = \Carbon\Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
 
-            if ($attendance) {
-                $status = $attendance->status; // Already checked in
-            } elseif ($now->between($scheduleStart, $scheduleEnd)) {
-                $status = 'Attending'; // Ongoing schedule
-            } elseif ($now->lt($scheduleStart)) {
-                $status = 'Upcoming'; // Not started yet
-            } else {
-                $status = 'Missed'; // Ended without check-in
-            }       
-     @endphp
+                            if ($attendance) {
+                                $status = $attendance->status; 
+                            } elseif ($now->between($scheduleStart, $scheduleEnd)) {
+                                $status = 'Attending'; 
+                            } elseif ($now->lt($scheduleStart)) {
+                                $status = 'Upcoming'; 
+                            } else {
+                                $status = 'Missed'; 
+                            }       
+                        @endphp
 
-        <tr class="border-b hover:bg-gray-50">
-            <td class="px-6 py-4">{{ $schedule->subject->subject_name ?? 'Unknown Subject' }}</td>
-            <td class="px-6 py-4">
-                {{ \Carbon\Carbon::parse($schedule->starts_at)->format('g:i A') }} -
-                {{ \Carbon\Carbon::parse($schedule->ends_at)->format('g:i A') }}
-            </td>
-            <td class="px-6 py-4">{{ optional($schedule->room)->room_code ?? 'No Room' }}</td>
-            <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('F j, Y') }}</td>
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="px-6 py-4">{{ $schedule->subject->subject_name ?? 'Unknown Subject' }}</td>
+                            <td class="px-6 py-4">
+                                {{ \Carbon\Carbon::parse($schedule->starts_at)->format('g:i A') }} -
+                                {{ \Carbon\Carbon::parse($schedule->ends_at)->format('g:i A') }}
+                            </td>
+                            <td class="px-6 py-4">{{ optional($schedule->room)->room_code ?? 'No Room' }}</td>
+                            <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('F j, Y') }}</td>
 
-            <!-- Status Column -->
-            <td class="px-6 py-4 font-semibold">
-                @if($status === 'Upcoming')
-                    <span class="text-blue-600">Upcoming</span>
-                @elseif($status === 'Attending')
-                    <span class="text-yellow-600">Ongoing</span>
-                @elseif($status === 'Attended')
-                    <span class="text-green-600">Attended</span>
-                @elseif($status === 'Missed')
-                    <span class="text-red-600">Missed</span>
-                @else
-                    <span class="text-gray-600">-</span>
-                @endif
-            </td>
+                            <!-- Status Column -->
+                            <td class="px-6 py-4 font-semibold">
+                                @if($status === 'Upcoming')
+                                    <span class="text-blue-600">Upcoming</span>
+                                @elseif($status === 'Attending')
+                                    <span class="text-yellow-600">Ongoing</span>
+                                @elseif($status === 'Attended')
+                                    <span class="text-green-600">Attended</span>
+                                @elseif($status === 'Missed')
+                                    <span class="text-red-600">Missed</span>
+                                @else
+                                    <span class="text-gray-600">-</span>
+                                @endif
+                            </td>
 
-            <!-- Actions -->
-            <td class="px-6 py-4 space-y-2">
-                @if($status === 'Upcoming')
-                    <button class="w-full rounded bg-gray-400 px-3 py-1 text-white cursor-not-allowed" disabled>
-                        Not yet started
-                    </button>
-                @elseif($status === 'Attending')
-                    <form method="POST" action="{{ route('teacher.attendance.store') }}" id="checkin-form-{{ $schedule->id }}">
-                        @csrf
-                        <input type="hidden" name="user_id" value="{{ auth()->id() }}">
-                        <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
-                        <input type="hidden" name="latitude" id="lat-{{ $schedule->id }}">
-                        <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
-                        <input type="hidden" id="room-lat-{{ $schedule->id }}" value="{{ optional($schedule->room)->latitude }}">
-                        <input type="hidden" id="room-lng-{{ $schedule->id }}" value="{{ optional($schedule->room)->longitude }}">
+                            <!-- Actions -->
+                            <td class="px-6 py-4 space-y-2">
+                                @if($status === 'Upcoming')
+                                    <button class="w-full rounded bg-gray-400 px-3 py-1 text-white cursor-not-allowed" disabled>
+                                        Not yet started
+                                    </button>
+                                @elseif($status === 'Attending')
+                                    <form method="POST" action="{{ route('teacher.attendance.store') }}" id="checkin-form-{{ $schedule->id }}">
+                                        @csrf
+                                        <input type="hidden" name="user_id" value="{{ auth()->id() }}">
+                                        <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
+                                        <input type="hidden" name="latitude" id="lat-{{ $schedule->id }}">
+                                        <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
+                                        <input type="hidden" id="room-lat-{{ $schedule->id }}" value="{{ optional($schedule->room)->latitude }}">
+                                        <input type="hidden" id="room-lng-{{ $schedule->id }}" value="{{ optional($schedule->room)->longitude }}">
 
-                        <button type="button"
-                                id="checkin-btn-{{ $schedule->id }}"
-                                onclick="openFaceScanner({{ $schedule->id }})"
-                                class="w-full rounded bg-green-600 px-3 py-1 text-white hover:bg-green-700">
-                            Check In
-                        </button>
-                    </form>
-                @elseif($status === 'Attended')
-                    <button class="w-full rounded bg-green-500 px-3 py-1 text-white cursor-not-allowed" disabled>
-                        ✅ Attended
-                    </button>
-                @elseif($status === 'Missed')
-                    <button class="w-full rounded bg-red-500 px-3 py-1 text-white cursor-not-allowed" disabled>
-                        ❌ Missed
-                    </button>
-                @endif
-            </td>
-        </tr>
-    @endforeach
-</tbody>
+                                        <button type="button"
+                                                id="checkin-btn-{{ $schedule->id }}"
+                                                onclick="openFaceScanner({{ $schedule->id }})"
+                                                class="w-full rounded bg-green-600 px-3 py-1 text-white hover:bg-green-700">
+                                            Check In
+                                        </button>
+                                    </form>
+                                @elseif($status === 'Attended')
+                                    <button class="w-full rounded bg-green-500 px-3 py-1 text-white cursor-not-allowed" disabled>
+                                        ✅ Attended
+                                    </button>
+                                @elseif($status === 'Missed')
+                                    <button class="w-full rounded bg-red-500 px-3 py-1 text-white cursor-not-allowed" disabled>
+                                        ❌ Missed
+                                    </button>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
             </table>
         </div>
     @endif
@@ -139,44 +139,10 @@ let geoWatchId = null;
 
 const FASTAPI_URL = @json($fastapiUrl);
 
-// ✅ Debug panel initialization
-function initDebugPanel() {
-    let debugPanel = document.getElementById("debug-panel");
-    if (!debugPanel) {
-        debugPanel = document.createElement("div");
-        debugPanel.id = "debug-panel";
-        debugPanel.style.position = "fixed";
-        debugPanel.style.bottom = "10px";
-        debugPanel.style.right = "10px";
-        debugPanel.style.width = "280px";
-        debugPanel.style.maxHeight = "40vh";
-        debugPanel.style.overflowY = "auto";
-        debugPanel.style.background = "rgba(0,0,0,0.8)";
-        debugPanel.style.color = "white";
-        debugPanel.style.fontSize = "12px";
-        debugPanel.style.padding = "10px";
-        debugPanel.style.borderRadius = "8px";
-        debugPanel.style.zIndex = "9999";
-        debugPanel.innerHTML = "<b>📡 Debug Panel</b><hr style='border-color:white'>";
-        document.body.appendChild(debugPanel);
-    }
-    return debugPanel;
-}
-
 function logDebug(msg) {
-    const panel = initDebugPanel();
-    const line = document.createElement("div");
-    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    panel.appendChild(line);
-    panel.scrollTop = panel.scrollHeight;
+    console.log(`[DEBUG] ${msg}`);
 }
-
-function showNotification(message, type = "success") {
-    if (type === "success") alert("✅ " + message);
-    else if (type === "error") alert("❌ " + message);
-    else alert("ℹ️ " + message);
-    logDebug(`${type.toUpperCase()}: ${message}`);
-}
+function showNotification(msg, type="success") { alert(msg); logDebug(`${type}: ${msg}`); }
 
 // ---------- FACE SCANNER ----------
 function openFaceScanner(scheduleId) {
@@ -185,180 +151,113 @@ function openFaceScanner(scheduleId) {
     document.getElementById('face-scanner-modal').classList.remove('hidden');
     startScannerCamera();
 }
-
 function closeFaceScanner() {
     document.getElementById('face-scanner-modal').classList.add('hidden');
     scanningActive = false; 
-
-    if (scanTimeout) clearTimeout(scanTimeout);
-    if (scannerStream) {
-        scannerStream.getTracks().forEach(track => track.stop());
-        scannerStream = null;
-    }
-
+    if(scanTimeout) clearTimeout(scanTimeout);
+    if(scannerStream) { scannerStream.getTracks().forEach(track => track.stop()); scannerStream=null; }
     scannerVideo.pause();
     scannerVideo.srcObject = null;
     scannerVideo.removeAttribute("src");
     scannerVideo.load();
-    logDebug("🧠 Face scanner closed");
+    logDebug("Face scanner closed");
 }
-
 async function startScannerCamera() {
     try {
-        scannerStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        scannerStream = await navigator.mediaDevices.getUserMedia({ video:true });
         scannerVideo.srcObject = scannerStream;
-        await new Promise(res => {
-            scannerVideo.onloadedmetadata = () => {
-                scannerVideo.play();
-                res();
-            };
-        });
-
+        await new Promise(res => { scannerVideo.onloadedmetadata = ()=>{scannerVideo.play(); res();}; });
         scanningActive = true;
-        scanTimeout = setTimeout(() => {
-            if (scanningActive) scanFaceLoop();
-        }, 3000);
-
-        logDebug("📸 Camera started successfully");
+        scanTimeout = setTimeout(()=>{ if(scanningActive) scanFaceLoop(); }, 3000);
+        logDebug("Camera started");
     } catch(err) {
         document.getElementById('scanner-message').textContent = "❌ Camera error: " + err;
-        logDebug("Camera error: " + err);
+        logDebug("Camera error: "+err);
     }
 }
-
 async function scanFaceLoop() {
-    if (!scanningActive || !scannerStream) return;
-
+    if(!scanningActive || !scannerStream) return;
     const canvas = document.createElement('canvas');
     canvas.width = scannerVideo.videoWidth || 320;
     canvas.height = scannerVideo.videoHeight || 240;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(scannerVideo, 0, 0, canvas.width, canvas.height);
-
-    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg'));
+    ctx.drawImage(scannerVideo,0,0,canvas.width,canvas.height);
+    const blob = await new Promise(res=>canvas.toBlob(res,'image/jpeg'));
     const formData = new FormData();
     formData.append("image", blob);
-
     try {
-        const res = await fetch(`${FASTAPI_URL}/recognize`, { method: "POST", body: formData });
+        const res = await fetch(`${FASTAPI_URL}/recognize`, { method:"POST", body:formData });
         const data = await res.json();
-
-        if (data.status === "success" && data.match !== "Unknown") {
-            document.getElementById('scanner-message').textContent = "✅ Face verified!";
-            showNotification("Face verified successfully! Checking location...", "success");
-            logDebug(`✅ Face verified for ${data.match}`);
+        if(data.status==="success" && data.match!=="Unknown"){
+            document.getElementById('scanner-message').textContent="✅ Face verified!";
+            showNotification("Face verified!","success");
+            logDebug(`Face verified for ${data.match}`);
             closeFaceScanner();
             initHighAccuracyTracking(currentScheduleId);
             return;
         } else {
-            document.getElementById('scanner-message').textContent = "🔄 Scanning face...";
-            logDebug("Scanning face... no match yet");
+            document.getElementById('scanner-message').textContent="🔄 Scanning face...";
+            logDebug("Scanning face... no match");
         }
-    } catch(err) {
-        document.getElementById('scanner-message').textContent = "❌ Error scanning face.";
-        showNotification("Error scanning face.", "error");
-        logDebug("Error scanning face: " + err);
+    } catch(err){
+        document.getElementById('scanner-message').textContent="❌ Error scanning face.";
+        showNotification("Error scanning face.","error");
+        logDebug("Error scanning face: "+err);
     }
-
-    if (scanningActive) requestAnimationFrame(scanFaceLoop);
+    if(scanningActive) requestAnimationFrame(scanFaceLoop);
 }
 
 // ---------- HIGH ACCURACY GEO ----------
-function initHighAccuracyTracking(scheduleId) {
-    if (!navigator.geolocation) {
-        showNotification("Geolocation not supported.", "error");
-        return;
-    }
-
-    const roomLat = parseFloat(document.getElementById('room-lat-' + scheduleId).value);
-    const roomLng = parseFloat(document.getElementById('room-lng-' + scheduleId).value);
-
-    logDebug(`🎯 Starting GPS tracking for schedule ${scheduleId} (room: ${roomLat}, ${roomLng})`);
-
+function initHighAccuracyTracking(scheduleId){
+    if(!navigator.geolocation){ showNotification("Geolocation not supported.","error"); return; }
+    const roomLat = parseFloat(document.getElementById('room-lat-'+scheduleId).value);
+    const roomLng = parseFloat(document.getElementById('room-lng-'+scheduleId).value);
     const mapElement = document.getElementById("map");
     mapElement.classList.remove("hidden");
+    if(!map){ map=L.map("map").setView([roomLat,roomLng],18); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);}
+    if(roomMarker) map.removeLayer(roomMarker);
+    roomMarker = L.marker([roomLat,roomLng]).addTo(map).bindPopup("Room Location").openPopup();
+    let checkedIn=false;
 
-    if (!map) {
-        map = L.map("map").setView([roomLat, roomLng], 18);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
-    }
+    geoWatchId = navigator.geolocation.watchPosition(pos=>{
+        const userLat=pos.coords.latitude;
+        const userLng=pos.coords.longitude;
+        const acc=pos.coords.accuracy;
+        const dist=getDistanceInMeters(userLat,userLng,roomLat,roomLng);
 
-    if (roomMarker) map.removeLayer(roomMarker);
-    roomMarker = L.marker([roomLat, roomLng]).addTo(map).bindPopup("Room Location").openPopup();
-
-    let checkedIn = false;
-
-    geoWatchId = navigator.geolocation.watchPosition(pos => {
-        const userLat = pos.coords.latitude;
-        const userLng = pos.coords.longitude;
-        const acc = pos.coords.accuracy;
-        const dist = getDistanceInMeters(userLat, userLng, roomLat, roomLng);
-
-        if (userMarker) {
-            userMarker.setLatLng([userLat, userLng]);
-            accuracyCircle.setLatLng([userLat, userLng]).setRadius(acc);
+        if(userMarker){
+            userMarker.setLatLng([userLat,userLng]);
+            accuracyCircle.setLatLng([userLat,userLng]).setRadius(acc);
         } else {
-            userMarker = L.marker([userLat, userLng], {
-                icon: L.icon({
-                    iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-                    iconSize: [32, 32]
-                })
+            userMarker=L.marker([userLat,userLng],{
+                icon:L.icon({iconUrl:"https://cdn-icons-png.flaticon.com/512/684/684908.png",iconSize:[32,32]})
             }).addTo(map).bindPopup("You are here");
-            accuracyCircle = L.circle([userLat, userLng], { radius: acc, color: "blue", fillOpacity: 0.2 }).addTo(map);
+            accuracyCircle=L.circle([userLat,userLng],{radius:acc,color:"blue",fillOpacity:0.2}).addTo(map);
         }
 
-        map.setView([userLat, userLng], 18);
-
+        map.setView([userLat,userLng],18);
         logDebug(`GPS → Lat:${userLat.toFixed(6)} Lng:${userLng.toFixed(6)} | Accuracy:${acc.toFixed(1)}m | Dist:${dist.toFixed(2)}m`);
 
-        if (acc <= 15 && dist <= 4 && !checkedIn) {
-            checkedIn = true;
-            showNotification("Checked in successfully!", "success");
-            logDebug("✅ Within 5m and accurate — submitting form!");
+        if(acc<=15 && dist<=4 && !checkedIn){
+            checkedIn=true;
+            showNotification("Checked in successfully!","success");
+            logDebug("Submitting attendance form");
             stopTracking();
-
             mapElement.classList.add("hidden");
-            const btn = document.getElementById('checkin-btn-' + scheduleId);
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = "✅ Attended";
-                btn.classList.remove("bg-blue-600");
-                btn.classList.add("bg-green-600");
-            }
-
-            document.getElementById('checkin-form-' + scheduleId).submit();
-        } else if (!checkedIn) {
-            if (acc > 10) logDebug("⚠️ Waiting for better accuracy...");
-            else logDebug(`📍 Too far: ${dist.toFixed(2)}m`);
+            const btn=document.getElementById('checkin-btn-'+scheduleId);
+            if(btn){ btn.disabled=true; btn.textContent="✅ Attended"; btn.classList.remove("bg-green-600"); btn.classList.add("bg-green-500"); }
+            // ✅ set lat/lng before submitting
+            document.getElementById('lat-'+scheduleId).value = userLat;
+            document.getElementById('lng-'+scheduleId).value = userLng;
+            document.getElementById('checkin-form-'+scheduleId).submit();
         }
-
-    }, err => {
-        showNotification("Location error: " + err.message, "error");
-        logDebug("Location error: " + err.message);
+    },err=>{
+        showNotification("Location error: "+err.message,"error");
+        logDebug("Location error: "+err.message);
         stopTracking();
-    }, {
-        enableHighAccuracy: true,
-        timeout: 20000,
-        maximumAge: 0
-    });
+    }, {enableHighAccuracy:true, timeout:20000, maximumAge:0});
 }
-
-function stopTracking() {
-    if (geoWatchId !== null) {
-        navigator.geolocation.clearWatch(geoWatchId);
-        geoWatchId = null;
-        logDebug("🛑 Stopped GPS tracking");
-    }
-}
-
-function getDistanceInMeters(lat1, lng1, lat2, lng2) {
-    const R = 6371000;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
+function stopTracking(){ if(geoWatchId!==null){ navigator.geolocation.clearWatch(geoWatchId); geoWatchId=null; logDebug("Stopped GPS tracking"); } }
+function getDistanceInMeters(lat1,lng1,lat2,lng2){ const R=6371000; const dLat=(lat2-lat1)*Math.PI/180; const dLng=(lng2-lng1)*Math.PI/180; const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2; return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
 </script>
 </x-app-layout>

@@ -37,87 +37,75 @@ class AttendanceController extends Controller
 
     }
 
-        public function store(Request $request)
-    {
-        // If frontend sends recognized_name instead of user_id
-        if ($request->has('recognized_name') && !$request->has('user_id')) {
-            $user = \App\Models\User::where('name', $request->recognized_name)->first();
-            if (!$user) {
-                return back()->with('error', '❌ User not found for recognized face.');
-            }
-            $request->merge(['user_id' => $user->id]);
-        }
+public function store(Request $request)
+{
+    // Allow face-recognition name mapping
+    if ($request->has('recognized_name') && !$request->has('user_id')) {
+        $user = \App\Models\User::where('name', $request->recognized_name)->first();
+        if (!$user) return back()->with('error', '❌ User not found for recognized face.');
+        $request->merge(['user_id' => $user->id]);
+    }
 
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'schedule_id' => 'required|exists:schedules,id',
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
-        ]);
+    $request->validate([
+        'user_id' => 'required|exists:users,id',
+        'schedule_id' => 'required|exists:schedules,id',
+        'latitude' => 'required|numeric',
+        'longitude' => 'required|numeric',
+    ]);
 
-        $userId = $request->user_id;
-        $scheduleId = $request->schedule_id;
-        $now = now('Asia/Manila'); // Use configured timezone
+    $userId = $request->user_id;
+    $scheduleId = $request->schedule_id;
+    $now = now('Asia/Manila');
 
-        // Check for duplicate check-in
-        $existing = Attendance::where('user_id', $userId)
-            ->where('schedule_id', $scheduleId)
-            ->whereDate('time_in', $now->toDateString())
-            ->first();
+    // Prevent duplicate check-in for same schedule today
+    $existing = Attendance::where('user_id', $userId)
+        ->where('schedule_id', $scheduleId)
+        ->whereDate('time_in', $now->toDateString())
+        ->first();
 
-        if ($existing) {
-            return back()->with('error', '❌ You have already checked in for this schedule today.');
-        }
+    if ($existing) {
+        return back()->with('error', '❌ You have already checked in for this schedule today.');
+    }
 
-        $schedule = Schedule::with('room')->findOrFail($scheduleId);
-        $scheduleStart = \Carbon\Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
-        $scheduleEnd = \Carbon\Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
+    $schedule = Schedule::with('room')->findOrFail($scheduleId);
+    $scheduleStart = \Carbon\Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
+    $scheduleEnd = \Carbon\Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
+    $allowedCheckInTime = $scheduleStart->copy()->subMinutes(15);
 
-        // Allow check-in 15 minutes before schedule starts
-        $allowedCheckInTime = $scheduleStart->copy()->subMinutes(15);
+    if ($now->lt($allowedCheckInTime)) {
+        return back()->with('error', '⏳ Check-in not allowed yet. You can check in 15 minutes before the schedule starts.');
+    }
 
-        // Prevent early check-in
-        if ($now->lt($allowedCheckInTime)) {
-            return back()->with('error', '⏳ Check-in not allowed yet. You can check in 15 minutes before the schedule starts.');
-        }
+    if ($now->gt($scheduleEnd)) {
+        return back()->with('error', '⏰ Check-in period has ended for this schedule.');
+    }
 
-        // Prevent late check-in (after schedule ends)
-        if ($now->gt($scheduleEnd)) {
-            return back()->with('error', '⏰ Check-in period has ended for this schedule.');
-        }
+    $room = $schedule->room;
+    if (!$room || !$room->latitude || !$room->longitude) {
+        return back()->with('error', '❌ Room location is not properly set. Please contact the admin.');
+    }
 
-        $room = $schedule->room;
+    // Validate location within 5 meters
+    $isValid = $this->isWithinRadius(
+        $request->latitude,
+        $request->longitude,
+        $room->latitude,
+        $room->longitude,
+        5
+    );
 
-        if (!$room || !$room->latitude || !$room->longitude) {
-            return back()->with('error', '❌ Room location is not properly set. Please contact the admin.');
-        }
-
-        // Validate location (within 5 meters)
-        $isValid = $this->isWithinRadius(
-            $request->latitude,
-            $request->longitude,
-            $room->latitude,
-            $room->longitude,
-            5
-        );
-
-        if (!$isValid) {
-            return back()->with('error', '❌ You are not within the allowed 5-meter range of the room. Check-in denied.');
-        }
-
-        Attendance::create([
+    Attendance::create([
         'user_id' => $userId,
         'schedule_id' => $scheduleId,
         'time_in' => $now,
         'latitude' => $request->latitude,
         'longitude' => $request->longitude,
-        'is_valid' => true,
-        'status' => 'Attended',
-        ]);
+        'is_valid' => $isValid,
+        'status' => $isValid ? 'Attended' : 'Attending',
+    ]);
 
-
-        return back()->with('success', '✅ Check-in successful and within location.');
-    }
+    return back()->with('success', '✅ Check-in successful' . ($isValid ? '' : ' (Location not accurate)') . '.');
+}
 
     public function timeout(Request $request)
 {
