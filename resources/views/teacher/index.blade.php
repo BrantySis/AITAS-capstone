@@ -27,6 +27,7 @@
                         <th class="px-6 py-3 text-left border-b">Date</th>
                         <th class="px-6 py-3 text-left border-b">Actions</th>
                     </tr>
+<<<<<<< HEAD
                 <thead class="bg-blue-100 text-blue-800 uppercase text-xs">
     <tr>
         <th class="px-6 py-3 text-left border-b">Subject</th>
@@ -43,6 +44,28 @@
             $attendance = $schedule->attendance ?? null;
             $status = $attendance->status ?? 'Upcoming';
         @endphp
+=======
+                </thead>
+                <tbody class="text-gray-700">
+                    @foreach($schedules as $schedule)
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="px-6 py-4">{{ $schedule->subject->subject_name ?? 'Unknown Subject' }}</td>
+                            <td class="px-6 py-4">
+                                {{ \Carbon\Carbon::parse($schedule->starts_at)->format('g:i A') }} -
+                                {{ \Carbon\Carbon::parse($schedule->ends_at)->format('g:i A') }}
+                            </td>
+                            <td class="px-6 py-4">{{ optional($schedule->room)->room_code ?? 'No Room' }}</td>
+                            <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('F j, Y') }}</td>
+                            <td class="px-6 py-4 space-y-2">
+                                {{-- ✅ Attendance Status --}}
+                                @if(isset($attendanceMap[$schedule->id]) && $attendanceMap[$schedule->id] === 'Attended')
+                                    <span class="text-green-600 font-semibold block text-center">Attended</span>
+                                @else
+                                    <span class="text-gray-500 block text-center">Pending</span>
+                                @endif
+
+                                @php $hasCheckedIn = in_array($schedule->id, $checkedInSchedules); @endphp
+>>>>>>> a302b3a1 (update 1 mayntag mao nani)
 
         <tr class="border-b hover:bg-gray-50">
             <td class="px-6 py-4">{{ $schedule->subject->subject_name ?? 'Unknown Subject' }}</td>

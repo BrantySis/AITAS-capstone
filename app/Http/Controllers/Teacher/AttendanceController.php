@@ -106,13 +106,15 @@ class AttendanceController extends Controller
         }
 
         Attendance::create([
-            'user_id' => $userId,
-            'schedule_id' => $scheduleId,
-            'time_in' => $now,
-            'latitude' => $request->latitude,
-            'longitude' => $request->longitude,
-            'is_valid' => true,
+        'user_id' => $userId,
+        'schedule_id' => $scheduleId,
+        'time_in' => $now,
+        'latitude' => $request->latitude,
+        'longitude' => $request->longitude,
+        'is_valid' => true,
+        'status' => 'Attended',
         ]);
+
 
         return back()->with('success', '✅ Check-in successful and within location.');
     }
