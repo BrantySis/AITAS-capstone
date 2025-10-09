@@ -12,7 +12,7 @@ class AttendanceController extends Controller
 {
     public function index()
     {
-        $teacher = auth()->user();
+        $teacher = auth::user();
         $now = now();
 
         // Filter only today's schedules that haven't ended yet
@@ -29,7 +29,12 @@ class AttendanceController extends Controller
             ->pluck('schedule_id')
             ->toArray();
 
-        return view('teacher.index', compact('schedules', 'checkedInSchedules'));
+        return view('teacher.index', [
+        'schedules' => $schedules,
+        'checkedInSchedules' => $checkedInSchedules,
+        'fastapiUrl' => env('FASTAPI_URL', 'http://127.0.0.1:8001'),
+]);
+
     }
 
         public function store(Request $request)
@@ -118,7 +123,7 @@ class AttendanceController extends Controller
         'schedule_id' => 'required|exists:schedules,id',
     ]);
 
-    $attendance = Attendance::where('user_id', auth()->id())
+    $attendance = Attendance::where('user_id', auth::id())
         ->where('schedule_id', $request->schedule_id)
         ->whereDate('created_at', now()->toDateString())
         ->first();
