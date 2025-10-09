@@ -27,54 +27,83 @@
                         <th class="px-6 py-3 text-left border-b">Date</th>
                         <th class="px-6 py-3 text-left border-b">Actions</th>
                     </tr>
-                </thead>
-                <tbody class="text-gray-700">
-                    @foreach($schedules as $schedule)
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="px-6 py-4">{{ $schedule->subject->subject_name ?? 'Unknown Subject' }}</td>
-                            <td class="px-6 py-4">
-                                {{ \Carbon\Carbon::parse($schedule->starts_at)->format('g:i A') }} -
-                                {{ \Carbon\Carbon::parse($schedule->ends_at)->format('g:i A') }}
-                            </td>
-                            <td class="px-6 py-4">{{ optional($schedule->room)->room_code ?? 'No Room' }}</td>
-                            <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('F j, Y') }}</td>
-                            <td class="px-6 py-4 space-y-2">
-                                @php $hasCheckedIn = in_array($schedule->id, $checkedInSchedules); @endphp
+                <thead class="bg-blue-100 text-blue-800 uppercase text-xs">
+    <tr>
+        <th class="px-6 py-3 text-left border-b">Subject</th>
+        <th class="px-6 py-3 text-left border-b">Time</th>
+        <th class="px-6 py-3 text-left border-b">Room</th>
+        <th class="px-6 py-3 text-left border-b">Date</th>
+        <th class="px-6 py-3 text-left border-b">Status</th>
+        <th class="px-6 py-3 text-left border-b">Actions</th>
+    </tr>
+</thead>
+<tbody class="text-gray-700">
+    @foreach($schedules as $schedule)
+        @php
+            $attendance = $schedule->attendance ?? null;
+            $status = $attendance->status ?? 'Upcoming';
+        @endphp
 
-                                @if($hasCheckedIn)
-                                    <button class="w-full rounded bg-gray-400 px-3 py-1 text-white cursor-not-allowed" disabled>
-                                        Already Checked In
-                                    </button>
-                                @else
-                                    <form method="POST" action="{{ route('teacher.attendance.store') }}" id="checkin-form-{{ $schedule->id }}">
-                                        @csrf
-                                        <input type="hidden" name="user_id" value="{{ auth()->id() }}">
-                                        <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
-                                        <input type="hidden" name="latitude" id="lat-{{ $schedule->id }}">
-                                        <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
-                                        <input type="hidden" id="room-lat-{{ $schedule->id }}" value="{{ optional($schedule->room)->latitude }}">
-                                        <input type="hidden" id="room-lng-{{ $schedule->id }}" value="{{ optional($schedule->room)->longitude }}">
+        <tr class="border-b hover:bg-gray-50">
+            <td class="px-6 py-4">{{ $schedule->subject->subject_name ?? 'Unknown Subject' }}</td>
+            <td class="px-6 py-4">
+                {{ \Carbon\Carbon::parse($schedule->starts_at)->format('g:i A') }} -
+                {{ \Carbon\Carbon::parse($schedule->ends_at)->format('g:i A') }}
+            </td>
+            <td class="px-6 py-4">{{ optional($schedule->room)->room_code ?? 'No Room' }}</td>
+            <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('F j, Y') }}</td>
 
-                                        <button type="button"
-                                                onclick="openFaceScanner({{ $schedule->id }})"
-                                                class="w-full rounded bg-green-600 px-3 py-1 text-white hover:bg-green-700">
-                                            Check In
-                                        </button>
-                                    </form>
-                                @endif
+            <!-- Status Column -->
+            <td class="px-6 py-4 font-semibold">
+                @if($status === 'Upcoming')
+                    <span class="text-blue-600">Upcoming</span>
+                @elseif($status === 'Attending')
+                    <span class="text-yellow-600">Ongoing</span>
+                @elseif($status === 'Attended')
+                    <span class="text-green-600">Attended</span>
+                @elseif($status === 'Missed')
+                    <span class="text-red-600">Missed</span>
+                @else
+                    <span class="text-gray-600">-</span>
+                @endif
+            </td>
 
-                                <form method="POST" action="{{ route('teacher.attendance.timeout') }}">
-                                    @csrf
-                                    <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
-                                    <button type="submit"
-                                            class="w-full rounded bg-indigo-600 px-3 py-1 text-white hover:bg-indigo-700">
-                                        Time Out
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
+            <!-- Actions -->
+            <td class="px-6 py-4 space-y-2">
+                @if($status === 'Upcoming')
+                    <button class="w-full rounded bg-gray-400 px-3 py-1 text-white cursor-not-allowed" disabled>
+                        Not yet started
+                    </button>
+                @elseif($status === 'Attending')
+                    <form method="POST" action="{{ route('teacher.attendance.store') }}" id="checkin-form-{{ $schedule->id }}">
+                        @csrf
+                        <input type="hidden" name="user_id" value="{{ auth()->id() }}">
+                        <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
+                        <input type="hidden" name="latitude" id="lat-{{ $schedule->id }}">
+                        <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
+                        <input type="hidden" id="room-lat-{{ $schedule->id }}" value="{{ optional($schedule->room)->latitude }}">
+                        <input type="hidden" id="room-lng-{{ $schedule->id }}" value="{{ optional($schedule->room)->longitude }}">
+
+                        <button type="button"
+                                id="checkin-btn-{{ $schedule->id }}"
+                                onclick="openFaceScanner({{ $schedule->id }})"
+                                class="w-full rounded bg-green-600 px-3 py-1 text-white hover:bg-green-700">
+                            Check In
+                        </button>
+                    </form>
+                @elseif($status === 'Attended')
+                    <button class="w-full rounded bg-green-500 px-3 py-1 text-white cursor-not-allowed" disabled>
+                        ✅ Attended
+                    </button>
+                @elseif($status === 'Missed')
+                    <button class="w-full rounded bg-red-500 px-3 py-1 text-white cursor-not-allowed" disabled>
+                        ❌ Missed
+                    </button>
+                @endif
+            </td>
+        </tr>
+    @endforeach
+</tbody>
             </table>
         </div>
     @endif
@@ -278,7 +307,7 @@ function initHighAccuracyTracking(scheduleId) {
 
         logDebug(`GPS → Lat:${userLat.toFixed(6)} Lng:${userLng.toFixed(6)} | Accuracy:${acc.toFixed(1)}m | Dist:${dist.toFixed(2)}m`);
 
-        if (acc <= 20 && dist <= 5 && !checkedIn) {
+        if (acc <= 15 && dist <= 4 && !checkedIn) {
             checkedIn = true;
             showNotification("Checked in successfully!", "success");
             logDebug("✅ Within 5m and accurate — submitting form!");

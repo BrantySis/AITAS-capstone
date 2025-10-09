@@ -18,6 +18,7 @@ return new class extends Migration
             $table->time('time_in')->nullable();
             $table->time('time_out')->nullable();
             $table->string('location')->nullable();
+            $table->enum('status', ['Upcoming', 'Attending', 'Attended', 'Missed'])->default('Upcoming');
             $table->timestamps();
         });
     }
