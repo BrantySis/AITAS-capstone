@@ -22,8 +22,23 @@ RUN a2enmod rewrite
 # Set working directory inside container
 WORKDIR /var/www/html
 
+# -------------------------
+# Install Node & npm
+# -------------------------
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
+# Copy npm files and install dependencies
+COPY package*.json ./
+RUN npm install
+
 # Copy project files to container
 COPY . .
+
+# -------------------------
+# Build Vite assets
+# -------------------------
+RUN npm run build
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -37,8 +52,13 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 # Set Apache DocumentRoot to Laravel public folder
 RUN sed -i 's#/var/www/html#/var/www/html/public#g' /etc/apache2/sites-available/000-default.conf
 
-# Keep Apache running in foreground
-CMD ["apache2-foreground"]
+# -------------------------
+# Add entrypoint script here
+# -------------------------
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["entrypoint.sh"]
 
 # Expose port 80
 EXPOSE 80

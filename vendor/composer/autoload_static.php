@@ -672,6 +672,7 @@ class ComposerStaticInit2c1d19b948c1b57f71a574cb7de7ac73
         'App\\Http\\Controllers\\Auth\\RegisteredUserController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/RegisteredUserController.php',
         'App\\Http\\Controllers\\Auth\\VerifyEmailController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/VerifyEmailController.php',
         'App\\Http\\Controllers\\Controller' => __DIR__ . '/../..' . '/app/Http/Controllers/Controller.php',
+        'App\\Http\\Controllers\\FaceController' => __DIR__ . '/../..' . '/app/Http/Controllers/FaceController.php',
         'App\\Http\\Controllers\\ProfileController' => __DIR__ . '/../..' . '/app/Http/Controllers/ProfileController.php',
         'App\\Http\\Controllers\\RegisterTeacherController' => __DIR__ . '/../..' . '/app/Http/Controllers/RegisterTeacherController.php',
         'App\\Http\\Controllers\\Teacher\\AttendanceController' => __DIR__ . '/../..' . '/app/Http/Controllers/Teacher/AttendanceController.php',

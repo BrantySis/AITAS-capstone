@@ -21,6 +21,7 @@ return array(
     'App\\Http\\Controllers\\Auth\\RegisteredUserController' => $baseDir . '/app/Http/Controllers/Auth/RegisteredUserController.php',
     'App\\Http\\Controllers\\Auth\\VerifyEmailController' => $baseDir . '/app/Http/Controllers/Auth/VerifyEmailController.php',
     'App\\Http\\Controllers\\Controller' => $baseDir . '/app/Http/Controllers/Controller.php',
+    'App\\Http\\Controllers\\FaceController' => $baseDir . '/app/Http/Controllers/FaceController.php',
     'App\\Http\\Controllers\\ProfileController' => $baseDir . '/app/Http/Controllers/ProfileController.php',
     'App\\Http\\Controllers\\RegisterTeacherController' => $baseDir . '/app/Http/Controllers/RegisterTeacherController.php',
     'App\\Http\\Controllers\\Teacher\\AttendanceController' => $baseDir . '/app/Http/Controllers/Teacher/AttendanceController.php',

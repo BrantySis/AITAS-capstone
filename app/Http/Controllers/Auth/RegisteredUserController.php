@@ -19,7 +19,10 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        return view('auth.register');
+        return view('auth.register', [
+        'fastapiUrl' => config('services.fastapi.url'),
+        'laravelApiUrl' => config('services.laravel.url'),
+    ]);
     }
 
     /**
