@@ -85,6 +85,7 @@
                                         <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
                                         <input type="hidden" name="latitude" id="lat-{{ $schedule->id }}">
                                         <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
+                                        <input type="hidden" name="checkout" id="checkout-{{ $schedule->id }}" value="0">
                                         <input type="hidden" id="room-lat-{{ $schedule->id }}" value="{{ optional($schedule->room)->latitude }}">
                                         <input type="hidden" id="room-lng-{{ $schedule->id }}" value="{{ optional($schedule->room)->longitude }}">
 
@@ -139,10 +140,7 @@ let geoWatchId = null;
 
 const FASTAPI_URL = @json($fastapiUrl);
 
-function logDebug(msg) {
-    console.log(`[DEBUG] ${msg}`);
-}
-function showNotification(msg, type="success") { alert(msg); logDebug(`${type}: ${msg}`); }
+function showNotification(msg, type="success") { alert(msg); console.log(type+": "+msg); }
 
 // ---------- FACE SCANNER ----------
 function openFaceScanner(scheduleId) {
@@ -160,7 +158,6 @@ function closeFaceScanner() {
     scannerVideo.srcObject = null;
     scannerVideo.removeAttribute("src");
     scannerVideo.load();
-    logDebug("Face scanner closed");
 }
 async function startScannerCamera() {
     try {
@@ -169,10 +166,8 @@ async function startScannerCamera() {
         await new Promise(res => { scannerVideo.onloadedmetadata = ()=>{scannerVideo.play(); res();}; });
         scanningActive = true;
         scanTimeout = setTimeout(()=>{ if(scanningActive) scanFaceLoop(); }, 3000);
-        logDebug("Camera started");
     } catch(err) {
         document.getElementById('scanner-message').textContent = "❌ Camera error: " + err;
-        logDebug("Camera error: "+err);
     }
 }
 async function scanFaceLoop() {
@@ -185,24 +180,20 @@ async function scanFaceLoop() {
     const blob = await new Promise(res=>canvas.toBlob(res,'image/jpeg'));
     const formData = new FormData();
     formData.append("image", blob);
+
     try {
         const res = await fetch(`${FASTAPI_URL}/recognize`, { method:"POST", body:formData });
         const data = await res.json();
         if(data.status==="success" && data.match!=="Unknown"){
             document.getElementById('scanner-message').textContent="✅ Face verified!";
-            showNotification("Face verified!","success");
-            logDebug(`Face verified for ${data.match}`);
             closeFaceScanner();
             initHighAccuracyTracking(currentScheduleId);
             return;
         } else {
             document.getElementById('scanner-message').textContent="🔄 Scanning face...";
-            logDebug("Scanning face... no match");
         }
     } catch(err){
         document.getElementById('scanner-message').textContent="❌ Error scanning face.";
-        showNotification("Error scanning face.","error");
-        logDebug("Error scanning face: "+err);
     }
     if(scanningActive) requestAnimationFrame(scanFaceLoop);
 }
@@ -236,28 +227,69 @@ function initHighAccuracyTracking(scheduleId){
         }
 
         map.setView([userLat,userLng],18);
-        logDebug(`GPS → Lat:${userLat.toFixed(6)} Lng:${userLng.toFixed(6)} | Accuracy:${acc.toFixed(1)}m | Dist:${dist.toFixed(2)}m`);
 
-        if(acc<=15 && dist<=4 && !checkedIn){
+        if(acc<=17 && dist<=4 && !checkedIn){
             checkedIn=true;
-            showNotification("Checked in successfully!","success");
-            logDebug("Submitting attendance form");
             stopTracking();
             mapElement.classList.add("hidden");
+
             const btn=document.getElementById('checkin-btn-'+scheduleId);
-            if(btn){ btn.disabled=true; btn.textContent="✅ Attended"; btn.classList.remove("bg-green-600"); btn.classList.add("bg-green-500"); }
-            // ✅ set lat/lng before submitting
+            const form=document.getElementById('checkin-form-'+scheduleId);
+
             document.getElementById('lat-'+scheduleId).value = userLat;
             document.getElementById('lng-'+scheduleId).value = userLng;
-            document.getElementById('checkin-form-'+scheduleId).submit();
+
+            // Submit form for check-in
+            fetch(form.action, { method:'POST', body:new FormData(form) })
+            .then(res=>res.json())
+            .then(data=>{
+                showNotification(data.message || "Checked in!", "success");
+                // Change button to checkout
+                btn.textContent="Check Out";
+                btn.classList.remove("bg-green-600");
+                btn.classList.add("bg-yellow-600");
+                btn.disabled=false;
+                // Set checkout field
+                document.getElementById('checkout-'+scheduleId).value="1";
+                btn.onclick = ()=>handleCheckout(scheduleId);
+            })
+            .catch(err=>showNotification("Error submitting check-in","error"));
         }
     },err=>{
         showNotification("Location error: "+err.message,"error");
-        logDebug("Location error: "+err.message);
         stopTracking();
     }, {enableHighAccuracy:true, timeout:20000, maximumAge:0});
 }
-function stopTracking(){ if(geoWatchId!==null){ navigator.geolocation.clearWatch(geoWatchId); geoWatchId=null; logDebug("Stopped GPS tracking"); } }
+function stopTracking(){ if(geoWatchId!==null){ navigator.geolocation.clearWatch(geoWatchId); geoWatchId=null; } }
 function getDistanceInMeters(lat1,lng1,lat2,lng2){ const R=6371000; const dLat=(lat2-lat1)*Math.PI/180; const dLng=(lng2-lng1)*Math.PI/180; const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2; return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
+
+// ---------- CHECKOUT ----------
+function handleCheckout(scheduleId){
+    const form=document.getElementById('checkin-form-'+scheduleId);
+    const btn=document.getElementById('checkin-btn-'+scheduleId);
+
+    if(!navigator.geolocation){ showNotification("Geolocation not supported.","error"); return; }
+
+    navigator.geolocation.getCurrentPosition(pos=>{
+        const lat=pos.coords.latitude;
+        const lng=pos.coords.longitude;
+
+        document.getElementById('lat-'+scheduleId).value = lat;
+        document.getElementById('lng-'+scheduleId).value = lng;
+
+        fetch(form.action, { method:'POST', body:new FormData(form) })
+        .then(res=>res.json())
+        .then(data=>{
+            showNotification(data.message || "Checked out!", "success");
+            btn.textContent="✅ Attended";
+            btn.classList.remove("bg-yellow-600");
+            btn.classList.add("bg-green-500");
+            btn.disabled=true;
+        })
+        .catch(err=>showNotification("Error during checkout","error"));
+    }, err=>{
+        showNotification("Location error: "+err.message,"error");
+    }, {enableHighAccuracy:true});
+}
 </script>
 </x-app-layout>
