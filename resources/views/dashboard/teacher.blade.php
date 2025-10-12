@@ -89,25 +89,25 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('teacher.notifications') }}" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
+                    <a href="#" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
                         <span>🔔</span>
                         <span class="nav-label">Notifications</span>
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('teacher.forms') }}" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
+                    <a href="#" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
                         <span>📄</span>
                         <span class="nav-label">DepEd Forms</span>
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('teacher.biometrics') }}" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
+                    <a href="#" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
                         <span>📊</span>
                         <span class="nav-label">Biometrics</span>
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('teacher.grades') }}" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
+                    <a href="#" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
                         <span>📝</span>
                         <span class="nav-label">E Grade</span>
                     </a>
@@ -119,7 +119,7 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('teacher.evaluation') }}" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
+                    <a href="#" class="flex items-center space-x-3 nav-icon hover:bg-blue-100 hover:text-blue-800 rounded px-3 py-2 transition-all cursor-pointer">
                         <span>✅</span>
                         <span class="nav-label">Teacher's Evaluation</span>
                     </a>
@@ -197,7 +197,7 @@
                             </div>
                         </div>
                         <div class="mt-4">
-                            <a href="{{ route('teacher.grades') }}" class="text-blue-600 hover:text-blue-800 font-medium">
+                            <a href="#" class="text-blue-600 hover:text-blue-800 font-medium">
                                 Manage Grades →
                             </a>
                         </div>
@@ -214,7 +214,7 @@
                             </div>
                         </div>
                         <div class="mt-4">
-                            <a href="{{ route('teacher.forms') }}" class="text-blue-600 hover:text-blue-800 font-medium">
+                            <a href="#" class="text-blue-600 hover:text-blue-800 font-medium">
                                 View Forms →
                             </a>
                         </div>

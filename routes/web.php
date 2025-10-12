@@ -90,21 +90,15 @@ Route::middleware(['auth', 'teacher'])->prefix('teacher')->name('teacher.')->gro
         return view('teacher.notifications');
     })->name('notifications');
     
-    Route::get('/forms', function () {
-        return view('teacher.forms');
-    })->name('forms');
+    
     
     Route::get('/biometrics', function () {
         return view('teacher.biometrics');
     })->name('biometrics');
     
-    Route::get('/grades', function () {
-        return view('teacher.grades');
-    })->name('grades');
     
-    Route::get('/evaluation', function () {
-        return view('teacher.evaluation');
-    })->name('evaluation');
+    
+    
     
     Route::get('/load', [LoadController::class, 'index'])->name('load');
     Route::get('/calendar', [DashboardController::class, 'calendar'])->name('calendar');
