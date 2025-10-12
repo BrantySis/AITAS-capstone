@@ -15,6 +15,7 @@ class Attendance extends Model
         'time_in', // <-- Add this
         'time_out', // <-- Add if you're using it later
         // Add any other fields that need to be mass assigned
+        'status',
     ];
     
     public function user()

@@ -65,68 +65,107 @@
     {{-- Leaflet --}}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-         let map, marker, circle;
-    const radius = 4;
+<script>
+let map, marker, circle, geoWatchId = null;
+const accuracyThreshold = 10; // meters
+const defaultLat = 14.5995;   // Manila default fallback
+const defaultLng = 120.9842;
 
-    function initMap(lat, lng) {
-        if (!map) {
-            map = L.map('map').setView([lat, lng], 30); // or try 20
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
+// Initialize Leaflet map
+function initMap(lat, lng) {
+    if (!map) {
+        map = L.map('map').setView([lat, lng], 19);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
 
-            marker = L.marker([lat, lng], { draggable: true }).addTo(map)
-                .bindPopup("Drag to adjust location").openPopup();
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map)
+            .bindPopup("Drag to adjust location").openPopup();
 
-            circle = L.circle([lat, lng], {
-                radius: radius,
-                color: 'blue',
-                fillColor: '#cce5ff',
-                fillOpacity: 0.3
-            }).addTo(map);
+        circle = L.circle([lat, lng], {
+            radius: accuracyThreshold,
+            color: 'blue',
+            fillColor: '#cce5ff',
+            fillOpacity: 0.3
+        }).addTo(map);
 
-            marker.on('dragend', function (e) {
-                const position = marker.getLatLng();
-                document.getElementById('latitude').value = position.lat.toFixed(6);
-                document.getElementById('longitude').value = position.lng.toFixed(6);
-                circle.setLatLng(position);
-            });
+        marker.on('dragend', function (e) {
+            const pos = marker.getLatLng();
+            updateFormCoordinates(pos.lat, pos.lng);
+            circle.setLatLng(pos);
+        });
 
-            map.on('click', function(e) {
-                marker.setLatLng(e.latlng);
-                circle.setLatLng(e.latlng);
-                document.getElementById('latitude').value = e.latlng.lat.toFixed(6);
-                document.getElementById('longitude').value = e.latlng.lng.toFixed(6);
-            });
+        map.on('click', function (e) {
+            marker.setLatLng(e.latlng);
+            circle.setLatLng(e.latlng);
+            updateFormCoordinates(e.latlng.lat, e.latlng.lng);
+        });
+    } else {
+        map.setView([lat, lng], 19);
+        marker.setLatLng([lat, lng]);
+        circle.setLatLng([lat, lng]);
+    }
+}
 
-        } else {
-            map.setView([lat, lng], 18);
-            marker.setLatLng([lat, lng]);
-            circle.setLatLng([lat, lng]);
-        }
+// Update input boxes
+function updateFormCoordinates(lat, lng) {
+    document.getElementById('latitude').value = lat.toFixed(6);
+    document.getElementById('longitude').value = lng.toFixed(6);
+}
+
+// Start high-accuracy tracking
+function getLocation() {
+    if (!navigator.geolocation) {
+        alert("❌ Geolocation not supported by this browser.");
+        return;
     }
 
-    function getLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function (position) {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                document.getElementById('latitude').value = lat;
-                document.getElementById('longitude').value = lng;
+    alert("📡 Getting precise GPS position... Please wait a few seconds.");
+
+    geoWatchId = navigator.geolocation.watchPosition(
+        pos => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            const acc = pos.coords.accuracy;
+
+            console.log(`GPS accuracy: ${acc.toFixed(1)}m`);
+
+            if (acc <= accuracyThreshold) {
+                alert(`✅ Accurate GPS acquired!\nLatitude: ${lat.toFixed(6)}\nLongitude: ${lng.toFixed(6)}\nAccuracy: ${acc.toFixed(1)}m`);
+                updateFormCoordinates(lat, lng);
                 initMap(lat, lng);
-            }, function (error) {
-                alert("❌ Error: " + error.message);
-            });
-        } else {
-            alert("Geolocation not supported.");
+                stopTracking();
+            } else {
+                // Display temporary approximate position for feedback
+                updateFormCoordinates(lat, lng);
+                initMap(lat, lng);
+            }
+        },
+        err => {
+            alert("❌ Error: " + err.message);
+            stopTracking();
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 0
         }
-    }
+    );
+}
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const lat = parseFloat(document.getElementById('latitude').value) || 14.5995;
-        const lng = parseFloat(document.getElementById('longitude').value) || 120.9842;
-        initMap(lat, lng);
-    });
-    </script>
+function stopTracking() {
+    if (geoWatchId !== null) {
+        navigator.geolocation.clearWatch(geoWatchId);
+        geoWatchId = null;
+    }
+}
+
+// Initialize map on page load
+document.addEventListener('DOMContentLoaded', function () {
+    const lat = parseFloat(document.getElementById('latitude').value) || defaultLat;
+    const lng = parseFloat(document.getElementById('longitude').value) || defaultLng;
+    initMap(lat, lng);
+});
+</script>
 </x-app-layout>

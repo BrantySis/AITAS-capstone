@@ -1,189 +1,295 @@
 <x-app-layout>
-    
-    
-    <div class="max-w-4xl mx-auto p-6">
-        
+<div class="max-w-4xl mx-auto p-6">
+    <!-- Header -->
     <div class="flex items-center justify-between mb-6">
-        <a href="{{ route('dashboard.teacher') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
-            <!-- Left arrow icon -->
-            <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+        <a href="{{ route('dashboard.teacher') }}" 
+           class="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800">
+            <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" stroke-width="2" 
+                 viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
             </svg>
             Back
         </a>
-        <h2 class="text-2xl font-bold text-blue-700 text-center flex-grow">Upcoming Schedule</h2>
+        <h2 class="flex-grow text-2xl font-bold text-center text-blue-700">Upcoming Schedule</h2>
     </div>
 
-        @if(session('success'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                {{ session('success') }}
-            </div>
-        @elseif(session('error'))
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                {{ session('error') }}
-            </div>
-        @endif
-
-        @if($schedules->isEmpty())
-            <p class="text-center text-gray-500">You don't have any upcoming schedules.</p>
-        @else
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-md text-sm">
-                    <thead class="bg-blue-100 text-blue-800 uppercase text-xs">
-                        <tr>
-                            <th class="px-6 py-3 text-left border-b">Subject</th>
-                            <th class="px-6 py-3 text-left border-b">Time</th>
-                            <th class="px-6 py-3 text-left border-b">Room</th>
-                            <th class="px-6 py-3 text-left border-b">Date</th>
-                            <th class="px-6 py-3 text-left border-b">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-gray-700">
+    <!-- Schedules -->
+    @if($schedules->isEmpty())
+        <p class="text-center text-gray-500">You don't have any upcoming schedules for now.</p>
+    @else
+        <div class="overflow-x-auto">
+            <table class="min-w-full border border-gray-200 bg-white text-sm shadow-md rounded-lg">
+                <thead class="bg-blue-100 text-blue-800 uppercase text-xs">
+                    <tr>
+                        <th class="px-6 py-3 text-left border-b">Subject</th>
+                        <th class="px-6 py-3 text-left border-b">Time</th>
+                        <th class="px-6 py-3 text-left border-b">Room</th>
+                        <th class="px-6 py-3 text-left border-b">Date</th>
+                        <th class="px-6 py-3 text-left border-b">Status</th>
+                        <th class="px-6 py-3 text-left border-b">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-700">
                     @foreach($schedules as $schedule)
-                            <tr class="border-b hover:bg-gray-50">
-                                <td class="px-6 py-4">{{ $schedule->subject->subject_name ?? 'Unknown Subject' }}</td>
-                                <td class="px-6 py-4">
-                                    {{ \Carbon\Carbon::parse($schedule->starts_at)->format('g:i A') }} -
-                                    {{ \Carbon\Carbon::parse($schedule->ends_at)->format('g:i A') }}
-                                </td>
-                                <td class="px-6 py-4">{{ optional($schedule->room)->room_code ?? 'No Room' }}</td>
-                                <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('F j, Y') }}</td>
-                                <td class="px-6 py-4">
-                                @php
-                                    $hasCheckedIn = in_array($schedule->id, $checkedInSchedules);
-                                @endphp
+                        @php
+                            $attendance = $schedule->attendance ?? null;
+                            $now = \Carbon\Carbon::now('Asia/Manila'); 
+                            $scheduleStart = \Carbon\Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
+                            $scheduleEnd = \Carbon\Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
 
-                                @if($hasCheckedIn)
-                                    <button class="bg-gray-400 text-white px-3 py-1 rounded cursor-not-allowed" disabled>
-                                        Already Checked In
-                                    </button>
+                            if ($attendance) {
+                                $status = $attendance->status; 
+                            } elseif ($now->between($scheduleStart, $scheduleEnd)) {
+                                $status = 'Attending'; 
+                            } elseif ($now->lt($scheduleStart)) {
+                                $status = 'Upcoming'; 
+                            } else {
+                                $status = 'Missed'; 
+                            }       
+                        @endphp
+
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="px-6 py-4">{{ $schedule->subject->subject_name ?? 'Unknown Subject' }}</td>
+                            <td class="px-6 py-4">
+                                {{ \Carbon\Carbon::parse($schedule->starts_at)->format('g:i A') }} -
+                                {{ \Carbon\Carbon::parse($schedule->ends_at)->format('g:i A') }}
+                            </td>
+                            <td class="px-6 py-4">{{ optional($schedule->room)->room_code ?? 'No Room' }}</td>
+                            <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('F j, Y') }}</td>
+
+                            <!-- Status Column -->
+                            <td class="px-6 py-4 font-semibold">
+                                @if($status === 'Upcoming')
+                                    <span class="text-blue-600">Upcoming</span>
+                                @elseif($status === 'Attending')
+                                    <span class="text-yellow-600">Ongoing</span>
+                                @elseif($status === 'Attended')
+                                    <span class="text-green-600">Attended</span>
+                                @elseif($status === 'Missed')
+                                    <span class="text-red-600">Missed</span>
                                 @else
-                                    <form method="POST" action="{{ route('teacher.attendance.store') }}">
+                                    <span class="text-gray-600">-</span>
+                                @endif
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="px-6 py-4 space-y-2">
+                                @if($status === 'Upcoming')
+                                    <button class="w-full rounded bg-gray-400 px-3 py-1 text-white cursor-not-allowed" disabled>
+                                        Not yet started
+                                    </button>
+                                @elseif($status === 'Attending')
+                                    <form method="POST" action="{{ route('teacher.attendance.store') }}" id="checkin-form-{{ $schedule->id }}">
                                         @csrf
                                         <input type="hidden" name="user_id" value="{{ auth()->id() }}">
                                         <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
                                         <input type="hidden" name="latitude" id="lat-{{ $schedule->id }}">
                                         <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
+                                        <input type="hidden" name="checkout" id="checkout-{{ $schedule->id }}" value="0">
                                         <input type="hidden" id="room-lat-{{ $schedule->id }}" value="{{ optional($schedule->room)->latitude }}">
                                         <input type="hidden" id="room-lng-{{ $schedule->id }}" value="{{ optional($schedule->room)->longitude }}">
-                                        <span id="distance-msg-{{ $schedule->id }}" class="text-sm text-red-600 block mt-2"></span>
+
                                         <button type="button"
-                                            onclick="getLocationAndSubmit({{ $schedule->id }})"
-                                            class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
+                                                id="checkin-btn-{{ $schedule->id }}"
+                                                onclick="openFaceScanner({{ $schedule->id }})"
+                                                class="w-full rounded bg-green-600 px-3 py-1 text-white hover:bg-green-700">
                                             Check In
                                         </button>
-                                        
                                     </form>
-                                    
+                                @elseif($status === 'Attended')
+                                    <button class="w-full rounded bg-green-500 px-3 py-1 text-white cursor-not-allowed" disabled>
+                                        ✅ Attended
+                                    </button>
+                                @elseif($status === 'Missed')
+                                    <button class="w-full rounded bg-red-500 px-3 py-1 text-white cursor-not-allowed" disabled>
+                                        ❌ Missed
+                                    </button>
                                 @endif
-                                </td>
-                                <form method="POST" action="{{ route('teacher.attendance.timeout') }}" class="inline">
-                                        @csrf
-                                        <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
-                                        <button type="submit"
-                                                class="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 mt-2">
-                                            Time Out
-                                        </button>
-                                    </form>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+</div>
+
+<!-- Face Scanner Modal -->
+<div id="face-scanner-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg w-96 text-center">
+        <h3 class="text-lg font-bold mb-4">Face Verification</h3>
+        <video id="scanner-video" autoplay playsinline class="w-full h-64 rounded border mb-4"></video>
+        <p id="scanner-message" class="text-gray-700 mb-4">Please align your face in front of the camera...</p>
+        <button onclick="closeFaceScanner()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Cancel</button>
     </div>
+</div>
 
-    {{-- Optional: Leaflet map container --}}
-    <div id="map" class="mt-6 w-full h-64 rounded-lg shadow hidden"></div>
+<!-- Leaflet Map -->
+<div id="map" class="mt-6 hidden h-64 w-full rounded-lg shadow"></div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <script>
-       function getLocationAndSubmit(scheduleId) {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function (position) {
-                const accuracy = position.coords.accuracy;
-                if (accuracy > 10) {
-                    alert("⚠️ GPS accuracy is low (" + accuracy + "m). Please wait for better signal.");
-                    return;
-                }
-                const userLat = position.coords.latitude;
-                const userLng = position.coords.longitude;
+<script>
+let scannerVideo = document.getElementById('scanner-video');
+let scannerStream = null;
+let currentScheduleId = null;
+let scanningActive = false; 
+let scanTimeout = null;
+let map, userMarker, roomMarker, accuracyCircle;
+let geoWatchId = null;
 
-                document.getElementById('lat-' + scheduleId).value = userLat;
-                document.getElementById('lng-' + scheduleId).value = userLng;
+const FASTAPI_URL = @json($fastapiUrl);
 
-                const roomLat = parseFloat(document.getElementById('room-lat-' + scheduleId).value);
-                const roomLng = parseFloat(document.getElementById('room-lng-' + scheduleId).value);
+function showNotification(msg, type="success") { alert(msg); console.log(type+": "+msg); }
 
-                // Calculate distance in meters
-                const distance = getDistanceInMeters(userLat, userLng, roomLat, roomLng);
-                const msgElement = document.getElementById('distance-msg-' + scheduleId);
+// ---------- FACE SCANNER ----------
+function openFaceScanner(scheduleId) {
+    currentScheduleId = scheduleId;
+    document.getElementById('scanner-message').textContent = "Please align your face in front of the camera...";
+    document.getElementById('face-scanner-modal').classList.remove('hidden');
+    startScannerCamera();
+}
+function closeFaceScanner() {
+    document.getElementById('face-scanner-modal').classList.add('hidden');
+    scanningActive = false; 
+    if(scanTimeout) clearTimeout(scanTimeout);
+    if(scannerStream) { scannerStream.getTracks().forEach(track => track.stop()); scannerStream=null; }
+    scannerVideo.pause();
+    scannerVideo.srcObject = null;
+    scannerVideo.removeAttribute("src");
+    scannerVideo.load();
+}
+async function startScannerCamera() {
+    try {
+        scannerStream = await navigator.mediaDevices.getUserMedia({ video:true });
+        scannerVideo.srcObject = scannerStream;
+        await new Promise(res => { scannerVideo.onloadedmetadata = ()=>{scannerVideo.play(); res();}; });
+        scanningActive = true;
+        scanTimeout = setTimeout(()=>{ if(scanningActive) scanFaceLoop(); }, 3000);
+    } catch(err) {
+        document.getElementById('scanner-message').textContent = "❌ Camera error: " + err;
+    }
+}
+async function scanFaceLoop() {
+    if(!scanningActive || !scannerStream) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = scannerVideo.videoWidth || 320;
+    canvas.height = scannerVideo.videoHeight || 240;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(scannerVideo,0,0,canvas.width,canvas.height);
+    const blob = await new Promise(res=>canvas.toBlob(res,'image/jpeg'));
+    const formData = new FormData();
+    formData.append("image", blob);
 
-                // Show distance message
-                msgElement.textContent = `📍 You are approximately ${distance.toFixed(2)} meters from the room.`;
-
-                // Optional map preview
-                const mapContainer = document.getElementById("map");
-                mapContainer.classList.remove('hidden');
-                mapContainer.innerHTML = "";
-                const map = L.map('map').setView([userLat, userLng], 18);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(map);
-
-                // Mark user's location
-                L.marker([userLat, userLng]).addTo(map)
-                    .bindPopup("You are here").openPopup();
-
-                // Room marker and 5m radius
-                L.circle([roomLat, roomLng], {
-                    color: 'blue',
-                    fillColor: '#cce5ff',
-                    fillOpacity: 0.3,
-                    radius: 5
-                }).addTo(map).bindPopup("Allowed Check-In Area");
-
-                L.marker([roomLat, roomLng], {
-                    icon: L.icon({
-                        iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-                        iconSize: [25, 25]
-                    })
-                }).addTo(map).bindPopup("Room Location");
-
-                // Submit if within 5 meters
-                if (distance <= 5) {
-                    document.querySelector(`#lat-${scheduleId}`).closest('form').submit();
-                } else {
-                    msgElement.textContent += " ❌ You are outside the allowed range (5m). Check-in blocked.";
-                }
-
-            }, function (error) {
-                alert("❌ Location error: " + error.message);
-            }, {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            });
+    try {
+        const res = await fetch(`${FASTAPI_URL}/recognize`, { method:"POST", body:formData });
+        const data = await res.json();
+        if(data.status==="success" && data.match!=="Unknown"){
+            document.getElementById('scanner-message').textContent="✅ Face verified!";
+            closeFaceScanner();
+            initHighAccuracyTracking(currentScheduleId);
+            return;
         } else {
-            alert("Geolocation is not supported.");
+            document.getElementById('scanner-message').textContent="🔄 Scanning face...";
         }
+    } catch(err){
+        document.getElementById('scanner-message').textContent="❌ Error scanning face.";
+    }
+    if(scanningActive) requestAnimationFrame(scanFaceLoop);
+}
+
+// ---------- HIGH ACCURACY GEO ----------
+function initHighAccuracyTracking(scheduleId){
+    if(!navigator.geolocation){ showNotification("Geolocation not supported.","error"); return; }
+    const roomLat = parseFloat(document.getElementById('room-lat-'+scheduleId).value);
+    const roomLng = parseFloat(document.getElementById('room-lng-'+scheduleId).value);
+    const mapElement = document.getElementById("map");
+    mapElement.classList.remove("hidden");
+    if(!map){ map=L.map("map").setView([roomLat,roomLng],18); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);}
+    if(roomMarker) map.removeLayer(roomMarker);
+    roomMarker = L.marker([roomLat,roomLng]).addTo(map).bindPopup("Room Location").openPopup();
+    let checkedIn=false;
+
+    geoWatchId = navigator.geolocation.watchPosition(pos=>{
+        const userLat=pos.coords.latitude;
+        const userLng=pos.coords.longitude;
+        const acc=pos.coords.accuracy;
+        const dist=getDistanceInMeters(userLat,userLng,roomLat,roomLng);
+
+        if(userMarker){
+            userMarker.setLatLng([userLat,userLng]);
+            accuracyCircle.setLatLng([userLat,userLng]).setRadius(acc);
+        } else {
+            userMarker=L.marker([userLat,userLng],{
+                icon:L.icon({iconUrl:"https://cdn-icons-png.flaticon.com/512/684/684908.png",iconSize:[32,32]})
+            }).addTo(map).bindPopup("You are here");
+            accuracyCircle=L.circle([userLat,userLng],{radius:acc,color:"blue",fillOpacity:0.2}).addTo(map);
         }
 
-        function getDistanceInMeters(lat1, lng1, lat2, lng2) {
-            const R = 6371000; // Earth's radius in meters
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLng = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLng/2) * Math.sin(dLng/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-                    </script>
+        map.setView([userLat,userLng],18);
 
-    {{-- Load Leaflet --}}
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        if(acc<=17 && dist<=4 && !checkedIn){
+            checkedIn=true;
+            stopTracking();
+            mapElement.classList.add("hidden");
+
+            const btn=document.getElementById('checkin-btn-'+scheduleId);
+            const form=document.getElementById('checkin-form-'+scheduleId);
+
+            document.getElementById('lat-'+scheduleId).value = userLat;
+            document.getElementById('lng-'+scheduleId).value = userLng;
+
+            // Submit form for check-in
+            fetch(form.action, { method:'POST', body:new FormData(form) })
+            .then(res=>res.json())
+            .then(data=>{
+                showNotification(data.message || "Checked in!", "success");
+                // Change button to checkout
+                btn.textContent="Check Out";
+                btn.classList.remove("bg-green-600");
+                btn.classList.add("bg-yellow-600");
+                btn.disabled=false;
+                // Set checkout field
+                document.getElementById('checkout-'+scheduleId).value="1";
+                btn.onclick = ()=>handleCheckout(scheduleId);
+            })
+            .catch(err=>showNotification("Error submitting check-in","error"));
+        }
+    },err=>{
+        showNotification("Location error: "+err.message,"error");
+        stopTracking();
+    }, {enableHighAccuracy:true, timeout:20000, maximumAge:0});
+}
+function stopTracking(){ if(geoWatchId!==null){ navigator.geolocation.clearWatch(geoWatchId); geoWatchId=null; } }
+function getDistanceInMeters(lat1,lng1,lat2,lng2){ const R=6371000; const dLat=(lat2-lat1)*Math.PI/180; const dLng=(lng2-lng1)*Math.PI/180; const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2; return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
+
+// ---------- CHECKOUT ----------
+function handleCheckout(scheduleId){
+    const form=document.getElementById('checkin-form-'+scheduleId);
+    const btn=document.getElementById('checkin-btn-'+scheduleId);
+
+    if(!navigator.geolocation){ showNotification("Geolocation not supported.","error"); return; }
+
+    navigator.geolocation.getCurrentPosition(pos=>{
+        const lat=pos.coords.latitude;
+        const lng=pos.coords.longitude;
+
+        document.getElementById('lat-'+scheduleId).value = lat;
+        document.getElementById('lng-'+scheduleId).value = lng;
+
+        fetch(form.action, { method:'POST', body:new FormData(form) })
+        .then(res=>res.json())
+        .then(data=>{
+            showNotification(data.message || "Checked out!", "success");
+            btn.textContent="✅ Attended";
+            btn.classList.remove("bg-yellow-600");
+            btn.classList.add("bg-green-500");
+            btn.disabled=true;
+        })
+        .catch(err=>showNotification("Error during checkout","error"));
+    }, err=>{
+        showNotification("Location error: "+err.message,"error");
+    }, {enableHighAccuracy:true});
+}
+</script>
 </x-app-layout>
-
-
