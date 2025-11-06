@@ -1,0 +1,35 @@
+@keyframes snow-fall {
+    0% {
+        transform: translateY(-10vh);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translateY(110vh);
+        opacity: 0;
+    }
+}
+
+/* Add snow-drift if you use it in your Blade loop. 
+   Assuming you might have a simple horizontal drift: */
+@keyframes snow-drift {
+    0% {
+        transform: translateX(0);
+    }
+    50% {
+        transform: translateX(10px);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
+.snow-dot {
+    position: absolute;
+    top: 0;
+    border-radius: 9999px;
+    background-color: white;
+    opacity: 0.7;
+    animation-name: snow-fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
