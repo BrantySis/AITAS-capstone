@@ -63,7 +63,7 @@ class ScheduleController extends Controller
             'subject_id' => 'required|exists:subjects,id',
             'edp_code' => 'required|string|max:255',
             'type' => 'required|in:lecture,lab',
-            'days' => 'required',
+            'day_of_week' => 'required|string',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'semester' => 'required|string',
@@ -74,12 +74,11 @@ class ScheduleController extends Controller
 
         try {
             $subject = Subject::findOrFail($request->subject_id);
-            $daysString = is_array($request->days) ? implode('', $request->days) : $request->days;
 
             // ✅ Check for teacher schedule conflict
             $conflict = $this->checkScheduleConflict(
                 $request->user_id,
-                $daysString,
+                $request->day_of_week,
                 $request->starts_at,
                 $request->ends_at,
                 $request->start_date,
@@ -88,7 +87,7 @@ class ScheduleController extends Controller
 
             if ($conflict) {
                 return back()->withErrors([
-                    'conflict' => '⚠️ This teacher already has a conflicting schedule on the selected days/time.'
+                    'conflict' => '⚠️ This teacher already has a conflicting schedule on the selected day/time.'
                 ])->withInput();
             }
 
@@ -100,7 +99,7 @@ class ScheduleController extends Controller
                 'edp_code' => $request->edp_code,
                 'units' => $subject->units ?? 3,
                 'type' => $request->type,
-                'days' => $daysString,
+                'day_of_week' => $request->day_of_week,
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
                 'semester' => $request->semester,
@@ -126,7 +125,7 @@ class ScheduleController extends Controller
             'subject_id' => 'required|exists:subjects,id',
             'edp_code' => 'required|string|max:255',
             'type' => 'required|in:lecture,lab',
-            'days' => 'required',
+            'day_of_week' => 'required|string',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'semester' => 'required|string',
@@ -136,11 +135,11 @@ class ScheduleController extends Controller
         ]);
 
         $subject = Subject::findOrFail($request->subject_id);
-        $daysString = is_array($request->days) ? implode('', $request->days) : $request->days;
 
+        // ✅ Conflict check (ignore current schedule)
         $conflict = $this->checkScheduleConflict(
             $request->user_id,
-            $daysString,
+            $request->day_of_week,
             $request->starts_at,
             $request->ends_at,
             $request->start_date,
@@ -161,7 +160,7 @@ class ScheduleController extends Controller
             'edp_code' => $request->edp_code,
             'units' => $subject->units ?? 3,
             'type' => $request->type,
-            'days' => $daysString,
+            'day_of_week' => $request->day_of_week,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'semester' => $request->semester,
@@ -190,16 +189,10 @@ class ScheduleController extends Controller
     /**
      * Check for schedule conflicts.
      */
-    private function checkScheduleConflict($teacherId, $days, $startTime, $endTime, $startDate, $endDate, $excludeId = null)
+    private function checkScheduleConflict($teacherId, $dayOfWeek, $startTime, $endTime, $startDate, $endDate, $excludeId = null)
     {
-        $daysArray = is_array($days) ? $days : str_split($days);
-
         $query = Schedule::where('user_id', $teacherId)
-            ->where(function ($q) use ($daysArray) {
-                foreach ($daysArray as $day) {
-                    $q->orWhere('days', 'like', "%$day%");
-                }
-            });
+            ->where('day_of_week', $dayOfWeek);
 
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);

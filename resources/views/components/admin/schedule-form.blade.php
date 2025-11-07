@@ -3,10 +3,9 @@
     'users' => [],
     'rooms' => [],
     'subjects' => [],
-    'isEditMode' => false, {{-- ✅ Fix: Prevent undefined variable error --}}
+    'isEditMode' => false, // ✅ Prevent undefined variable error
 ])
 
-{{-- ✅ Display validation and conflict errors --}}
 @if ($errors->any())
     <div class="p-3 mb-4 text-sm text-red-700 bg-red-100 rounded-lg border border-red-300">
         <ul class="list-disc list-inside">
@@ -17,21 +16,24 @@
     </div>
 @endif
 
+@php
+    $prefix = $isEditMode ? 'edit_' : '';
+@endphp
+
 <div class="space-y-4">
 
-    {{-- Teacher --}}
+    {{-- Teacher (filtered: role_id = 2) --}}
     <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="{{ $prefix }}user_id" class="block text-sm font-medium text-gray-700 mb-1">
             Teacher <span class="text-red-500">*</span>
         </label>
-        <select name="user_id" required
-            id="{{ $isEditMode ? 'edit_user_id' : 'user_id' }}"
+        <select id="{{ $prefix }}user_id" name="user_id" required
             class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
             <option value="">Select Teacher</option>
-            @foreach ($users as $user)
-                <option value="{{ $user->id }}"
-                    {{ old('user_id', $schedule->user_id ?? '') == $user->id ? 'selected' : '' }}>
-                    {{ $user->name }}
+            @foreach ($users->where('role_id', 2) as $teacher)
+                <option value="{{ $teacher->id }}"
+                    {{ old('user_id', $schedule->user_id ?? '') == $teacher->id ? 'selected' : '' }}>
+                    {{ $teacher->name }}
                 </option>
             @endforeach
         </select>
@@ -39,11 +41,10 @@
 
     {{-- Subject --}}
     <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="{{ $prefix }}subject_id" class="block text-sm font-medium text-gray-700 mb-1">
             Subject <span class="text-red-500">*</span>
         </label>
-        <select name="subject_id" required
-            id="{{ $isEditMode ? 'edit_subject_id' : 'subject_id' }}"
+        <select id="{{ $prefix }}subject_id" name="subject_id" required
             class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
             <option value="">Select Subject</option>
             @foreach ($subjects as $subject)
@@ -57,29 +58,22 @@
 
     {{-- Units --}}
     <div>
-        <label for="{{ $isEditMode ? 'edit_units' : 'units' }}" class="block text-sm font-medium text-gray-700">
+        <label for="{{ $prefix }}units" class="block text-sm font-medium text-gray-700">
             Units <span class="text-red-500">*</span>
         </label>
-        <input 
-            type="number" 
-            name="units" 
-            id="{{ $isEditMode ? 'edit_units' : 'units' }}" 
-            value="{{ old('units', $schedule->units ?? '') }}"
-            class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+        <input type="number" id="{{ $prefix }}units" name="units" required
+            min="0" step="0.5"
             placeholder="Enter number of units"
-            min="0"
-            step="0.5"
-            required
-        >
+            value="{{ old('units', $schedule->units ?? '') }}"
+            class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
     </div>
 
     {{-- Room --}}
     <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="{{ $prefix }}room_id" class="block text-sm font-medium text-gray-700 mb-1">
             Room <span class="text-red-500">*</span>
         </label>
-        <select name="room_id" required
-            id="{{ $isEditMode ? 'edit_room_id' : 'room_id' }}"
+        <select id="{{ $prefix }}room_id" name="room_id" required
             class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
             <option value="">Select Room</option>
             @foreach ($rooms as $room)
@@ -93,11 +87,10 @@
 
     {{-- EDP Code --}}
     <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="{{ $prefix }}edp_code" class="block text-sm font-medium text-gray-700 mb-1">
             EDP Code <span class="text-red-500">*</span>
         </label>
-        <input type="text" name="edp_code" required
-            id="{{ $isEditMode ? 'edit_edp_code' : 'edp_code' }}"
+        <input type="text" id="{{ $prefix }}edp_code" name="edp_code" required
             placeholder="Enter EDP Code"
             value="{{ old('edp_code', $schedule->edp_code ?? '') }}"
             class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
@@ -105,11 +98,10 @@
 
     {{-- Type --}}
     <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="{{ $prefix }}type" class="block text-sm font-medium text-gray-700 mb-1">
             Type <span class="text-red-500">*</span>
         </label>
-        <select name="type" required
-            id="{{ $isEditMode ? 'edit_type' : 'type' }}"
+        <select id="{{ $prefix }}type" name="type" required
             class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
             <option value="">Select Type</option>
             <option value="lecture" {{ old('type', $schedule->type ?? '') == 'lecture' ? 'selected' : '' }}>Lecture</option>
@@ -117,67 +109,55 @@
         </select>
     </div>
 
-    {{-- Days --}}
+    {{-- Day of Week --}}
     <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-            Days <span class="text-red-500">*</span>
+        <label for="{{ $prefix }}day_of_week" class="block text-sm font-medium text-gray-700 mb-1">
+            Day of Week <span class="text-red-500">*</span>
         </label>
-        <div class="flex flex-wrap gap-3">
-            @php
-                $oldDays = old('days', $schedule->days ?? '');
-                $selectedDays = is_array($oldDays) ? $oldDays : str_split($oldDays);
-                $dayOptions = ['M' => 'Mon', 'T' => 'Tue', 'W' => 'Wed', 'H' => 'Thu', 'F' => 'Fri', 'S' => 'Sat'];
-            @endphp
-            @foreach ($dayOptions as $code => $day)
-                <label class="flex items-center space-x-1">
-                    <input type="checkbox" name="days[]" value="{{ $code }}"
-                        {{ in_array($code, $selectedDays) ? 'checked' : '' }}
-                        class="text-blue-600 rounded focus:ring-blue-500">
-                    <span class="text-sm text-gray-700">{{ $day }}</span>
-                </label>
-            @endforeach
-        </div>
+        <select id="{{ $prefix }}day_of_week" name="day_of_week" required
+            class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select Day Pattern</option>
+            <option value="MWF" {{ old('day_of_week', $schedule->day_of_week ?? '') == 'MWF' ? 'selected' : '' }}>Monday, Wednesday, Friday (MWF)</option>
+            <option value="TTH" {{ old('day_of_week', $schedule->day_of_week ?? '') == 'TTH' ? 'selected' : '' }}>Tuesday, Thursday (TTH)</option>
+            <option value="S" {{ old('day_of_week', $schedule->day_of_week ?? '') == 'S' ? 'selected' : '' }}>Saturday (S)</option>
+        </select>
     </div>
 
     {{-- Time --}}
     <div class="grid grid-cols-2 gap-4">
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="{{ $prefix }}starts_at" class="block text-sm font-medium text-gray-700 mb-1">
                 Start Time <span class="text-red-500">*</span>
             </label>
-            <input type="time" name="starts_at" required
-                id="{{ $isEditMode ? 'edit_starts_at' : 'starts_at' }}"
-                value="{{ old('starts_at', $schedule->starts_at ?? '') }}"
+            <input type="time" id="{{ $prefix }}starts_at" name="starts_at" required
+                value="{{ old('starts_at', optional(optional($schedule)->starts_at)->format('H:i')) }}"
                 class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="{{ $prefix }}ends_at" class="block text-sm font-medium text-gray-700 mb-1">
                 End Time <span class="text-red-500">*</span>
             </label>
-            <input type="time" name="ends_at" required
-                id="{{ $isEditMode ? 'edit_ends_at' : 'ends_at' }}"
-                value="{{ old('ends_at', $schedule->ends_at ?? '') }}"
+            <input type="time" id="{{ $prefix }}ends_at" name="ends_at" required
+                value="{{ old('ends_at', optional(optional($schedule)->ends_at)->format('H:i')) }}"
                 class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
         </div>
     </div>
 
-    {{-- Dates --}}
+    {{-- Date Range --}}
     <div class="grid grid-cols-2 gap-4">
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="{{ $prefix }}start_date" class="block text-sm font-medium text-gray-700 mb-1">
                 Start Date <span class="text-red-500">*</span>
             </label>
-            <input type="date" name="start_date" required
-                id="{{ $isEditMode ? 'edit_start_date' : 'start_date' }}"
+            <input type="date" id="{{ $prefix }}start_date" name="start_date" required
                 value="{{ old('start_date', $schedule->start_date ?? '') }}"
                 class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="{{ $prefix }}end_date" class="block text-sm font-medium text-gray-700 mb-1">
                 End Date <span class="text-red-500">*</span>
             </label>
-            <input type="date" name="end_date" required
-                id="{{ $isEditMode ? 'edit_end_date' : 'end_date' }}"
+            <input type="date" id="{{ $prefix }}end_date" name="end_date" required
                 value="{{ old('end_date', $schedule->end_date ?? '') }}"
                 class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
         </div>
@@ -185,11 +165,10 @@
 
     {{-- Semester --}}
     <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="{{ $prefix }}semester" class="block text-sm font-medium text-gray-700 mb-1">
             Semester <span class="text-red-500">*</span>
         </label>
-        <select name="semester" required
-            id="{{ $isEditMode ? 'edit_semester' : 'semester' }}"
+        <select id="{{ $prefix }}semester" name="semester" required
             class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
             <option value="">Select Semester</option>
             <option value="1st" {{ old('semester', $schedule->semester ?? '') == '1st' ? 'selected' : '' }}>1st Semester</option>
@@ -200,13 +179,13 @@
 
     {{-- School Year --}}
     <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="{{ $prefix }}school_year" class="block text-sm font-medium text-gray-700 mb-1">
             School Year <span class="text-red-500">*</span>
         </label>
-        <input type="text" name="school_year" required
-            id="{{ $isEditMode ? 'edit_school_year' : 'school_year' }}"
-            placeholder="e.g. 2024-2025"
+        <input type="text" id="{{ $prefix }}school_year" name="school_year" required
+            placeholder="e.g. 2025-2026"
             value="{{ old('school_year', $schedule->school_year ?? '') }}"
             class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
     </div>
+
 </div>

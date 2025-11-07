@@ -11,6 +11,10 @@ class Subject extends Model
         'subject_name', 
         'units',
         'description',
+        'department',
+        'course_year',
+        'semester',
+        'school_year',
     ];
 
     public function schedules()

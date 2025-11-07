@@ -3,6 +3,31 @@
 @section('header_title', 'Schedule Management')
 
 @section('content')
+<style>
+/* Modal state helpers */
+.modal-closed {
+    /* Hides the modal entirely */
+    display: none !important;
+    pointer-events: none !important;
+}
+.modal-open {
+    /* Shows the modal, centered */
+    display: flex !important;
+    pointer-events: auto !important;
+}
+
+/* animation helpers for inner modal content (start hidden by default) */
+.modal-inner {
+    transition: transform 280ms ease, opacity 280ms ease;
+    transform: scale(0.96);
+    opacity: 0;
+}
+.modal-inner.open {
+    transform: scale(1);
+    opacity: 1;
+}
+</style>
+
 <div class="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto relative z-10">
 
     {{-- ===================== HEADER & ADD BUTTON ===================== --}}
@@ -65,6 +90,9 @@
                     <th class="px-6 py-4 border-b-2 border-gray-200">Room</th>
                     <th class="px-6 py-4 border-b-2 border-gray-200 text-center">Time & Date</th>
                     <th class="px-6 py-4 border-b-2 border-gray-200 text-center">Actions</th>
+                    <th class="px-6 py-4 border-b-2 border-gray-200">Day</th>
+                    <th class="px-6 py-4 border-b-2 border-gray-200">Start Date</th>
+                    <th class="px-6 py-4 border-b-2 border-gray-200">End Date</th>
                 </tr>
             </thead>
             <tbody class="text-gray-800 divide-y divide-gray-100">
@@ -77,6 +105,9 @@
                         <td class="px-6 py-4">{{ $schedule->subject->semester ?? '—' }}</td>
                         <td class="px-6 py-4">{{ $schedule->subject->school_year ?? '—' }}</td>
                         <td class="px-6 py-4">{{ $schedule->room->room_code ?? 'N/A' }}</td>
+                        <td class="px-6 py-4 font-semibold text-blue-700">{{ strtoupper($schedule->day_of_week ?? '—') }}</td>
+                        <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->start_date)->format('M j, Y') ?? '—' }}</td>
+                        <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->end_date)->format('M j, Y') ?? '—' }}</td>
                         <td class="px-6 py-4 text-center">
                             <span class="block text-gray-700 font-semibold">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('D, M j') }}</span>
                             <span class="text-xs text-blue-600 font-semibold">
@@ -86,7 +117,7 @@
                         <td class="px-6 py-4 text-center whitespace-nowrap">
                             <button type="button" class="edit-schedule-btn text-blue-600 hover:text-blue-800 font-semibold text-sm mr-4"
                                 data-id="{{ $schedule->id }}"
-                                data-teacher-id="{{ $schedule->teacher_id }}"
+                                data-user-id="{{ $schedule->user_id }}"
                                 data-subject-id="{{ $schedule->subject_id }}"
                                 data-room-id="{{ $schedule->room_id }}"
                                 data-day="{{ $schedule->day_of_week }}"
@@ -106,7 +137,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="text-center text-gray-500 py-10">No schedules found.</td>
+                        <td colspan="12" class="text-center text-gray-500 py-10">No schedules found.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -122,9 +153,9 @@
 </div>
 
     {{-- ===================== MOBILE CARDS (Updated for readability) ===================== --}}
-    <div class="grid md:hidden gap-5">
+    <div class="grid md:hidden gap-5 px-4">
         @forelse ($schedules ?? [] as $schedule)
-            <div class="bg-white rounded-xl shadow-lg p-5 border-l-4 border-blue-600"> {{-- Card emphasis with left border --}}
+            <div class="bg-white rounded-xl shadow-lg p-5 border-l-4 border-blue-600">
                 <div class="flex justify-between items-start mb-3">
                     <h3 class="font-extrabold text-gray-900 text-lg leading-tight">{{ $schedule->subject->subject_name ?? 'N/A' }}</h3>
                     <x-admin.schedule-status :schedule="$schedule" :attendanceMap="$attendanceMap ?? []" />
@@ -148,7 +179,7 @@
                 <div class="flex justify-end gap-3 border-t pt-4">
                     <button type="button" class="edit-schedule-btn text-blue-600 hover:text-blue-800 font-semibold text-sm"
                         data-id="{{ $schedule->id }}"
-                        data-teacher-id="{{ $schedule->teacher_id }}"
+                        data-user-id="{{ $schedule->teacher_id ?? $schedule->user_id }}"
                         data-subject-id="{{ $schedule->subject_id }}"
                         data-room-id="{{ $schedule->room_id }}"
                         data-day="{{ $schedule->day_of_week }}"
@@ -171,16 +202,15 @@
     </div>
 
     @if (method_exists($schedules ?? null, 'links'))
-        <div class="mt-8">
-            {{ $schedules->appends(request()->except('page'))->links() }} {{-- Added appends for consistent pagination --}}
+        <div class="mt-8 px-4">
+            {{ $schedules->appends(request()->except('page'))->links() }}
         </div>
     @endif
-</div>
 
-{{-- ===================== ADD SCHEDULE MODAL (Styling alignment) ===================== --}}
-<div id="addScheduleModal" class="modal-wrapper hidden fixed inset-0 z-50 overflow-y-auto bg-gray-900 bg-opacity-75 backdrop-blur-sm pointer-events-none transition-opacity duration-300" aria-hidden="true">
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-xl shadow-2xl transform transition-all max-w-lg w-full scale-95 opacity-0 duration-300">
+{{-- ===================== ADD SCHEDULE MODAL (fixed) ===================== --}}
+<div id="addScheduleModal" class="modal-wrapper modal-closed fixed inset-0 z-50 overflow-y-auto bg-gray-900 bg-opacity-75 backdrop-blur-sm transition-opacity duration-300" aria-hidden="true">
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl modal-inner modal-content transform transition-all max-w-lg w-full scale-95 opacity-0 duration-300">
             <div class="p-6 md:p-8">
                 <div class="flex justify-between items-start">
                     <h3 class="text-2xl font-bold text-gray-900">Add New Schedule</h3>
@@ -188,7 +218,9 @@
                 </div>
                 <form action="{{ route('admin.schedules.store') }}" method="POST" class="mt-6 space-y-6">
                     @csrf
-                    <x-admin.schedule-form :users="$teachers" :rooms="$rooms" :subjects="$subjects" /> 
+                    {{-- Use same component as edit (is-edit-mode false) --}}
+                    <x-admin.schedule-form :users="$teachers" :rooms="$rooms" :subjects="$subjects" />
+
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                         <button type="button" data-modal-close="addScheduleModal"
                                 class="px-5 py-2 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition font-semibold">
@@ -205,10 +237,10 @@
     </div>
 </div>
 
-{{-- ===================== EDIT SCHEDULE MODAL (Styling alignment + input ID logic) ===================== --}}
-<div id="editScheduleModal" class="modal-wrapper hidden fixed inset-0 z-50 overflow-y-auto bg-gray-900 bg-opacity-75 backdrop-blur-sm pointer-events-none transition-opacity duration-300" aria-hidden="true">
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-xl shadow-2xl transform transition-all max-w-lg w-full scale-95 opacity-0 duration-300">
+{{-- ===================== EDIT SCHEDULE MODAL (fixed) ===================== --}}
+<div id="editScheduleModal" class="modal-wrapper modal-closed fixed inset-0 z-50 overflow-y-auto bg-gray-900 bg-opacity-75 backdrop-blur-sm transition-opacity duration-300" aria-hidden="true">
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl modal-inner modal-content transform transition-all max-w-lg w-full scale-95 opacity-0 duration-300">
             <div class="p-6 md:p-8">
                 <div class="flex justify-between items-start">
                     <h3 class="text-2xl font-bold text-gray-900">Edit Schedule</h3>
@@ -216,8 +248,9 @@
                 </div>
                 <form id="editScheduleForm" method="POST" class="mt-6 space-y-6">
                     @csrf @method('PUT')
-                    {{-- The component must use IDs like 'edit_teacher_id' when is-edit-mode="true" is passed --}}
+                    {{-- Pass edit mode true so component will render inputs with edit_ prefix --}}
                     <x-admin.schedule-form :users="$teachers" :rooms="$rooms" :subjects="$subjects" is-edit-mode="true" />
+
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                         <button type="button" data-modal-close="editScheduleModal"
                                 class="px-5 py-2 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition font-semibold">
@@ -234,89 +267,139 @@
     </div>
 </div>
 
-{{-- ===================== MODAL SCRIPT (Final Polish) ===================== --}}
+{{-- ===================== MODAL SCRIPT (robust + safe DOM checks) ===================== --}}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    
-    // Function to handle modal opening with basic transition support (requires CSS transition classes on modal)
+
+    // Utility: open modal by id
     const openModal = (id) => {
         const modal = document.getElementById(id);
-        if(modal) {
-            modal.classList.remove('hidden', 'pointer-events-none'); 
-            modal.querySelector('.shadow-2xl').classList.remove('scale-95', 'opacity-0');
-            modal.querySelector('.shadow-2xl').classList.add('scale-100', 'opacity-100');
-            document.body.style.overflow = 'hidden';
-            modal.setAttribute('aria-hidden', 'false');
+        if (!modal) return;
+
+        // mark open
+        modal.classList.remove('modal-closed');
+        modal.classList.add('modal-open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+
+        // animate inner
+        const inner = modal.querySelector('.modal-inner');
+        if (inner) {
+            // small timeout to allow CSS to apply
+            requestAnimationFrame(() => inner.classList.add('open'));
         }
     };
 
-    // Function to handle modal closing
+    // Utility: close modal by id
     const closeModal = (id) => {
         const modal = document.getElementById(id);
-        if(modal) {
-            // Apply reverse transition classes before hiding
-            modal.querySelector('.shadow-2xl').classList.remove('scale-100', 'opacity-100');
-            modal.querySelector('.shadow-2xl').classList.add('scale-95', 'opacity-0');
-            
-            // Wait for transition to complete before hiding fully
-            setTimeout(() => {
-                modal.classList.add('hidden', 'pointer-events-none'); 
-                document.body.style.overflow = '';
-                modal.setAttribute('aria-hidden', 'true');
-            }, 300); // 300ms matches the transition duration
-        }
+        if (!modal) return;
+
+        const inner = modal.querySelector('.modal-inner');
+        if (inner) inner.classList.remove('open');
+
+        // wait for animation then hide
+        setTimeout(() => {
+            modal.classList.remove('modal-open');
+            modal.classList.add('modal-closed');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }, 260); // slightly longer than CSS transition
     };
 
-    // Attach listeners for opening/closing modals
+    // Initialize: attach open modal buttons
     document.querySelectorAll('.open-modal-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.getAttribute('data-modal-target');
-            if(target) openModal(target);
+            if (target) openModal(target);
         });
     });
 
+    // Attach close buttons (data-modal-close)
     document.querySelectorAll('[data-modal-close]').forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.getAttribute('data-modal-close');
-            if(target) closeModal(target);
+            if (target) closeModal(target);
         });
     });
-    
-    // Edit Schedule Button Logic
+
+    // Click outside modal content to close
+    document.querySelectorAll('.modal-wrapper').forEach(wrapper => {
+        wrapper.addEventListener('click', (e) => {
+            if (e.target === wrapper && wrapper.classList.contains('modal-open')) {
+                closeModal(wrapper.id);
+            }
+        });
+    });
+
+    // ESC to close
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-wrapper.modal-open').forEach(modal => {
+                closeModal(modal.id);
+            });
+        }
+    });
+
+    // EDIT button handler (safe DOM checks)
     document.querySelectorAll('.edit-schedule-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+            // read dataset (both desktop and mobile variable names handled)
             const schedule = {
                 id: btn.dataset.id,
-                teacher_id: btn.dataset.teacherId,
-                subject_id: btn.dataset.subjectId,
-                room_id: btn.dataset.roomId,
-                day_of_week: btn.dataset.day,
-                starts_at: btn.dataset.startsAt,
-                ends_at: btn.dataset.endsAt
+                user_id: btn.dataset.userId ?? btn.dataset.teacherId ?? btn.dataset.user_id ?? btn.dataset.teacher_id,
+                subject_id: btn.dataset.subjectId ?? btn.dataset.subject_id,
+                room_id: btn.dataset.roomId ?? btn.dataset.room_id,
+                day_of_week: btn.dataset.day ?? btn.dataset.day_of_week,
+                starts_at: btn.dataset.startsAt ?? btn.dataset.starts_at,
+                ends_at: btn.dataset.endsAt ?? btn.dataset.ends_at
             };
 
+            // set form action if available
             const form = document.getElementById('editScheduleForm');
-            // Ensure the form action is correctly set for PUT request
-            form.action = `{{ url('admin/schedules') }}/${schedule.id}`; 
-            
-            // Populate the form fields using the 'edit_' prefix, assuming the component uses it when is-edit-mode="true"
-            document.getElementById('edit_teacher_id').value = schedule.teacher_id;
-            document.getElementById('edit_subject_id').value = schedule.subject_id;
-            document.getElementById('edit_room_id').value = schedule.room_id;
-            document.getElementById('edit_day_of_week').value = schedule.day_of_week;
-            document.getElementById('edit_starts_at').value = schedule.starts_at;
-            document.getElementById('edit_ends_at').value = schedule.ends_at;
+            if (form && schedule.id) {
+                form.action = `{{ url('admin/schedules') }}/${schedule.id}`;
+            }
 
+            // map expected edit_* IDs (component should render with these when is-edit-mode=true)
+            const mappings = {
+                'edit_user_id': schedule.user_id,
+                'edit_subject_id': schedule.subject_id,
+                'edit_room_id': schedule.room_id,
+                'edit_day_of_week': schedule.day_of_week,
+                'edit_starts_at': schedule.starts_at,
+                'edit_ends_at': schedule.ends_at
+            };
+
+            // populate fields safely (only if DOM element exists)
+            Object.entries(mappings).forEach(([id, val]) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                // For selects, set selected; for inputs, set value
+                try {
+                    if (el.tagName.toLowerCase() === 'select') {
+                        el.value = val ?? '';
+                        // trigger change event if needed
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else {
+                        el.value = val ?? '';
+                    }
+                } catch (err) {
+                    // silently ignore any DOM write errors
+                    console.warn('Could not set value for', id, err);
+                }
+            });
+
+            // open modal
             openModal('editScheduleModal');
         });
     });
 
-    // Close modal when clicking outside
-    document.querySelectorAll('.modal-wrapper').forEach(wrapper => {
-        wrapper.addEventListener('click', e => {
-            // Only close if the click target is the wrapper itself (not a child element)
-            if(e.target === wrapper) closeModal(wrapper.id);
-        });
+    // Ensure modals start closed
+    document.querySelectorAll('.modal-wrapper').forEach(modal => {
+        if (!modal.classList.contains('modal-closed')) {
+            modal.classList.add('modal-closed');
+        }
     });
 });
 </script>
