@@ -180,7 +180,7 @@
                 </a>
             </li>
             <li>
-                <a href="#" class="sidebar-link @if(Request::routeIs('admin.teachers.index')) active @endif">
+                <a href="{{ route('admin.teachers.index') }}" class="sidebar-link @if(Request::routeIs('admin.teachers.index')) active @endif">
                     <span class="w-8 flex justify-center">
                         <svg width="25" height="22" viewBox="0 0 25 22" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12.5 0L0 7.36815L12.5 14.7363L22.9167 8.59652V16.3152H25V7.36815L12.5 0ZM4.16563 12.0943V16.8415C5.13534 18.1494 6.39339 19.2109 7.83993 19.9417C9.28647 20.6726 10.8817 21.0527 12.499 21.0518C14.1164 21.0528 15.7118 20.6728 17.1586 19.9419C18.6053 19.2111 19.8635 18.1495 20.8333 16.8415V12.0953L12.5 17.0078L4.16563 12.0943Z" fill="#EFF2F4"/>
