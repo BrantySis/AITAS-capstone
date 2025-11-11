@@ -7,13 +7,18 @@ use Illuminate\Http\Request;
 use App\Models\Schedule;
 use App\Models\User;
 use App\Models\Room;
-use App\Models\Attendance;
 use App\Models\Subject;
+use App\Models\AdminNotification;
+use App\Models\TeacherNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use App\Notifications\NewScheduleNotification;
 
 class ScheduleController extends Controller
 {
+    /**
+     * Display a listing of schedules.
+     */
     public function index(Request $request)
     {
         $query = Schedule::with(['teacher', 'room', 'subject']);
@@ -39,22 +44,18 @@ class ScheduleController extends Controller
 
         $query->orderBy('starts_at', 'asc');
         $schedules = $query->paginate(10);
-        $attendanceMap = Attendance::pluck('schedule_id')->unique()->toArray();
 
-        // ✅ Load lists for dropdowns
+        // Load dropdowns
         $teachers = User::where('role_id', 2)->get();
         $rooms = Room::all();
         $subjects = Subject::all();
 
-        return view('admin.admin-schedules', compact(
-            'schedules',
-            'attendanceMap',
-            'teachers',
-            'rooms',
-            'subjects'
-        ));
+        return view('admin.admin-schedules', compact('schedules', 'teachers', 'rooms', 'subjects'));
     }
 
+    /**
+     * Store a newly created schedule and send notifications.
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -75,7 +76,7 @@ class ScheduleController extends Controller
         try {
             $subject = Subject::findOrFail($request->subject_id);
 
-            // ✅ Check for teacher schedule conflict
+            // Check for teacher schedule conflict
             $conflict = $this->checkScheduleConflict(
                 $request->user_id,
                 $request->day_of_week,
@@ -91,8 +92,8 @@ class ScheduleController extends Controller
                 ])->withInput();
             }
 
-            // ✅ Create schedule record
-            Schedule::create([
+            // Create schedule
+            $schedule = Schedule::create([
                 'user_id' => $request->user_id,
                 'room_id' => $request->room_id,
                 'subject_id' => $request->subject_id,
@@ -108,15 +109,46 @@ class ScheduleController extends Controller
                 'ends_at' => $request->ends_at,
             ]);
 
+            // Notify the assigned teacher
+            try {
+                $teacher = User::find($schedule->user_id);
+                if ($teacher) {
+                    // Laravel notification (optional)
+                    $teacher->notify(new NewScheduleNotification($schedule));
+
+                    // Save in teacher_notifications table
+                    TeacherNotification::create([
+                        'user_id' => $teacher->id,
+                        'type' => 'schedule',
+                        'title' => 'New Schedule Added',
+                        'message' => "You have a new schedule: {$subject->subject_name} in {$schedule->room->room_code} on {$schedule->day_of_week} at {$schedule->starts_at} - {$schedule->ends_at}.",
+                        'created_by' => auth()->id(),
+                    ]);
+                }
+            } catch (\Exception $notifyError) {
+                Log::warning('Teacher notification failed: ' . $notifyError->getMessage());
+            }
+
+            // Create admin notification
+            AdminNotification::create([
+                'type' => 'schedule',
+                'title' => 'New Schedule Added',
+                'message' => "Schedule for {$subject->subject_name} has been assigned to {$teacher->name}.",
+                'created_by' => auth()->id(),
+            ]);
+
             return redirect()->route('admin.schedules.index')
-                ->with('success', '✅ Schedule created successfully.');
+                ->with('success', '✅ Schedule created and notifications sent.');
 
         } catch (\Exception $e) {
             Log::error('Schedule creation failed: ' . $e->getMessage());
-            return back()->withErrors(['error' => '❌ Failed to create schedule. Please check inputs or try again.']);
+            return back()->withErrors(['error' => '❌ Failed to create schedule.']);
         }
     }
 
+    /**
+     * Update a schedule.
+     */
     public function update(Request $request, Schedule $schedule)
     {
         $request->validate([
@@ -136,7 +168,6 @@ class ScheduleController extends Controller
 
         $subject = Subject::findOrFail($request->subject_id);
 
-        // ✅ Conflict check (ignore current schedule)
         $conflict = $this->checkScheduleConflict(
             $request->user_id,
             $request->day_of_week,
@@ -169,10 +200,30 @@ class ScheduleController extends Controller
             'ends_at' => $request->ends_at,
         ]);
 
+        // Admin notification for update
+        AdminNotification::create([
+            'type' => 'schedule',
+            'title' => 'Schedule Updated',
+            'message' => "Schedule for {$subject->subject_name} has been updated for {$schedule->teacher->name}.",
+            'created_by' => auth()->id(),
+        ]);
+
+        // Teacher notification for update
+        TeacherNotification::create([
+            'user_id' => $schedule->user_id,
+            'type' => 'schedule',
+            'title' => 'Schedule Updated',
+            'message' => "Your schedule for {$subject->subject_name} has been updated: {$schedule->day_of_week} at {$schedule->starts_at} - {$schedule->ends_at}.",
+            'created_by' => auth()->id(),
+        ]);
+
         return redirect()->route('admin.schedules.index')
-            ->with('success', '✅ Schedule updated successfully.');
+            ->with('success', '✅ Schedule updated and notification sent.');
     }
 
+    /**
+     * Delete a schedule.
+     */
     public function destroy(Schedule $schedule)
     {
         if ($schedule->attendances()->exists()) {
@@ -180,12 +231,31 @@ class ScheduleController extends Controller
                 ->with('error', '❌ Cannot delete a schedule with recorded attendance.');
         }
 
+        $subjectName = $schedule->subject->subject_name;
+        $teacherName = $schedule->teacher->name;
+
         $schedule->delete();
 
-        return redirect()->route('admin.schedules.index')
-            ->with('success', '🗑️ Schedule deleted successfully.');
-    }
+        // Admin notification
+        AdminNotification::create([
+            'type' => 'schedule',
+            'title' => 'Schedule Deleted',
+            'message' => "Schedule for {$subjectName} assigned to {$teacherName} has been deleted.",
+            'created_by' => auth()->id(),
+        ]);
 
+        // Teacher notification
+        TeacherNotification::create([
+            'user_id' => $schedule->user_id,
+            'type' => 'schedule',
+            'title' => 'Schedule Deleted',
+            'message' => "Your schedule for {$subjectName} has been deleted.",
+            'created_by' => auth()->id(),
+        ]);
+
+        return redirect()->route('admin.schedules.index')
+            ->with('success', '🗑️ Schedule deleted and notification sent.');
+    }
     /**
      * Check for schedule conflicts.
      */

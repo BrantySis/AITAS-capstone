@@ -10,12 +10,14 @@ use App\Http\Controllers\Admin\RoomController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 
 // Teacher Controllers
 use App\Http\Controllers\Teacher\LoadController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Teacher\DashboardController;
 use App\Http\Controllers\Teacher\TeacherScheduleController;
+use App\Http\Controllers\Teacher\NotificationController as TeacherNotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -77,7 +79,7 @@ Route::middleware(['auth', 'verified', 'admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        // Teachers
+// Teachers
         Route::resource('teachers', TeacherController::class);
         Route::get('teachers/import/form', [TeacherController::class, 'import'])->name('teachers.import');
         Route::post('teachers/import', [TeacherController::class, 'processImport'])->name('teachers.import.process');
@@ -93,6 +95,11 @@ Route::middleware(['auth', 'verified', 'admin'])
 
         // Schedules
         Route::resource('schedules', ScheduleController::class);
+
+        // Notifications
+        Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications.index');
+        Route::patch('/notifications/{id}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::patch('/notifications/read-all', [AdminNotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
     });
 
 // -------------------------------------------------------------------------
@@ -106,12 +113,6 @@ Route::middleware(['auth', 'verified', 'teacher'])
 
         // Redirect legacy dashboard
         Route::get('/dashboard', fn() => redirect()->route('teacher.attendance.index'))->name('dashboard');
-
-        // Static views
-        Route::view('/notifications', 'teacher.notifications')->name('notifications');
-        Route::view('/forms', 'teacher.forms')->name('forms');
-        Route::view('/grades', 'teacher.grades')->name('grades');
-        Route::view('/evaluation', 'teacher.evaluation')->name('evaluation');
 
         // Load & Calendar
         Route::get('/schedule', [TeacherScheduleController::class, 'index'])->name('schedule.index');
@@ -135,6 +136,11 @@ Route::middleware(['auth', 'verified', 'teacher'])
         // Location Verification
         Route::get('/location-verify', [AttendanceController::class, 'locationVerify'])->name('location.verify');
         Route::post('/location-verify/process', [AttendanceController::class, 'processLocationVerify'])->name('location.process');
+
+        // Notifications
+        Route::get('notifications', [TeacherNotificationController::class, 'index'])->name('notifications.index');
+        Route::patch('notifications/{id}/read', [TeacherNotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::patch('notifications/read-all', [TeacherNotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
     });
 
 // -------------------------------------------------------------------------

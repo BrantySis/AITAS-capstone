@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Models\Room;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\AdminNotification;
 
 class RoomController extends Controller
 {
@@ -16,20 +17,16 @@ class RoomController extends Controller
     {
         $query = Room::query();
 
-        // 🔍 Filter by building name
         if ($request->filled('building')) {
             $query->where('building_name', $request->building);
         }
 
-        // 🔍 Search by room code
         if ($request->filled('search')) {
             $query->where('room_code', 'like', '%' . $request->search . '%');
         }
 
-        // Fetch filtered rooms
         $rooms = $query->get();
 
-        // Get unique building names for dropdown filter
         $buildings = Room::select('building_name')
             ->whereNotNull('building_name')
             ->distinct()
@@ -41,11 +38,10 @@ class RoomController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage (Add/Create).
+     * Store a newly created room and notify admin.
      */
     public function store(Request $request)
     {
-        // ✅ Validation
         $validated = $request->validate([
             'room_code' => 'required|string|max:255',
             'building_name' => 'nullable|string|max:255',
@@ -53,7 +49,6 @@ class RoomController extends Controller
             'longitude' => 'nullable|numeric',
         ]);
 
-        // ✅ Duplicate check
         if (Room::where('room_code', $validated['room_code'])->exists()) {
             return redirect()->back()
                 ->withErrors(['duplicate' => 'Room with this code already exists.'])
@@ -63,23 +58,28 @@ class RoomController extends Controller
                 ->with('modal_type', 'add');
         }
 
-        // ✅ Ensure nullable fields are properly set
         $validated['latitude'] = $validated['latitude'] ?? null;
         $validated['longitude'] = $validated['longitude'] ?? null;
 
-        // ✅ Create new room
-        Room::create($validated);
+        $room = Room::create($validated);
+
+        // ✅ Admin notification
+        AdminNotification::create([
+            'type' => 'room',
+            'title' => 'New Room Added',
+            'message' => "Room {$room->room_code} has been added.",
+            'created_by' => auth()->id(),
+        ]);
 
         return redirect()->route('admin.rooms.index')
             ->with('success', 'Room successfully created.');
     }
 
     /**
-     * Update the specified resource in storage (Edit).
+     * Update the specified room and notify admin.
      */
     public function update(Request $request, Room $room)
     {
-        // ✅ Validation
         $validated = $request->validate([
             'room_code' => 'required|string|max:255',
             'building_name' => 'nullable|string|max:255',
@@ -87,7 +87,6 @@ class RoomController extends Controller
             'longitude' => 'nullable|numeric',
         ]);
 
-        // ✅ Duplicate check (excluding current)
         if (
             Room::where('room_code', $validated['room_code'])
                 ->where('id', '!=', $room->id)
@@ -102,19 +101,35 @@ class RoomController extends Controller
                 ->with('room_id_on_error', $room->id);
         }
 
-        // ✅ Update
         $room->update($validated);
+
+        // ✅ Admin notification
+        AdminNotification::create([
+            'type' => 'room',
+            'title' => 'Room Updated',
+            'message' => "Room {$room->room_code} has been updated.",
+            'created_by' => auth()->id(),
+        ]);
 
         return redirect()->route('admin.rooms.index')
             ->with('success', 'Room successfully updated.');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the specified room and notify admin.
      */
     public function destroy(Room $room)
     {
+        $roomCode = $room->room_code;
         $room->delete();
+
+        // ✅ Admin notification
+        AdminNotification::create([
+            'type' => 'room',
+            'title' => 'Room Deleted',
+            'message' => "Room {$roomCode} has been deleted.",
+            'created_by' => auth()->id(),
+        ]);
 
         return redirect()->route('admin.rooms.index')
             ->with('success', 'Room successfully deleted.');

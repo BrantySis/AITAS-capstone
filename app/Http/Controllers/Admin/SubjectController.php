@@ -7,12 +7,10 @@ use App\Models\Subject;
 use Illuminate\Http\Request;
 use App\Imports\SubjectsImport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\AdminNotification;
 
 class SubjectController extends Controller
 {
-    /**
-     * Display a listing of the subjects (grouped by department).
-     */
     public function index(Request $request)
     {
         $selectedDepartment = $request->input('department');
@@ -39,9 +37,10 @@ class SubjectController extends Controller
                         ->orWhere('description', 'like', "%{$search}%");
                 });
             })
-    ->orderBy('department')
-    ->get()
-    ->groupBy('department');
+            ->orderBy('department')
+            ->get()
+            ->groupBy('department');
+
         return view('admin.admin-subjects', [
             'subjects' => $subjects,
             'departments' => $departments,
@@ -57,9 +56,6 @@ class SubjectController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new subject.
-     */
     public function create()
     {
         $schoolYears = $this->generateSchoolYears();
@@ -74,9 +70,6 @@ class SubjectController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created subject.
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -90,7 +83,7 @@ class SubjectController extends Controller
             'school_year' => 'required|string',
         ]);
 
-        Subject::create($request->only([
+        $subject = Subject::create($request->only([
             'subject_code',
             'subject_name',
             'units',
@@ -101,13 +94,18 @@ class SubjectController extends Controller
             'school_year',
         ]));
 
+        // ✅ Admin Notification
+        AdminNotification::create([
+            'type' => 'subject',
+            'title' => 'Subject Added',
+            'message' => "Subject {$subject->subject_name} ({$subject->subject_code}) has been added.",
+            'created_by' => auth()->id(),
+        ]);
+
         return redirect()->route('admin.subjects.index')
             ->with('success', 'Subject created successfully.');
     }
 
-    /**
-     * Edit an existing subject.
-     */
     public function edit(Subject $subject)
     {
         $schoolYears = $this->generateSchoolYears();
@@ -117,9 +115,6 @@ class SubjectController extends Controller
         return view('admin.subjects.edit', compact('subject', 'schoolYears', 'semesters', 'courseYears'));
     }
 
-    /**
-     * Update subject.
-     */
     public function update(Request $request, Subject $subject)
     {
         $request->validate([
@@ -144,41 +139,47 @@ class SubjectController extends Controller
             'school_year',
         ]));
 
+        // ✅ Admin Notification
+        AdminNotification::create([
+            'type' => 'subject',
+            'title' => 'Subject Updated',
+            'message' => "Subject {$subject->subject_name} ({$subject->subject_code}) has been updated.",
+            'created_by' => auth()->id(),
+        ]);
+
         return redirect()->route('admin.subjects.index')
             ->with('success', 'Subject updated successfully.');
     }
 
-    /**
-     * Delete a subject.
-     */
     public function destroy(Subject $subject)
     {
+        $subjectName = $subject->subject_name;
+        $subjectCode = $subject->subject_code;
         $subject->delete();
+
+        // ✅ Admin Notification
+        AdminNotification::create([
+            'type' => 'subject',
+            'title' => 'Subject Deleted',
+            'message' => "Subject {$subjectName} ({$subjectCode}) has been deleted.",
+            'created_by' => auth()->id(),
+        ]);
 
         return redirect()->route('admin.subjects.index')
             ->with('success', 'Subject deleted successfully.');
     }
 
-    /**
-     * Import page.
-     */
     public function import()
     {
-        return view('admin.admin-subjects', [
-            'page_mode' => 'import'
-        ]);
+        return view('admin.admin-subjects', ['page_mode' => 'import']);
     }
 
-    /**
-     * Process import file.
-     */
     public function processImport(Request $request)
     {
         $request->validate(['file' => 'required|mimes:xlsx,csv,xls|max:2048']);
 
         try {
-            $import = new SubjectsImport;
-            Excel::import($import, $request->file('file'));
+            Excel::import(new SubjectsImport, $request->file('file'));
             return redirect()->route('admin.subjects.index')
                 ->with('success', 'Subjects imported successfully!');
         } catch (\Exception $e) {
@@ -186,9 +187,6 @@ class SubjectController extends Controller
         }
     }
 
-    /**
-     * Download CSV template.
-     */
     public function downloadTemplate()
     {
         $headers = [
@@ -206,9 +204,6 @@ class SubjectController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    /**
-     * Helper: Generate next 5 school years dynamically.
-     */
     private function generateSchoolYears()
     {
         $years = [];

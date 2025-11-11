@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Attendance;
 use App\Models\Schedule;
+use App\Models\TeacherNotification;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
@@ -111,6 +112,13 @@ class AttendanceController extends Controller
             );
             if ($attendance->status !== 'Missed') $attendance->update(['status' => 'Missed']);
 
+            TeacherNotification::create([
+            'type' => 'attendance',
+            'title' => 'Missed Class',
+            'message' => "You were automatically marked as MISSED for {$schedule->subject->subject_name} at {$schedule->room->room_code}.",
+            'created_by' => $userId,
+            ]);
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Attendance automatically marked as MISSED.'
@@ -168,6 +176,14 @@ class AttendanceController extends Controller
                 ]
             );
 
+            // ✅ TEACHER NOTIFICATION
+            TeacherNotification::create([
+                'type' => 'attendance',
+                'title' => 'Check-in ' . $statusToSet,
+                'message' => "You have successfully checked in for {$schedule->subject->subject_name} at {$schedule->room->room_code}. Status: $statusToSet",
+                'created_by' => $userId,
+            ]);
+    
             return response()->json([
                 'status'=>'success',
                 'message'=>$message,
@@ -201,6 +217,13 @@ class AttendanceController extends Controller
             'longitude_out'=>$request->longitude,
         ]);
 
+        TeacherNotification::create([
+        'type' => 'attendance',
+        'title' => 'Check-out Completed',
+        'message' => "You checked out from {$schedule->subject->subject_name} at {$schedule->room->room_code}. Final status: $finalStatus",
+        'created_by' => $userId,
+        ]);
+        
         return response()->json([
             'status'=>'success',
             'message'=>'✅ Check-out successful. You are now marked as ' . $finalStatus . '.',

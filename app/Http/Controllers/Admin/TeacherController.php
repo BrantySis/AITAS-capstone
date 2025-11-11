@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Imports\TeachersImport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\AdminNotification;
 
 class TeacherController extends Controller
 {
@@ -52,13 +53,25 @@ class TeacherController extends Controller
 
         $role = Role::where('name', $request->role)->firstOrFail();
 
-        User::create([
+        $user = User::create([
             'name'            => $request->name,
             'email'           => $request->email,
             'faculty_number'  => $request->faculty_number,
             'password'        => Hash::make($request->password),
             'role_id'         => $role->id,
         ]);
+
+        try {
+        // ✅ Admin notification
+        AdminNotification::create([
+            'type' => 'teacher',
+            'title' => ucfirst($request->role) . ' Added',
+            'message' => ucfirst($request->role) . " {$user->name} has been added.",
+            'created_by' => auth()->id(),
+        ]);
+        } catch (\Exception $e) {
+    \Log::error('AdminNotification failed: '.$e->getMessage());
+}
 
         return redirect()->route('admin.teachers.index')
             ->with('success', ucfirst($request->role) . ' created successfully.');
@@ -88,6 +101,14 @@ class TeacherController extends Controller
 
         $teacher->update($updateData);
 
+        // ✅ Admin notification
+        AdminNotification::create([
+            'type' => 'teacher',
+            'title' => ucfirst($teacher->role->name) . ' Updated',
+            'message' => ucfirst($teacher->role->name) . " {$teacher->name} has been updated.",
+            'created_by' => auth()->id(),
+        ]);
+
         return redirect()->route('admin.teachers.index')
             ->with('success', ucfirst($teacher->role->name) . ' updated successfully.');
     }
@@ -98,7 +119,16 @@ class TeacherController extends Controller
     public function destroy(User $teacher)
     {
         $roleName = ucfirst($teacher->role->name);
+        $teacherName = $teacher->name;
         $teacher->delete();
+
+        // ✅ Admin notification
+        AdminNotification::create([
+            'type' => 'teacher',
+            'title' => $roleName . ' Deleted',
+            'message' => "$roleName {$teacherName} has been deleted.",
+            'created_by' => auth()->id(),
+        ]);
 
         return redirect()->route('admin.teachers.index')
             ->with('success', $roleName . ' deleted successfully.');

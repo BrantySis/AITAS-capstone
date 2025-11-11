@@ -14,161 +14,55 @@
     --search-blue: #004A8F;
     --accent-blue: #3B82F6;
 }
-
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--light-bg);
-}
+body { font-family: 'Inter', sans-serif; background-color: var(--light-bg); }
 
 .calendar-day {
-    min-height: 36px;
-    min-width: 36px;
-    line-height: 1.2;
-    padding: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 0.875rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 500;
-    position: relative;
+    min-height: 36px; min-width: 36px; line-height: 1.2; padding: 4px;
+    cursor: pointer; transition: all 0.2s; font-size: 0.875rem;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 500; position: relative;
 }
-
-.calendar-day.current-day {
-    color: white;
-    font-weight: 700;
-    background-color: var(--accent-blue);
-    border-radius: 9999px;
-}
-
-.calendar-day:hover:not(.current-day) {
-    background-color: #E5E7EB;
-    border-radius: 9999px;
-}
-
+.calendar-day.current-day { color: white; font-weight: 700; background-color: var(--accent-blue); border-radius: 9999px; }
+.calendar-day:hover:not(.current-day) { background-color: #E5E7EB; border-radius: 9999px; }
 .calendar-day.has-schedule::after {
-    content: '';
-    position: absolute;
-    bottom: 4px;
-    width: 5px;
-    height: 5px;
-    background-color: var(--search-blue);
-    border-radius: 9999px;
+    content: ''; position: absolute; bottom: 4px; width: 5px; height: 5px;
+    background-color: var(--search-blue); border-radius: 9999px;
 }
+.calendar-day.current-day.has-schedule::after { background-color: white; }
 
-.calendar-day.current-day.has-schedule::after {
-    background-color: white; 
-}
-
-.schedule-item-list {
-    display: flex;
-    gap: 1rem;
-}
-
-.time-column {
-    width: 4rem;
-    text-align: right;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding-top: 4px;
-    padding-bottom: 4px;
-}
-
-.timeline-container {
-    position: relative;
-    padding-left: 0.5rem;
-    border-left: 2px solid var(--accent-blue);
-}
-
-.schedule-item-list:last-child .timeline-container {
-    border-left: none; 
-}
+.schedule-item-list { display: flex; gap: 1rem; }
+.time-column { width: 4rem; text-align: right; display: flex; flex-direction: column; justify-content: space-between; padding: 4px 0; }
+.timeline-container { position: relative; padding-left: 0.5rem; border-left: 2px solid var(--accent-blue); }
+.schedule-item-list:last-child .timeline-container { border-left: none; }
 </style>
 
-<!-- Calendar Card -->
 <div class="bg-white p-4 pt-6 rounded-xl shadow-lg border border-gray-100 mb-6">
-
-    <!-- Month Navigation -->
     <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg font-extrabold text-gray-800 flex items-center">
+        <h2 id="currentMonthYear" class="text-lg font-extrabold text-gray-800 flex items-center">
             {{ \Carbon\Carbon::now()->format('F Y') }}
-            <i data-lucide="chevron-right" class="h-4 w-4 ml-1 text-gray-500"></i>
         </h2>
         <div class="flex space-x-0 text-gray-600">
-            <button id="prevMonth" aria-label="Previous Month" class="p-2 rounded-full hover:bg-gray-100 transition focus:outline-none">
-                <i data-lucide="chevron-left" class="h-6 w-6"></i>
-            </button>
-            <button id="nextMonth" aria-label="Next Month" class="p-2 rounded-full hover:bg-gray-100 transition focus:outline-none">
-                <i data-lucide="chevron-right" class="h-6 w-6"></i>
-            </button>
+            <button id="prevMonth" class="p-2 rounded-full hover:bg-gray-100 transition"><i data-lucide="chevron-left" class="h-6 w-6"></i></button>
+            <button id="nextMonth" class="p-2 rounded-full hover:bg-gray-100 transition"><i data-lucide="chevron-right" class="h-6 w-6"></i></button>
         </div>
     </div>
-
-    <!-- Calendar Grid -->
-    <div class="grid grid-cols-7 gap-1 text-center font-medium mb-4">
+    <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-center font-medium mb-4">
         @foreach(['SUN','MON','TUE','WED','THU','FRI','SAT'] as $day)
             <div class="{{ $day=='SUN' ? 'text-red-500' : 'text-gray-500' }} text-xs sm:text-sm pt-1 font-bold">{{ $day }}</div>
         @endforeach
-
-       @php
-        use Carbon\Carbon;
-        $now = Carbon::now();
-        $daysInMonth = $now->daysInMonth;
-        $firstDayOfMonth = Carbon::create($now->year, $now->month, 1)->dayOfWeek;
-        $dayNames = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-
-        // Prepare array mapping each day in month to schedules
-        $schedulesByDayOfMonth = [];
-        foreach(range(1, $daysInMonth) as $day) {
-            $date = Carbon::create($now->year, $now->month, $day);
-            $dow = $dayNames[$date->dayOfWeek];
-
-            foreach($schedules as $s) {
-                $days = json_decode($s->day_of_week ?? '[]', true);
-                if(is_array($days) && in_array($dow, $days)) {
-                    $schedulesByDayOfMonth[$day][] = $s;
-                }
-            }
-        }
-        @endphp
-
-       <!-- Empty leading cells -->
-            @for($i=0; $i < $firstDayOfMonth; $i++)
-                <div class="calendar-day"></div>
-            @endfor
-
-            <!-- Calendar Days -->
-            @for($day=1; $day <= $daysInMonth; $day++)
-                @php
-                    $hasSchedule = isset($schedulesByDayOfMonth[$day]);
-                    $isToday = $day == $now->day;
-                @endphp
-                <div class="calendar-day text-gray-800 {{ $isToday ? 'current-day' : 'font-semibold' }} {{ $hasSchedule ? 'has-schedule' : '' }}" 
-                    data-day="{{ $day }}">
-                    {{ $day }}
-                </div>
-            @endfor
     </div>
 </div>
 
-<!-- Current Classes Button -->
 <div class="flex justify-center mb-6">
-    <button id="currentClassesBtn" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-blue-700 transition focus:outline-none transform hover:scale-105" style="background-color: var(--accent-blue);">
+    <button id="currentClassesBtn" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-blue-700 transition focus:outline-none transform hover:scale-105">
         View Today's Schedules
     </button>
 </div>
 
-<!-- Schedule List Card -->
 <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-
-    <!-- Schedule List Header -->
     <div class="text-white p-3 font-extrabold text-lg text-center" style="background-color: var(--search-blue);">
         <span id="scheduleHeaderTitle">Select a day to view schedules</span>
     </div>
-
-    <!-- Schedule Items Container -->
     <div id="scheduleList" class="space-y-4 p-4 min-h-[100px]">
         <p class="text-gray-500 text-center py-4">Click a date or the button above.</p>
     </div>
@@ -176,40 +70,104 @@ body {
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    if(typeof lucide!=='undefined') lucide.createIcons();
 
     const schedules = @json($schedules ?? []);
-    const currentClasses = @json($currentClasses ?? []);
     const scheduleListEl = document.getElementById('scheduleList');
     const scheduleHeaderTitleEl = document.getElementById('scheduleHeaderTitle');
 
     const dayNames = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-    const today = new Date();
+    let currentDate = new Date();
 
-    const allSchedules = schedules.map(s => ({
-        ...s,
-        day_of_week: s.day_of_week || [],
-        startsAt: new Date(s.starts_at),
-        endsAt: new Date(s.ends_at)
-    }));
-
-    function formatTime(date) {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    function parseDays(s) {
+        if(!s) return [];
+        try { 
+            let d = JSON.parse(s.day_of_week);
+            if(Array.isArray(d)) return d;
+        } catch(e) {
+            // fallback: comma separated string
+            return s.day_of_week.split(',').map(x=>x.trim());
+        }
+        return [];
     }
 
-    function displaySchedules(list, title = '') {
-        scheduleHeaderTitleEl.textContent = title || 'Select a day to view schedules';
+    function getSchedulesForDate(dateObj) {
+        const dow = dayNames[dateObj.getDay()];
+        return schedules.filter(s => parseDays(s).includes(dow));
+    }
 
-        if(list.length === 0) {
-            scheduleListEl.innerHTML = '<p class="text-gray-500 text-center py-4">No schedules to display.</p>';
-            return;
+  function parseScheduleDays(s) {
+    if (!s || !s.day_of_week) return [];
+    const val = s.day_of_week.toUpperCase().replace(/\s+/g,'');
+    const days = [];
+    if (val.includes('SU')) days.push('SUN'); // Sunday
+    if (val.includes('M')) days.push('MON');  // Monday
+    if (val.includes('T') && !val.includes('TH')) days.push('TUE'); // Tuesday
+    if (val.includes('W')) days.push('WED');  // Wednesday
+    if (val.includes('TH')) days.push('THU'); // Thursday
+    if (val.includes('F')) days.push('FRI');  // Friday
+    if (val.includes('S') && !val.includes('SU')) days.push('SAT'); // Saturday
+    return days;
+}
+
+function getSchedulesForDate(dateObj) {
+    const dow = dayNames[dateObj.getDay()];
+    return schedules.filter(s => {
+        const days = parseScheduleDays(s);
+        if (!days.includes(dow)) return false;
+
+        const start = new Date(s.start_date);
+        const end = new Date(s.end_date);
+        return dateObj >= start && dateObj <= end;
+    });
+}
+
+    function formatTime(date) { return new Date(date).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }); }
+
+    function renderCalendar(date) {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month+1, 0).getDate();
+
+        document.getElementById('currentMonthYear').textContent = date.toLocaleDateString('en-US',{ month:'long', year:'numeric' });
+
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+        ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach(d => grid.innerHTML += `<div class="${d=='SUN'?'text-red-500':'text-gray-500'} text-xs sm:text-sm pt-1 font-bold">${d}</div>`);
+
+        for(let i=0;i<firstDay;i++) grid.innerHTML += `<div class="calendar-day"></div>`;
+
+        for(let d=1; d<=daysInMonth; d++){
+            const dayDate = new Date(year, month, d);
+            const daySchedules = getSchedulesForDate(dayDate);
+            const isToday = d === new Date().getDate() && month===new Date().getMonth() && year===new Date().getFullYear();
+            const hasSchedule = daySchedules.length>0;
+            grid.innerHTML += `<div class="calendar-day ${isToday?'current-day':'font-semibold'} ${hasSchedule?'has-schedule':''}" data-day="${d}">${d}</div>`;
         }
 
-        scheduleListEl.innerHTML = list.map(s => `
+        document.querySelectorAll('.calendar-day[data-day]').forEach(el=>{
+            el.addEventListener('click', ()=>{
+                document.querySelectorAll('.calendar-day').forEach(d=>d.classList.remove('current-day'));
+                el.classList.add('current-day');
+                const day = parseInt(el.getAttribute('data-day'));
+                const selectedDate = new Date(year, month, day);
+                const daySchedules = getSchedulesForDate(selectedDate);
+                const weekday = selectedDate.toLocaleDateString('en-US',{ weekday:'long' });
+                const monthName = selectedDate.toLocaleDateString('en-US',{ month:'long' });
+                scheduleHeaderTitleEl.textContent = `${weekday}, ${monthName} ${day}`;
+                displaySchedules(daySchedules);
+            });
+        });
+    }
+
+    function displaySchedules(list){
+        if(list.length===0){ scheduleListEl.innerHTML='<p class="text-gray-500 text-center py-4">No schedules to display.</p>'; return; }
+        scheduleListEl.innerHTML = list.map(s=>`
             <div class="schedule-item-list">
                 <div class="time-column text-xs text-gray-600 font-semibold">
-                    <p class="leading-tight">${formatTime(s.startsAt)}</p>
-                    <p class="leading-tight">${formatTime(s.endsAt)}</p>
+                    <p class="leading-tight">${formatTime(s.starts_at)}</p>
+                    <p class="leading-tight">${formatTime(s.ends_at)}</p>
                 </div>
                 <div class="flex-1 timeline-container">
                     <p class="text-base font-bold text-gray-900 leading-snug">${s.edp_code} - ${s.subject.subject_name}</p>
@@ -219,45 +177,15 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
-    function getSchedulesForDay(day) {
-        const date = new Date(today.getFullYear(), today.getMonth(), day);
-        const dow = dayNames[date.getDay()];
-        return allSchedules.filter(s => s.day_of_week.includes(dow));
-    }
-
-    document.querySelectorAll('.calendar-day').forEach(dayEl => {
-        const day = parseInt(dayEl.getAttribute('data-day'));
-        if(!day) return;
-
-        dayEl.addEventListener('click', () => {
-            document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('current-day'));
-            dayEl.classList.add('current-day');
-
-            const daySchedules = getSchedulesForDay(day);
-            const monthName = today.toLocaleDateString('en-US', { month: 'long' });
-            const dateObj = new Date(today.getFullYear(), today.getMonth(), day);
-            const weekday = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-
-            displaySchedules(daySchedules, `${weekday}, ${monthName} ${day}`);
-        });
+    document.getElementById('prevMonth').addEventListener('click',()=>{ currentDate.setMonth(currentDate.getMonth()-1); renderCalendar(currentDate); });
+    document.getElementById('nextMonth').addEventListener('click',()=>{ currentDate.setMonth(currentDate.getMonth()+1); renderCalendar(currentDate); });
+    document.getElementById('currentClassesBtn').addEventListener('click',()=>{
+        const today = new Date();
+        renderCalendar(today);
+        document.querySelector(`.calendar-day[data-day="${today.getDate()}"]`)?.click();
     });
 
-    document.getElementById('currentClassesBtn').addEventListener('click', () => {
-        const todayDay = today.getDate();
-        const todayEl = document.querySelector(`.calendar-day[data-day="${todayDay}"]`);
-        if(todayEl) {
-            todayEl.click();
-        } else {
-            const currentMapped = currentClasses.map(s => ({
-                ...s,
-                startsAt: new Date(s.starts_at),
-                endsAt: new Date(s.ends_at)
-            }));
-            displaySchedules(currentMapped, `Today, ${today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`);
-        }
-    });
-
-    // Auto-click current day on page load
+    renderCalendar(currentDate);
     document.getElementById('currentClassesBtn').click();
 });
 </script>
