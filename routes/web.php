@@ -100,6 +100,9 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications.index');
         Route::patch('/notifications/{id}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::patch('/notifications/read-all', [AdminNotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
+
+        Route::post('/admin/schedules/import', [App\Http\Controllers\Admin\ScheduleController::class, 'importSchedules'])->name('schedules.import');
+
     });
 
 // -------------------------------------------------------------------------

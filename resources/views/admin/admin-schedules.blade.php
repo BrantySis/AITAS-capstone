@@ -4,82 +4,108 @@
 
 @section('content')
 <style>
-/* Modal state helpers */
-.modal-closed {
-    /* Hides the modal entirely */
-    display: none !important;
-    pointer-events: none !important;
-}
-.modal-open {
-    /* Shows the modal, centered */
-    display: flex !important;
-    pointer-events: auto !important;
-}
-
-/* animation helpers for inner modal content (start hidden by default) */
-.modal-inner {
-    transition: transform 280ms ease, opacity 280ms ease;
-    transform: scale(0.96);
-    opacity: 0;
-}
-.modal-inner.open {
-    transform: scale(1);
-    opacity: 1;
-}
+.modal-closed { display: none !important; pointer-events: none !important; }
+.modal-open { display: flex !important; pointer-events: auto !important; }
+.modal-inner { transition: transform 280ms ease, opacity 280ms ease; transform: scale(0.96); opacity: 0; }
+.modal-inner.open { transform: scale(1); opacity: 1; }
 </style>
 
 <div class="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto relative z-10">
 
-    {{-- ===================== HEADER & ADD BUTTON ===================== --}}
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-3">
-        <h2 class="text-3xl font-extrabold text-gray-900 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 mr-3 text-blue-700" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            Class Schedules
-        </h2>
-
-        <button type="button" data-modal-target="addScheduleModal" class="open-modal-btn bg-blue-600 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition shadow-lg text-base flex items-center justify-center sm:w-auto w-full">
-            <svg xmlns="http://www.w3.org/2000/svg" class="inline-block w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Add New Schedule
-        </button>
+{{-- ===================== HEADER + SEARCH + ACTIONS ===================== --}}
+<div class="mb-8">
+    {{-- Header Title --}}
+    <div class="flex items-center mb-5">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 mr-3 text-blue-700" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <h2 class="text-3xl font-extrabold text-gray-900">Class Schedules</h2>
     </div>
 
-    {{-- ===================== SEARCH & FILTER ===================== --}}
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-        <form action="{{ route('admin.schedules.index') }}" method="GET" class="relative w-full lg:w-96 flex">
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by teacher, subject, or room..."
-                class="w-full border-2 border-gray-300 focus:border-blue-500 rounded-l-xl px-4 py-2.5 pl-10 text-base focus:outline-none transition shadow-sm" />
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 absolute left-3 top-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+    {{-- Search Bar + Buttons --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {{-- Search --}}
+        <form action="{{ route('admin.schedules.index') }}" method="GET" class="relative flex w-full sm:w-2/3 lg:w-1/2">
+            <input type="text" name="search" value="{{ request('search') }}"
+                placeholder="Search by teacher, subject, or room..."
+                class="w-full border-2 border-gray-300 focus:border-blue-500 rounded-l-xl px-4 py-2.5 pl-11 text-base focus:outline-none transition shadow-sm" />
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 absolute left-3 top-3 text-gray-500"
+                fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 3a7.5 7.5 0 006.15 13.65z" />
             </svg>
-            <button type="submit" class="bg-blue-500 text-white px-4 rounded-r-xl hover:bg-blue-600 transition font-semibold">
-                Go
+            <button type="submit"
+                class="bg-blue-600 text-white px-5 rounded-r-xl hover:bg-blue-700 transition font-semibold">
+                Search
             </button>
         </form>
 
-        <div class="flex gap-2 overflow-x-auto text-sm pb-1">
-            @php
-                $filters = ['all' => 'All', 'upcoming' => 'Upcoming', 'in-progress' => 'Ongoing', 'missed' => 'Missed'];
-            @endphp
-            @foreach($filters as $key => $label)
-                <a href="{{ route('admin.schedules.index', array_merge(request()->except('page', 'search'), ['filter' => $key !== 'all' ? $key : null])) }}"
-                   class="whitespace-nowrap px-4 py-2 rounded-full border-2 transition font-medium text-sm
-                        {{ request('filter') == $key || ($key == 'all' && !request('filter')) 
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
-                            : 'border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400' }}">
-                    {{ $label }}
-                </a>
-            @endforeach
+        {{-- Buttons --}}
+        <div class="flex flex-wrap gap-3 justify-start sm:justify-end">
+            {{-- Import Button --}}
+            <button id="openImportModal"
+                class="bg-white border border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold px-5 py-2.5 rounded-xl transition shadow-sm flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Import
+            </button>
+
+            {{-- Add Button --}}
+            <button type="button" data-modal-target="addScheduleModal"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition shadow-md flex items-center justify-center open-modal-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="inline-block w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Add New
+            </button>
+        </div>
+    </div>
+</div>
+
+    {{-- ===================== IMPORT MODAL ===================== --}}
+    <div id="importModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+            <div class="flex items-center justify-between border-b pb-3 mb-4">
+                <h2 class="text-lg font-bold text-gray-800">Import Schedules</h2>
+                <button id="closeImportModal" class="text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+            </div>
+            <form action="{{ route('admin.schedules.import') }}" method="POST" enctype="multipart/form-data" id="importForm">
+                @csrf
+                <p class="text-sm text-gray-600 mb-3">
+                    Upload a CSV/XLSX file with columns like:
+                    <code class="bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-xs">
+                        teacher_name, room_code, subject_code, day_of_week, starts_at, ends_at, semester, school_year
+                    </code>
+                </p>
+                <input type="file" name="file" required 
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm">
+                <div class="flex justify-end gap-3">
+                    <button type="button" id="cancelImport" 
+                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-semibold transition">
+                        Upload & Import
+                    </button>
+                </div>
+                @error('file')
+                    <p class="text-red-600 text-sm mt-2">{{ $message }}</p>
+                @enderror
+                @if(session('success'))
+                    <p class="text-green-600 text-sm mt-2">{{ session('success') }}</p>
+                @endif
+                @if($errors->has('error'))
+                    <p class="text-red-600 text-sm mt-2">{{ $errors->first('error') }}</p>
+                @endif
+            </form>
         </div>
     </div>
 
     {{-- ===================== DESKTOP TABLE ===================== --}}
     <div class="hidden md:block overflow-x-auto bg-white rounded-xl shadow-2xl border border-gray-100">
         <table class="min-w-full table-auto text-sm text-left border-collapse">
-            <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider font-semibold">
+            <thead class="bg-blue-200 text-gray-600 uppercase tracking-wider font-semibold">
                 <tr>
                     <th class="px-6 py-4 border-b-2 border-gray-200">Teacher</th>
                     <th class="px-6 py-4 border-b-2 border-gray-200">Subject</th>
@@ -88,17 +114,17 @@
                     <th class="px-6 py-4 border-b-2 border-gray-200">Semester</th>
                     <th class="px-6 py-4 border-b-2 border-gray-200">School Year</th>
                     <th class="px-6 py-4 border-b-2 border-gray-200">Room</th>
-                    <th class="px-6 py-4 border-b-2 border-gray-200 text-center">Time & Date</th>
-                    <th class="px-6 py-4 border-b-2 border-gray-200 text-center">Actions</th>
-                    <th class="px-6 py-4 border-b-2 border-gray-200">Day</th>
+                    <th class="px-6 py-4 border-b-2 border-gray-200 text-center">Day</th>
                     <th class="px-6 py-4 border-b-2 border-gray-200">Start Date</th>
                     <th class="px-6 py-4 border-b-2 border-gray-200">End Date</th>
+                    <th class="px-6 py-4 border-b-2 border-gray-200">Time</th>
+                    <th class="px-6 py-4 border-b-2 border-gray-200 text-center">Actions</th>
                 </tr>
             </thead>
             <tbody class="text-gray-800 divide-y divide-gray-100">
                 @forelse ($schedules ?? [] as $schedule)
                     <tr class="hover:bg-blue-50/50 transition duration-150">
-                        <td class="px-6 py-4 font-medium">{{ $schedule->teacher->name ?? 'N/A' }}</td>
+                        <td class="px-6 py-4 font-bold">{{ $schedule->teacher->name ?? 'N/A' }}</td>
                         <td class="px-6 py-4 font-medium">{{ $schedule->subject->subject_name ?? 'N/A' }}</td>
                         <td class="px-6 py-4">{{ $schedule->subject->units ?? '—' }}</td>
                         <td class="px-6 py-4">{{ $schedule->subject->course_year ?? '—' }}</td>
@@ -109,7 +135,7 @@
                         <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->start_date)->format('M j, Y') ?? '—' }}</td>
                         <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->end_date)->format('M j, Y') ?? '—' }}</td>
                         <td class="px-6 py-4 text-center">
-                            <span class="block text-gray-700 font-semibold">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('D, M j') }}</span>
+                            <!-- <span class="block text-gray-700 font-semibold">{{ \Carbon\Carbon::parse($schedule->starts_at)->format('D, M j') }}</span> -->
                             <span class="text-xs text-blue-600 font-semibold">
                                 {{ \Carbon\Carbon::parse($schedule->starts_at)->format('h:i A') }} - {{ \Carbon\Carbon::parse($schedule->ends_at)->format('h:i A') }}
                             </span>
@@ -271,26 +297,48 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Utility: open modal by id
+    /* ======================= IMPORT MODAL ======================= */
+    const importModal = document.getElementById('importModal');
+    const openImportModal = document.getElementById('openImportModal');
+    const closeImportModal = document.getElementById('closeImportModal');
+    const cancelImport = document.getElementById('cancelImport');
+    const importInner = importModal.querySelector('.bg-white');
+
+    const openImport = () => {
+        importModal.classList.remove('hidden');
+        importModal.classList.add('flex');
+        requestAnimationFrame(() => importInner.classList.add('scale-100', 'opacity-100'));
+    };
+
+    const closeImport = () => {
+        importInner.classList.remove('scale-100', 'opacity-100');
+        setTimeout(() => {
+            importModal.classList.add('hidden');
+            importModal.classList.remove('flex');
+            document.getElementById('importForm').reset();
+        }, 200);
+    };
+
+    if (openImportModal) openImportModal.addEventListener('click', openImport);
+    if (closeImportModal) closeImportModal.addEventListener('click', closeImport);
+    if (cancelImport) cancelImport.addEventListener('click', closeImport);
+    importModal.addEventListener('click', e => { if (e.target === importModal) closeImport(); });
+
+
+    /* ======================= GENERIC MODALS ======================= */
+
     const openModal = (id) => {
         const modal = document.getElementById(id);
         if (!modal) return;
-
-        // mark open
         modal.classList.remove('modal-closed');
         modal.classList.add('modal-open');
         modal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
 
-        // animate inner
         const inner = modal.querySelector('.modal-inner');
-        if (inner) {
-            // small timeout to allow CSS to apply
-            requestAnimationFrame(() => inner.classList.add('open'));
-        }
+        if (inner) requestAnimationFrame(() => inner.classList.add('open'));
     };
 
-    // Utility: close modal by id
     const closeModal = (id) => {
         const modal = document.getElementById(id);
         if (!modal) return;
@@ -298,16 +346,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const inner = modal.querySelector('.modal-inner');
         if (inner) inner.classList.remove('open');
 
-        // wait for animation then hide
         setTimeout(() => {
             modal.classList.remove('modal-open');
             modal.classList.add('modal-closed');
             modal.setAttribute('aria-hidden', 'true');
             document.body.style.overflow = '';
-        }, 260); // slightly longer than CSS transition
+        }, 260);
     };
 
-    // Initialize: attach open modal buttons
     document.querySelectorAll('.open-modal-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.getAttribute('data-modal-target');
@@ -315,7 +361,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Attach close buttons (data-modal-close)
     document.querySelectorAll('[data-modal-close]').forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.getAttribute('data-modal-close');
@@ -323,17 +368,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Click outside modal content to close
     document.querySelectorAll('.modal-wrapper').forEach(wrapper => {
-        wrapper.addEventListener('click', (e) => {
+        wrapper.addEventListener('click', e => {
             if (e.target === wrapper && wrapper.classList.contains('modal-open')) {
                 closeModal(wrapper.id);
             }
         });
     });
 
-    // ESC to close
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
             document.querySelectorAll('.modal-wrapper.modal-open').forEach(modal => {
                 closeModal(modal.id);
@@ -341,10 +384,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // EDIT button handler (safe DOM checks)
+
+    /* ======================= EDIT BUTTON POPULATE ======================= */
+
     document.querySelectorAll('.edit-schedule-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            // read dataset (both desktop and mobile variable names handled)
             const schedule = {
                 id: btn.dataset.id,
                 user_id: btn.dataset.userId ?? btn.dataset.teacherId ?? btn.dataset.user_id ?? btn.dataset.teacher_id,
@@ -355,13 +399,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 ends_at: btn.dataset.endsAt ?? btn.dataset.ends_at
             };
 
-            // set form action if available
             const form = document.getElementById('editScheduleForm');
-            if (form && schedule.id) {
-                form.action = `{{ url('admin/schedules') }}/${schedule.id}`;
-            }
+            if (form && schedule.id) form.action = `{{ url('admin/schedules') }}/${schedule.id}`;
 
-            // map expected edit_* IDs (component should render with these when is-edit-mode=true)
             const mappings = {
                 'edit_user_id': schedule.user_id,
                 'edit_subject_id': schedule.subject_id,
@@ -371,36 +411,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 'edit_ends_at': schedule.ends_at
             };
 
-            // populate fields safely (only if DOM element exists)
             Object.entries(mappings).forEach(([id, val]) => {
                 const el = document.getElementById(id);
                 if (!el) return;
-                // For selects, set selected; for inputs, set value
                 try {
                     if (el.tagName.toLowerCase() === 'select') {
                         el.value = val ?? '';
-                        // trigger change event if needed
                         el.dispatchEvent(new Event('change', { bubbles: true }));
-                    } else {
-                        el.value = val ?? '';
-                    }
+                    } else el.value = val ?? '';
                 } catch (err) {
-                    // silently ignore any DOM write errors
                     console.warn('Could not set value for', id, err);
                 }
             });
 
-            // open modal
             openModal('editScheduleModal');
         });
     });
 
     // Ensure modals start closed
-    document.querySelectorAll('.modal-wrapper').forEach(modal => {
-        if (!modal.classList.contains('modal-closed')) {
-            modal.classList.add('modal-closed');
-        }
-    });
+    document.querySelectorAll('.modal-wrapper').forEach(modal => modal.classList.add('modal-closed'));
 });
 </script>
 @endsection

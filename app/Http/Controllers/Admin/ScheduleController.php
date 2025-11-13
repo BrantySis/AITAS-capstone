@@ -13,6 +13,9 @@ use App\Models\TeacherNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use App\Notifications\NewScheduleNotification;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\SchedulesImport;
 
 class ScheduleController extends Controller
 {
@@ -287,4 +290,31 @@ class ScheduleController extends Controller
             })
             ->exists();
     }
+
+    /**
+ * Import schedules from an uploaded Excel or CSV file.
+ */
+    public function importSchedules(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,csv,xls|max:4096',
+        ]);
+
+        try {
+            Excel::import(new SchedulesImport, $request->file('file'));
+
+            AdminNotification::create([
+                'type' => 'schedule',
+                'title' => 'Schedules Imported',
+                'message' => 'New schedules have been successfully imported.',
+                'created_by' => auth()->id(),
+            ]);
+
+            return back()->with('success', '✅ Schedules imported successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Schedule import failed: ' . $e->getMessage());
+            return back()->withErrors(['error' => '❌ Failed to import schedules. Please check your file format.']);
+        }
+    }
+
 }

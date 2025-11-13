@@ -196,8 +196,30 @@ class SubjectController extends Controller
 
         $callback = function () {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['subject_code', 'subject_name', 'units', 'description', 'department', 'course_year', 'semester', 'school_year']);
-            fputcsv($file, ['CS101', 'Intro to Programming', '3', 'Basic programming', 'Computer Studies', '1st Year', '1st Semester', '2025-2026']);
+            // Columns
+            fputcsv($file, [
+                'subject_code',
+                'subject_name',
+                'department',
+                'course_year',
+                'semester',
+                'school_year',
+                'units',
+                'description',
+                'is_active',
+            ]);
+            // Example row
+            fputcsv($file, [
+                'CS101',
+                'Intro to Programming',
+                'Computer Studies',
+                '1st Year',
+                '1st Semester',
+                '2025-2026',
+                '3',
+                'Basic programming concepts',
+                '1',
+            ]);
             fclose($file);
         };
 

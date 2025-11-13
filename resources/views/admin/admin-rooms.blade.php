@@ -1,6 +1,6 @@
 @extends('layouts.mobile.mobile-app-admin')
 
-@section('header_title', 'Room Locations') {{-- Clearer Title --}}
+@section('header_title', 'Room Locations')
 
 @section('content')
 
@@ -15,83 +15,57 @@
     ];
 @endphp
 
-<div class="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto"> {{-- Added padding and max-width container --}}
+<div class="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
 
-    {{-- ===================== HEADER & ADD BUTTON ===================== --}}
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-3">
-        <h2 class="text-3xl font-extrabold text-gray-900 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 mr-3 text-blue-700" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+    {{-- ===================== HEADER + SEARCH + BUTTONS ===================== --}}
+    <div class="mb-8">
+        {{-- Header --}}
+        <div class="flex items-center mb-5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 mr-3 text-blue-700" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h-2M5 21h2m2 0h6m2 0h-2M5 5h14M8 21v-4a3 3 0 013-3h2a3 3 0 013 3v4" />
             </svg>
-            Room Locations
-        </h2>
+            <h2 class="text-3xl font-extrabold text-gray-900">Room Locations</h2>
+        </div>
 
-        {{-- Primary Action Button (Full width on mobile) --}}
-        <button onclick="openAddModal()" 
-            class="inline-block bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 w-full md:w-auto text-center font-semibold shadow-lg transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="inline-block w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Add New Room
-        </button>
+        {{-- Search + Building Filter + Add Button --}}
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            
+            {{-- Search + Building --}}
+            <form action="{{ route('admin.rooms.index') }}" method="GET" class="flex w-full sm:w-2/3 lg:w-1/2 gap-2">
+                <div class="relative flex flex-1">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by Room Code..."
+                        class="w-full border-2 border-gray-300 focus:border-blue-500 rounded-l-xl px-4 py-2.5 pl-11 text-base focus:outline-none transition shadow-sm" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 absolute left-3 top-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 3a7.5 7.5 0 006.15 13.65z" />
+                    </svg>
+                    <button type="submit"
+                        class="bg-blue-600 text-white px-5 rounded-r-xl hover:bg-blue-700 transition font-semibold">
+                        Search
+                    </button>
+                </div>
+
+                <select name="building" class="border-2 border-gray-300 focus:border-blue-500 rounded-xl px-4 py-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white transition w-full sm:w-2/5 md:w-1/4">
+                    <option value="">-- All Buildings --</option>
+                    @foreach ($buildings as $building)
+                        <option value="{{ $building }}" {{ request('building') == $building ? 'selected' : '' }}>
+                            {{ $building }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+
+            {{-- Buttons --}}
+            <div class="flex flex-wrap gap-3 justify-start sm:justify-end">
+                <button type="button" onclick="openAddModal()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition shadow-md flex items-center justify-center w-full sm:w-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="inline-block w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add New Room
+                </button>
+            </div>
+        </div>
     </div>
-
-    {{-- ===================== MESSAGES ===================== --}}
-    @if(session('success'))
-        <div class="bg-green-100 border-l-4 border-green-400 text-green-700 p-4 rounded-md mb-6" role="alert">
-            <p>{{ session('success') }}</p>
-        </div>
-    @endif
-
-    @if ($errors->any())
-        {{-- Added ID to facilitate error message targeting/clearing within modal JS if needed --}}
-        <div id="pageErrorContainer" class="bg-red-100 border-l-4 border-red-400 text-red-700 p-4 rounded-md mb-6" role="alert">
-            <p>**Validation Error:** Please check the form, especially if the **{{ session('modal_type', 'add') }}** modal reopened.</p>
-        </div>
-    @endif
-
-    ---
-
-    {{-- ========================================================================= --}}
-    {{-- FILTERS: Search + Building --}}
-    {{-- Responsive filter bar: stacks on mobile, side-by-side on tablet/desktop --}}
-    {{-- ========================================================================= --}}
-    <form method="GET" action="{{ route('admin.rooms.index') }}" class="flex flex-col sm:flex-row sm:items-center gap-3 mb-8">
-        {{-- Search Input (Stays full width until sm) --}}
-        <div class="relative w-full sm:w-2/5">
-            <input 
-                type="text" 
-                name="search" 
-                placeholder="Search by Room Code..." 
-                value="{{ request('search') }}"
-                class="w-full border-2 border-gray-300 focus:border-blue-500 rounded-xl px-4 py-2.5 pl-10 text-base focus:outline-none transition shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 absolute left-3 top-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 3a7.5 7.5 0 006.15 13.65z" />
-            </svg>
-        </div>
-
-        {{-- Building Select --}}
-        <select 
-            name="building" 
-            class="border-2 border-gray-300 focus:border-blue-500 rounded-xl px-4 py-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none w-full sm:w-2/5 md:w-1/4 bg-white transition">
-            <option value="">-- All Buildings --</option>
-            @foreach ($buildings as $building)
-                <option value="{{ $building }}" {{ request('building') == $building ? 'selected' : '' }}>
-                    {{ $building }}
-                </option>
-            @endforeach
-        </select>
-
-        {{-- Filter Button --}}
-        <button type="submit" 
-            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md w-full sm:w-1/5 md:w-auto transition">
-            Apply Filter
-        </button>
-    </form>
-
-    ---
-
-    ## 🏛️ Managed Rooms
 
     {{-- ------------------------------------------------------------------------- --}}
     {{-- RESPONSIVE GRID: 1 column on mobile, 2 on sm/tablet, 3 on desktop --}}
@@ -122,7 +96,7 @@
                         type="button" 
                         onclick="openEditModal({{ json_encode($room) }})" 
                         class="text-sm text-blue-600 hover:text-blue-800 font-semibold px-3 py-1.5 rounded-lg border border-blue-100 bg-blue-50 transition">
-                        <span class="md:hidden">Edit</span><span class="hidden md:inline">✏️ Edit</span>
+                        <span class="md:hidden">Edit</span><span class="hidden md:inline">Edit</span>
                     </button>
 
                     <form action="{{ route('admin.rooms.destroy', $room) }}" method="POST" class="delete-form">
@@ -131,7 +105,7 @@
                         <button type="submit" 
                             class="text-sm text-red-600 hover:text-red-800 font-semibold px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 transition"
                             onclick="return confirm('WARNING: Are you sure you want to delete room {{ $room->room_code }}? This cannot be undone.')">
-                            <span class="md:hidden">Delete</span><span class="hidden md:inline">🗑️ Delete</span>
+                            <span class="md:hidden">Delete</span><span class="hidden md:inline">Delete</span>
                         </button>
                     </form>
                 </div>

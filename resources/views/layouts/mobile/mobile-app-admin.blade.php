@@ -155,6 +155,15 @@
         transform: translateX(50%); /* Re-centers it on the new edge */
     }
 
+    /* Arrow rotation */
+    #sidebar-arrow {
+        transition: transform 0.3s ease-in-out;
+    }
+
+    #sidebar-toggle.closed #sidebar-arrow {
+        transform: rotate(180deg); /* Arrow points left when sidebar is closed */
+    }
+
 </style>
 </head>
 <body>
@@ -283,22 +292,12 @@
     </div>
 </aside>
 
-<button id="sidebar-toggle">
-    <svg class="hidden h-6 w-6" id="icon-close" width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path 
-            transform="rotate(180, 8.5, 8.5)" 
-            d="M5.5892 11.5836C5.33023 11.8453 5.33245 12.2674 5.59416 12.5264C5.85588 12.7853 6.27798 12.7831 6.53696 12.5214L10.5159 8.50041C10.7748 8.2387 10.7726 7.81659 10.5109 7.55762L6.4899 3.57872C6.22818 3.31975 5.80608 3.32197 5.5471 3.58368C5.28813 3.8454 5.29035 4.2675 5.55207 4.52648L9.09918 8.03646L5.5892 11.5836Z" 
-            fill="white" 
-            fill-opacity="0.8"
-        />
+<div id="sidebar-toggle" class="-mt-7">
+    <svg id="sidebar-arrow" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
     </svg>
+</div>
 
-    <svg class="h-6 w-6" id="icon-open" width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M5.5892 11.5836C5.33023 11.8453 5.33245 12.2674 5.59416 12.5264C5.85588 12.7853 6.27798 12.7831 6.53696 12.5214L10.5159 8.50041C10.7748 8.2387 10.7726 7.81659 10.5109 7.55762L6.4899 3.57872C6.22818 3.31975 5.80608 3.32197 5.5471 3.58368C5.28813 3.8454 5.29035 4.2675 5.55207 4.52648L9.09918 8.03646L5.5892 11.5836Z" fill="white" fill-opacity="0.8"/>
-    </svg>
-
-</button>
-    
 <div class="main-content">
     
     <nav class="top-nav-fixed flex items-center justify-between px-4">
@@ -323,29 +322,38 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get elements
-        const sidebar = document.querySelector('.sidebar');
-        const mainContent = document.querySelector('.main-content');
-        const topNav = document.querySelector('.top-nav-fixed');
-        const toggleButton = document.getElementById('sidebar-toggle');
-        const iconClose = document.getElementById('icon-close');
-        const iconOpen = document.getElementById('icon-open');
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const topNav = document.querySelector('.top-nav-fixed');
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    const arrowIcon = toggleBtn.querySelector('svg'); // Arrow inside toggle button
 
-        // Add click listener
-        toggleButton.addEventListener('click', function() {
-            // Toggle the 'closed' class on all elements
-            sidebar.classList.toggle('closed');
-            mainContent.classList.toggle('closed');
-            topNav.classList.toggle('closed');
-            toggleButton.classList.toggle('closed');
+    // Initial check: sidebar is open by default
+    let isOpen = true;
 
-            // Toggle the button's icons
-            iconClose.classList.toggle('hidden');
-            iconOpen.classList.toggle('hidden');
-        });
+    toggleBtn.addEventListener('click', function() {
+        // Toggle sidebar, main content, top nav, and button positions
+        sidebar.classList.toggle('closed');
+        mainContent.classList.toggle('closed');
+        topNav.classList.toggle('closed');
+        toggleBtn.classList.toggle('closed');
+
+        // Update state
+        isOpen = !isOpen;
+
+        // Rotate arrow: right when closed, left when open
+        if (isOpen) {
+            arrowIcon.style.transform = 'rotate(180deg)';
+        } else {
+            arrowIcon.style.transform = 'rotate(0deg)';
+        }
     });
-</script>
 
+    // Optional: rotate arrow initially
+    arrowIcon.style.transition = 'transform 0.3s ease';
+    arrowIcon.style.transform = 'rotate(180deg)'; // sidebar is open initially
+});
+</script>
 </body>
 </html>
