@@ -27,9 +27,11 @@ class VerifyEmailController extends Controller
     private function redirectBasedOnRole($user): string
     {
         if ($user->isAdmin()) {
-            return route('dashboard.admin', absolute: false);
+            return route('admin.dashboard', absolute: false);
         } elseif ($user->isTeacher()) {
-            return route('dashboard.teacher', absolute: false);
+            return route('teacher.dashboard', absolute: false);
+        } elseif ($user->isDean()) {
+            return route('dean.dashboard', absolute: false);
         }
 
         return route('home', absolute: false);

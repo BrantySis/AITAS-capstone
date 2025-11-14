@@ -31,9 +31,9 @@ class AuthenticatedSessionController extends Controller
     $role = optional(Auth::user()->role)->name;
 
     return match ($role) {
-        'admin' => redirect()->route('dashboard.admin'),
-        'teacher' => redirect()->route('dashboard.teacher'),
-        default => redirect()->route('profile.edit')->with('error', 'No dashboard defined for your role.'),
+        'admin' => redirect()->route('admin.dashboard'),
+        'teacher' => redirect()->route('teacher.dashboard'),
+        'dean' => redirect()->route('dean.dashboard')
     };
 }
 

@@ -29,14 +29,18 @@ class EmailVerificationNotificationController extends Controller
     /**
      * Determine the dashboard route based on user role.
      */
-    private function getDashboardRoute($user): string
+   private function getDashboardRoute($user): string
     {
         if ($user->role === 'admin') {
-            return route('dashboard.admin', absolute: false);
+            return route('admin.dashboard', absolute: false);
         }
 
         if ($user->role === 'teacher') {
-            return route('dashboard.teacher', absolute: false);
+            return route('teacher.dashboard', absolute: false);
+        }
+
+        if ($user->role === 'dean') {
+            return route('teacher.dashboard', absolute: false);
         }
 
         // Default fallback (in case role is missing)

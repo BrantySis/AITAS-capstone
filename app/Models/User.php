@@ -76,4 +76,10 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return optional($this->role)->name === 'teacher';
     }
+
+    public function latestAttendance()
+{
+    return $this->hasOne(\App\Models\Attendance::class)
+                ->latest('created_at');
+}
 }

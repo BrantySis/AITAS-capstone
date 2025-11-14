@@ -14,22 +14,19 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): View
+    public function edit(Request $request): View|RedirectResponse
     {
         $user = $request->user();
 
-        // Render different profile pages depending on the role,
-        // or default to a common one
         switch ($user->role_id) {
             case 1:
                 return view('admin.admin-settings', compact('user'));
             case 2:
                 return view('teacher.teacher-settings', compact('user'));
             case 3:
-                return view('#', compact('user'));
+                return view('dean.dean-settings', compact('user'));
             default:
-                // fallback for unknown roles
-                return view('#', compact('user'));
+                return view('profile.default-settings', compact('user'));
         }
     }
 
@@ -46,7 +43,17 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        // Redirect based on role
+        switch ($request->user()->role_id) {
+            case 1: // Admin
+                return Redirect::route('profile.edit')->with('status', 'profile-updated');
+            case 2: // Teacher
+                return Redirect::route('profile.edit')->with('status', 'profile-updated');
+            case 3: // Dean
+                return Redirect::route('profile.edit')->with('status', 'profile-updated');
+            default:
+                return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        }
     }
 
     /**

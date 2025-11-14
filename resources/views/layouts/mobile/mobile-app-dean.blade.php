@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>@yield('title', 'AITAS Teacher Portal')</title>
+    <title>@yield('title', 'AITAS Dean Portal')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -162,19 +162,22 @@
 
 <aside class="sidebar flex flex-col p-6">
     <div class="flex flex-col items-center text-center">
-        {{-- **PROFILE SECTION: Updated for Teacher** --}}
-        <img src="{{ asset('images/aitas-icons/uic-logo.png') }}" alt="User Avatar" class="w-24 h-24 rounded-full mb-3"> 
-        <h2 class="font-semibold">{{ auth()->user()->name ?? 'Teacher Name' }}</h2>
+        {{-- **PROFILE SECTION: Updated for Dean** --}}
+        {{-- Assuming you'll replace the image path with a dynamic one: asset('images/aitas-icons/uic-logo.png') --}}
+        <img src="https://via.placeholder.com/96/CCCCCC/888888?text=Dean" alt="User Avatar" class="w-24 h-24 rounded-full mb-3 bg-white border-4 border-white shadow-lg"> 
+        <h2 class="font-semibold">{{ auth()->user()->name ?? 'Dean Name' }}</h2>
+        <p class="text-sm text-gray-400">Dean of Academics</p>
     </div>
 
     <hr class="sidebar-divider my-4">
 
-    {{-- **MAIN NAVIGATION: Updated Links for Teacher** --}}
+    {{-- **MAIN NAVIGATION: Filtered Links for Dean (Dashboard, Teachers)** --}}
     <nav class="flex-1">
         <span class="text-xs uppercase text-gray-400 tracking-wider">Main</span>
         <ul class="mt-2 space-y-1">
+            {{-- 1. Dashboard --}}
             <li>
-                <a href="{{ route('teacher.dashboard') }}" class="sidebar-link @if(Request::routeIs('teacher.dashboard')) active @endif">
+                <a href="{{ route('dean.dashboard') }}" class="sidebar-link @if(Request::routeIs('dean.dashboard')) active @endif">
                     <span class="w-8 flex justify-center">
                         {{-- Dashboard Icon SVG --}}
                         <svg width="25" height="21" viewBox="0 0 25 21" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.74655 20.0494H22.2534C23.7267 18.2357 24.6506 16.0482 24.9188 13.739C25.1869 11.4297 24.7883 9.09271 23.7689 6.99726C22.7495 4.90181 21.1509 3.13318 19.1571 1.8952C17.1634 0.65721 14.8557 0.000242154 12.5 0C10.1443 0.000242154 7.83664 0.65721 5.84289 1.8952C3.84915 3.13318 2.25047 4.90181 1.2311 6.99726C0.211719 9.09271 -0.186875 11.4297 0.0812466 13.739C0.349368 16.0482 1.27329 18.2357 2.74655 20.0494ZM12.5 1.54226C13.3597 1.54226 14.0631 2.23628 14.0631 3.08452C14.0631 3.93276 13.3597 4.62678 12.5 4.62678C11.6403 4.62678 10.9369 3.93276 10.9369 3.08452C10.9369 2.23628 11.6403 1.54226 12.5 1.54226ZM6.24779 4.62678C7.10747 4.62678 7.81084 5.3208 7.81084 6.16904C7.81084 7.01728 7.10747 7.7113 6.24779 7.7113C5.38811 7.7113 4.68474 7.01728 4.68474 6.16904C4.68474 5.3208 5.38811 4.62678 6.24779 4.62678ZM18.7522 4.62678C19.6119 4.62678 20.3153 5.3208 20.3153 6.16904C20.3153 7.01728 19.6119 7.7113 18.7522 7.7113C17.8925 7.7113 17.1892 7.01728 17.1892 6.16904C17.1892 5.3208 17.8925 4.62678 18.7522 4.62678ZM10.3586 13.1863L15.6261 6.16904V15.4226C15.6261 17.1191 14.2194 18.5071 12.5 18.5071C10.7806 18.5071 9.37389 17.1191 9.37389 15.4226C9.37389 14.5435 9.74903 13.757 10.3586 13.1863ZM3.12168 10.7958C3.98136 10.7958 4.68474 11.4898 4.68474 12.3381C4.68474 13.1863 3.98136 13.8803 3.12168 13.8803C2.262 13.8803 1.55863 13.1863 1.55863 12.3381C1.55863 11.4898 2.262 10.7958 3.12168 10.7958ZM21.8783 10.7958C22.738 10.7958 23.4414 11.4898 23.4414 12.3381C23.4414 13.1863 22.738 13.8803 21.8783 13.8803C21.0186 13.8803 20.3153 13.1863 20.3153 12.3381C20.3153 11.4898 21.0186 10.7958 21.8783 10.7958ZM14.0631 15.4226C14.0631 14.5744 13.3597 13.8803 12.5 13.8803C11.6403 13.8803 10.9369 14.5744 10.9369 15.4226C10.9369 16.2708 11.6403 16.9649 12.5 16.9649C13.3597 16.9649 14.0631 16.2708 14.0631 15.4226Z" fill="#EFF2F4"/></svg>
@@ -182,49 +185,31 @@
                     <span class="ml-4">Dashboard</span>
                 </a>
             </li>
+            
+            {{-- 2. Teachers Section (Used 'teacher.attendance.index' icon as placeholder for Teachers List/Management) --}}
             <li>
-                <a href="{{ route('teacher.attendance.index') }}" class="sidebar-link @if(Request::routeIs('teacher.attendance.index')) active @endif">
+                <a href="{{ route('dean.teachers') }}" class="sidebar-link @if(Request::routeIs('dean.teachers')) active @endif">
                     <span class="w-8 flex justify-center">
-                        {{-- Attendance Icon SVG --}}
-                    <svg width="21" height="23" viewBox="0 0 21 23" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5.7254 4.69793C5.7254 3.45196 6.22808 2.25703 7.12285 1.37599C8.01762 0.49496 9.2312 0 10.4966 0C11.762 0 12.9756 0.49496 13.8703 1.37599C14.7651 2.25703 15.2678 3.45196 15.2678 4.69793C15.2678 5.9439 14.7651 7.13884 13.8703 8.01988C12.9756 8.90091 11.762 9.39587 10.4966 9.39587C9.2312 9.39587 8.01762 8.90091 7.12285 8.01988C6.22808 7.13884 5.7254 5.9439 5.7254 4.69793ZM20.992 20.9365C20.6586 14.4872 15.5121 11.275 10.4966 11.275C5.48111 11.275 0.334576 14.4859 0.00122786 20.9365C-0.0115891 21.1852 0.0763468 21.4287 0.245722 21.6135C0.415097 21.7984 0.652063 21.9095 0.904575 21.9224C5.18593 22.1367 17.4422 22.0552 20.0873 21.9224C20.3401 21.9098 20.5774 21.7988 20.747 21.6139C20.9167 21.429 21.0048 21.1854 20.992 20.9365ZM13.2715 14.2717C13.4767 14.4176 13.6146 14.6377 13.6549 14.8837C13.6952 15.1297 13.6347 15.3813 13.4865 15.5834L10.8147 19.2252C10.7056 19.3739 10.5639 19.4965 10.4001 19.5839C10.2363 19.6712 10.0546 19.7211 9.86852 19.7298C9.68243 19.7384 9.49676 19.7057 9.3253 19.6339C9.15385 19.5622 9.00103 19.4533 8.87821 19.3154L7.56263 17.8346C7.39593 17.6471 7.31173 17.402 7.32856 17.1533C7.34538 16.9046 7.46184 16.6727 7.65233 16.5085C7.84281 16.3444 8.09171 16.2615 8.34428 16.2781C8.59684 16.2946 8.83238 16.4093 8.99908 16.5969L9.75992 17.4538L11.9394 14.4834C12.0876 14.2814 12.3111 14.1456 12.5609 14.1059C12.8108 14.0662 13.0664 14.1259 13.2715 14.2717Z" fill="#EFF2F4"/>
-                    </svg>
-                    </span>
-                    <span class="ml-4">Attendance</span>
-                    {{-- Badge for pending schedules if applicable --}}
-                    <span class="sidebar-badge">{{ $pendingSchedulesCount ?? 1 }}</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('teacher.schedule.index') }}" class="sidebar-link @if(Request::routeIs('teacher.schedule.index')) active @endif">
-                    <span class="w-8 flex justify-center">
-                        {{-- Attendance Icon SVG --}}
-                        <svg width="23" height="23" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5.47619 0V2.10041H1.09524C0.804763 2.10041 0.526185 2.21106 0.320788 2.40801C0.115391 2.60496 0 2.87209 0 3.15062V19.9539C0 20.2324 0.115391 20.4996 0.320788 20.6965C0.526185 20.8935 0.804763 21.0041 1.09524 21.0041H9.58881C8.24077 19.3896 7.56112 17.3551 7.67997 15.2901C7.79882 13.2251 8.70783 11.2746 10.233 9.81222C11.7581 8.3498 13.7922 7.47816 15.9457 7.36419C18.0993 7.25023 20.2211 7.90194 21.9048 9.19455V3.15062C21.9048 2.87209 21.7894 2.60496 21.584 2.40801C21.3786 2.21106 21.1 2.10041 20.8095 2.10041H16.4286V0H14.2381V2.10041H7.66667V0H5.47619ZM23 15.7531C23 16.5806 22.83 17.4 22.4998 18.1645C22.1695 18.929 21.6855 19.6236 21.0753 20.2087C20.4651 20.7939 19.7406 21.258 18.9433 21.5747C18.1461 21.8913 17.2915 22.0543 16.4286 22.0543C15.5656 22.0543 14.7111 21.8913 13.9138 21.5747C13.1165 21.258 12.3921 20.7939 11.7819 20.2087C11.1717 19.6236 10.6876 18.929 10.3574 18.1645C10.0271 17.4 9.85714 16.5806 9.85714 15.7531C9.85714 14.0819 10.5495 12.4792 11.7819 11.2974C13.0143 10.1157 14.6857 9.45185 16.4286 9.45185C18.1714 9.45185 19.8429 10.1157 21.0753 11.2974C22.3077 12.4792 23 14.0819 23 15.7531ZM15.3333 11.5523V16.1879L17.8447 18.596L19.3934 17.111L17.5238 15.3183V11.5523H15.3333Z" fill="#EFF2F4"/></svg> 
-                    </span>
-                    <span class="ml-4">My Schedule</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('teacher.history') }}" class="sidebar-link @if(Request::routeIs('teacher.history')) active @endif">
-                    <span class="w-8 flex justify-center">
-                        {{-- Teachers icon used for Classes/Students/Courses, modify or find a better one if needed --}}
-                        <svg width="27" height="25" viewBox="0 0 27 25" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6.81135 19.7322C8.57771 21.5036 10.9019 22.6059 13.388 22.8513C15.874 23.0967 18.3679 22.47 20.4448 21.0781C22.5217 19.6862 24.053 17.6151 24.7778 15.2178C25.5025 12.8206 25.3759 10.2455 24.4194 7.93135C23.463 5.61723 21.7359 3.7073 19.5325 2.52704C17.3291 1.34678 14.7858 0.969233 12.3359 1.45874C9.88606 1.94824 7.68126 3.2745 6.09726 5.21151C4.51326 7.14851 3.64808 9.57639 3.64917 12.0814V14.4825" stroke="#EFF2F4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M1.25 12.0767L3.64922 14.4827L6.04844 12.0767M13.2461 7.26489V13.2797H19.2442" stroke="#EFF2F4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        {{-- New Icon for Teachers - using a modified person icon --}}
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C8.67 14 6 15.67 6 18V20H18V18C18 15.67 15.33 14 12 14Z" fill="#EFF2F4"/>
                         </svg>
                     </span>
-                    <span class="ml-4">History</span>
+                    <span class="ml-4">Teachers</span>
+                    {{-- Badge for pending new teacher requests/applications if applicable --}}
+                    <span class="sidebar-badge">{{ $pendingTeachersCount ?? 3 }}</span>
                 </a>
             </li>
-            {{-- Add other teacher-specific links here, e.g., Attendance, Grading, etc. --}}
+
+            {{-- 3. Notifications (Kept for consistency in the Main/Top area) --}}
             <li>
-                <a href="{{ route('teacher.notifications.index') }}" class="sidebar-link @if(Request::routeIs('teacher.notifications.index')) active @endif">
+                <a href="#" class="sidebar-link @if(Request::routeIs('#')) active @endif">
                     <span class="w-8 flex justify-center">
                         {{-- Notifications Icon SVG --}}
                         <svg width="17" height="20" viewBox="0 0 17 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.6426 13.8085C16.5692 13.7192 16.4971 13.6299 16.4263 13.5438C15.4532 12.3558 14.8644 11.6388 14.8644 8.27589C14.8644 6.53482 14.4517 5.10625 13.6383 4.03482C13.0385 3.2433 12.2277 2.64286 11.159 2.19911C11.1452 2.19139 11.133 2.18126 11.1227 2.1692C10.7383 0.870089 9.68645 0 8.50011 0C7.31377 0 6.26234 0.870089 5.87795 2.16786C5.8677 2.17949 5.85559 2.1893 5.84212 2.19688C3.34823 3.23304 2.13623 5.22098 2.13623 8.27455C2.13623 11.6388 1.54837 12.3558 0.574347 13.5424C0.503574 13.6286 0.431473 13.7161 0.358045 13.8071C0.168372 14.038 0.0481989 14.3189 0.0117471 14.6165C-0.0247047 14.9141 0.024091 15.2161 0.152359 15.4866C0.42528 16.067 1.00695 16.4272 1.6709 16.4272H15.3342C15.995 16.4272 16.5727 16.0674 16.8465 15.4897C16.9754 15.2191 17.0246 14.917 16.9885 14.619C16.9523 14.321 16.8323 14.0397 16.6426 13.8085ZM8.50011 20C9.1393 19.9995 9.76643 19.8244 10.315 19.4932C10.8636 19.1621 11.3131 18.6873 11.6159 18.1192C11.6302 18.092 11.6372 18.0615 11.6364 18.0307C11.6355 17.9999 11.6268 17.9699 11.611 17.9435C11.5953 17.9171 11.573 17.8953 11.5464 17.8802C11.5199 17.865 11.4898 17.8571 11.4593 17.8571H5.54177C5.51122 17.857 5.48116 17.8649 5.45452 17.88C5.42787 17.8951 5.40556 17.9169 5.38975 17.9433C5.37394 17.9697 5.36517 17.9998 5.36429 18.0306C5.36341 18.0614 5.37046 18.0919 5.38474 18.1192C5.68754 18.6872 6.137 19.162 6.68548 19.4931C7.23395 19.8242 7.86099 19.9994 8.50011 20Z" fill="#EFF2F4"/></svg>
                     </span>
                     <span class="ml-4">Notifications</span>
-                    <span class="sidebar-badge">{{ $notificationCount ?? 5 }}</span>
+                    <span class="sidebar-badge">{{ $notificationCount ?? 8 }}</span>
                 </a>
             </li>
         </ul>
@@ -235,6 +220,7 @@
     <div>
         <span class="text-xs uppercase text-gray-400 tracking-wider">Settings</span>
         <ul class="mt-2 space-y-1">
+            {{-- Settings --}}
             <li>
                 <a href="{{ route('profile.edit') }}" class="sidebar-link @if(Request::routeIs('profile.edit')) active @endif">
                     <span class="w-8 flex justify-center">
@@ -244,7 +230,7 @@
                     <span class="ml-4">Settings</span>
                 </a>
             </li>
-            {{-- Light Mode Toggle (assuming it's functional on the teacher side) --}}
+            {{-- Light/Dark Mode Toggle --}}
             <li class="flex items-center justify-between text-gray-400 px-4 py-2.5">
                 <div class="flex items-center">
                     <span class="w-8 flex justify-center">
@@ -254,6 +240,7 @@
                     <span class="ml-4">Light Mode</span>
                 </div>
                 <div class="flex items-center cursor-pointer">
+                    {{-- The 'on' class here determines the initial state (ON/Light Mode) --}}
                     <div class="toggle-bg on w-11 h-6 rounded-full p-0.5 transition-colors duration-300 ease-in-out">
                         <div class="toggle-dot w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out"></div>
                     </div>
@@ -279,7 +266,7 @@
 </aside>
 
 {{-- **SIDEBAR TOGGLE BUTTON** --}}
-<button id="sidebar-toggle">
+<button id="sidebar-toggle" class="-mt-7">
     <svg class="hidden h-6 w-6" id="icon-close" width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path 
             transform="rotate(180, 8.5, 8.5)" 
@@ -304,11 +291,16 @@
             {{-- Spacer or icon if needed --}}
         </div>
 
-        <h1 class="text-xl font-semibold text-white">@yield('header_title', 'Teacher Dashboard')</h1>
+        <h1 class="text-xl font-semibold text-white">@yield('header_title', 'Dean Dashboard')</h1>
 
         {{-- **NOTIFICATION BELL (Top Right)** --}}
-        <a href="#" class="text-white hover:text-blue-200">
-        <svg width="17" height="20" viewBox="0 0 17 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.6426 13.8085C16.5692 13.7192 16.4971 13.6299 16.4263 13.5438C15.4532 12.3558 14.8644 11.6388 14.8644 8.27589C14.8644 6.53482 14.4517 5.10625 13.6383 4.03482C13.0385 3.2433 12.2277 2.64286 11.159 2.19911C11.1452 2.19139 11.133 2.18126 11.1227 2.1692C10.7383 0.870089 9.68645 0 8.50011 0C7.31377 0 6.26234 0.870089 5.87795 2.16786C5.8677 2.17949 5.85559 2.1893 5.84212 2.19688C3.34823 3.23304 2.13623 5.22098 2.13623 8.27455C2.13623 11.6388 1.54837 12.3558 0.574347 13.5424C0.503574 13.6286 0.431473 13.7161 0.358045 13.8071C0.168372 14.038 0.0481989 14.3189 0.0117471 14.6165C-0.0247047 14.9141 0.024091 15.2161 0.152359 15.4866C0.42528 16.067 1.00695 16.4272 1.6709 16.4272H15.3342C15.995 16.4272 16.5727 16.0674 16.8465 15.4897C16.9754 15.2191 17.0246 14.917 16.9885 14.619C16.9523 14.321 16.8323 14.0397 16.6426 13.8085ZM8.50011 20C9.1393 19.9995 9.76643 19.8244 10.315 19.4932C10.8636 19.1621 11.3131 18.6873 11.6159 18.1192C11.6302 18.092 11.6372 18.0615 11.6364 18.0307C11.6355 17.9999 11.6268 17.9699 11.611 17.9435C11.5953 17.9171 11.573 17.8953 11.5464 17.8802C11.5199 17.865 11.4898 17.8571 11.4593 17.8571H5.54177C5.51122 17.857 5.48116 17.8649 5.45452 17.88C5.42787 17.8951 5.40556 17.9169 5.38975 17.9433C5.37394 17.9697 5.36517 17.9998 5.36429 18.0306C5.36341 18.0614 5.37046 18.0919 5.38474 18.1192C5.68754 18.6872 6.137 19.162 6.68548 19.4931C7.23395 19.8242 7.86099 19.9994 8.50011 20Z" fill="#EFF2F4"/></svg>
+        <a href="#" class="relative text-white hover:text-blue-200">
+            <svg width="17" height="20" viewBox="0 0 17 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.6426 13.8085C16.5692 13.7192 16.4971 13.6299 16.4263 13.5438C15.4532 12.3558 14.8644 11.6388 14.8644 8.27589C14.8644 6.53482 14.4517 5.10625 13.6383 4.03482C13.0385 3.2433 12.2277 2.64286 11.159 2.19911C11.1452 2.19139 11.133 2.18126 11.1227 2.1692C10.7383 0.870089 9.68645 0 8.50011 0C7.31377 0 6.26234 0.870089 5.87795 2.16786C5.8677 2.17949 5.85559 2.1893 5.84212 2.19688C3.34823 3.23304 2.13623 5.22098 2.13623 8.27455C2.13623 11.6388 1.54837 12.3558 0.574347 13.5424C0.503574 13.6286 0.431473 13.7161 0.358045 13.8071C0.168372 14.038 0.0481989 14.3189 0.0117471 14.6165C-0.0247047 14.9141 0.024091 15.2161 0.152359 15.4866C0.42528 16.067 1.00695 16.4272 1.6709 16.4272H15.3342C15.995 16.4272 16.5727 16.0674 16.8465 15.4897C16.9754 15.2191 17.0246 14.917 16.9885 14.619C16.9523 14.321 16.8323 14.0397 16.6426 13.8085ZM8.50011 20C9.1393 19.9995 9.76643 19.8244 10.315 19.4932C10.8636 19.1621 11.3131 18.6873 11.6159 18.1192C11.6302 18.092 11.6372 18.0615 11.6364 18.0307C11.6355 17.9999 11.6268 17.9699 11.611 17.9435C11.5953 17.9171 11.573 17.8953 11.5464 17.8802C11.5199 17.865 11.4898 17.8571 11.4593 17.8571H5.54177C5.51122 17.857 5.48116 17.8649 5.45452 17.88C5.42787 17.8951 5.40556 17.9169 5.38975 17.9433C5.37394 17.9697 5.36517 17.9998 5.36429 18.0306C5.36341 18.0614 5.37046 18.0919 5.38474 18.1192C5.68754 18.6872 6.137 19.162 6.68548 19.4931C7.23395 19.8242 7.86099 19.9994 8.50011 20Z" fill="#EFF2F4"/></svg>
+            @if(($notificationCount ?? 0) > 0)
+                <span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                    {{ $notificationCount ?? 8 }}
+                </span>
+            @endif
         </a>
     </nav>
 
@@ -330,8 +322,12 @@
         const toggleButton = document.getElementById('sidebar-toggle');
         const iconClose = document.getElementById('icon-close');
         const iconOpen = document.getElementById('icon-open');
+        const lightModeToggle = document.querySelector('.toggle-bg');
 
-        // Add click listener
+        // Initial check for 'closed' state if stored in local storage or other mechanism
+        // For simplicity, we assume 'open' on load.
+
+        // Add click listener for sidebar toggle
         toggleButton.addEventListener('click', function() {
             // Toggle the 'closed' class on all elements
             sidebar.classList.toggle('closed');
@@ -343,14 +339,23 @@
             iconClose.classList.toggle('hidden');
             iconOpen.classList.toggle('hidden');
         });
+
+        // Add click listener for Light/Dark Mode toggle
+        lightModeToggle.addEventListener('click', function() {
+            const isDarkMode = lightModeToggle.classList.toggle('on');
+            
+            // This is where you would implement the actual light/dark mode logic.
+            // e.g., Toggling classes on the <body> tag or storing preference.
+            const toggleText = lightModeToggle.nextElementSibling;
+            if (isDarkMode) {
+                toggleText.textContent = 'ON';
+                // Example: document.body.classList.remove('dark');
+            } else {
+                toggleText.textContent = 'OFF';
+                // Example: document.body.classList.add('dark');
+            }
+        });
     });
-    
-    // Simple placeholder for Dark Mode/Toggle logic if you want to implement it later
-    // const toggleBg = document.querySelector('.toggle-bg');
-    // const toggleDot = document.querySelector('.toggle-dot');
-    // toggleBg.addEventListener('click', function() {
-    //     toggleBg.classList.toggle('on');
-    // });
 </script>
 
 </body>
