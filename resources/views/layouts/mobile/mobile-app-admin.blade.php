@@ -7,163 +7,180 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
 <style>
-    /* 1. Body Styling */
-    body {
-        margin: 0;
-        background-color: #EEEEEE; 
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    }
-    
-    /* 2. Main Content Area (Wrapper for top-nav and white-board) */
-    .main-content {
-        margin-left: 280px; /* Width of the sidebar */
-        position: relative;
-        min-height: 100vh;
-    }
-    
-    /* 3. The White Board Content Area (Modified) */
-    .white-board {
-        position: relative; 
-        height: 100vh;
-        padding-top: 100px;  /* Height of top-nav-fixed */
-        background-color: #EEEEEE; 
-        overflow-y: auto; 
-    }
-    
-    /* 4. Fixed Top Header (Modified) */
-    .top-nav-fixed {
-        position: fixed; 
-        top: 0;
-        left: 280px;     /* <-- KEY: Starts AFTER sidebar */
-        right: 0;        /* <-- KEY: Extends to edge */
-        height: 100px;
-        z-index: 20;
-        background: radial-gradient(circle, #337BB6 60%, #1D4A80 100%); 
-    }
+/* ===== BODY & FONT ===== */
+body {
+    margin: 0;
+    background-color: #EEEEEE; 
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
 
-    /* 5. Active Nav Item Styling (Unchanged) */
-    .nav-active {
-         color: #EBF8FF;
-    }
+/* ===== SIDEBAR ===== */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    background-color: #142D54;
+    z-index: 50;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    transition: all 0.3s ease-in-out;
+}
+.sidebar.closed {
+    transform: translateX(-100%);
+}
+.sidebar-divider {
+    border-top: 1px solid #4A5568;
+    margin: 1rem 0;
+}
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 0.625rem 1rem;
+    border-radius: 0.375rem;
+    color: #CBD5E0;
+    text-decoration: none;
+    margin-bottom: 0.25rem;
+    position: relative;
+    z-index: 51;
+    transition: all 0.3s;
+}
+.sidebar-link:hover {
+    background-color: #476881;
+    color: white;
+}
+.sidebar-link.active {
+    background-color: #00477F;
+    color: white;
+    font-weight: 500;
+}
+.sidebar-link img {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: 0.75rem;
+    filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(240deg) brightness(105%) contrast(101%);
+}
+.sidebar-badge {
+    margin-left: auto;
+    background-color: #ffffff;
+    color: black;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+    border-radius: 3.75px;
+    pointer-events: none;
+}
 
-    /* 6. Sidebar Styling */
-    .sidebar {
+/* ===== TOP NAV ===== */
+.top-nav-fixed {
+    position: fixed;
+    top: 0;
+    left: 280px;
+    right: 0;
+    height: 100px;
+    z-index: 30;
+    background: radial-gradient(circle, #337BB6 60%, #1D4A80 100%);
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    transition: all 0.3s ease-in-out;
+}
+.top-nav-fixed.closed {
+    left: 0;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+    margin-left: 280px;
+    position: relative;
+    min-height: 100vh;
+    transition: all 0.3s ease-in-out;
+}
+.main-content.closed {
+    margin-left: 0;
+}
+.white-board {
+    position: relative; 
+    height: 100vh;
+    padding-top: 100px;
+    background-color: #EEEEEE; 
+    overflow-y: auto; 
+}
+
+/* ===== SIDEBAR TOGGLE ===== */
+#sidebar-toggle {
+    position: fixed;
+    top: 80px;
+    left: 280px;
+    width: 36px;
+    height: 36px;
+    background-color: #142D54;
+    color: white;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 50;
+    transform: translateX(-50%);
+    transition: all 0.3s ease-in-out;
+}
+#sidebar-toggle.closed {
+    left: 0;
+    transform: translateX(50%);
+}
+#sidebar-toggle:hover {
+    background-color: #00477F;
+}
+#sidebar-arrow {
+    transition: transform 0.3s ease-in-out;
+}
+#sidebar-toggle.closed #sidebar-arrow {
+    transform: rotate(180deg);
+}
+
+/* ===== NOTIFICATION POPOVER ===== */
+#notification-popover {
+     position: absolute;
+    top: 80px;
+    right: 4px;
+    z-index: 40;
+    width: 300px;
+    background-color: white;
+    border-radius: 0.75rem; /* rounded corners */
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    max-height: 70vh;
+    overflow-y: auto;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    #notification-popover {
         position: fixed;
         top: 0;
+        right: 0;
         left: 0;
-        height: 100vh;
-        width: 280px;
-        background-color: #142D54;
-        z-index: 40;
-        color: white;
+        margin: 0 0.5rem;
+        width: auto;
+        max-width: calc(100% - 1rem);
+        max-height: 80vh;
+        border-radius: 1rem;
+        padding: 0.5rem;
     }
+}    
 
-    .sidebar-divider {
-        border-top: 1px solid #4A5568; /* gray-600 */
-        margin: 1rem 0;
-    }
+/* ===== TOGGLE SWITCH ===== */
+.toggle-bg { background-color: #4A5568; }
+.toggle-bg.on { background-color: #337BB6; }
+.toggle-dot { transform: translateX(0.125rem); }
+.toggle-bg.on .toggle-dot { transform: translateX(1.375rem); }
 
-    .sidebar-link {
-        display: flex;
-        align-items: center;
-        padding: 0.625rem 1rem; /* py-2.5 px-4 */
-        border-radius: 0.375rem; /* rounded-md */
-        color: #CBD5E0; /* gray-400 */
-        text-decoration: none;
-        margin-bottom: 0.25rem; /* mb-1 */
-    }
-    .sidebar-link:hover {
-        background-color: #476881; /* gray-800 */
-        color: white;
-    }
-    .sidebar-link.active {
-        background-color: #00477F; /* Your light blue */
-        color: white;
-        font-weight: 500; /* medium */
-    }
-
-    .sidebar-link img {
-        width: 1.25rem; /* w-5 */
-        height: 1.25rem; /* h-5 */
-        margin-right: 0.75rem; /* mr-3 */
-        filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(240deg) brightness(105%) contrast(101%);
-    }
-
-    .sidebar-badge {
-        margin-left: auto;
-        background-color: #ffffff;
-        color: black;
-        font-size: 0.75rem; /* text-xs */
-        font-weight: 600; /* semibold */
-        padding: 0.125rem 0.5rem; /* py-0.5 px-2 */
-        border-radius: 3.75px; /* rounded-full */
-    }
-    
-    /* Simple Toggle Switch */
-    .toggle-bg {
-        background-color: #4A5568;
-    }
-    .toggle-bg.on {
-        background-color: #337BB6;
-    }
-    .toggle-dot {
-        transform: translateX(0.125rem);
-    }
-    .toggle-bg.on .toggle-dot {
-        transform: translateX(1.375rem);
-    }
-
-    /* 7. NEW: Transitions for animation */
-    .sidebar, .main-content, .top-nav-fixed, #sidebar-toggle {
-        transition: all 0.3s ease-in-out;
-    }
-
-    /* 8. NEW: Sidebar Toggle Button Style */
-    #sidebar-toggle {
-        position: fixed;
-        top: 80px; /* 5rem (top-20) */
-        left: 280px; /* Starts at the edge of the open sidebar */
-        width: 36px;  /* w-9 */
-        height: 36px; /* h-9 */
-        background-color: #142D54;
-        color: white;
-        border-radius: 0.375rem; /* rounded-md */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        z-index: 50;
-        /* This transform makes it center-aligned on the border */
-        transform: translateX(-50%); 
-    }
-    #sidebar-toggle:hover {
-        background-color: #00477F;
-    }
-
-    /* 9. NEW: "Closed" state classes */
-    .sidebar.closed {
-        transform: translateX(-100%);
-    }
-    .main-content.closed {
-        margin-left: 0;
-    }
-    .top-nav-fixed.closed {
-        left: 0;
-    }
-    #sidebar-toggle.closed {
-        left: 0; /* Moves to the left edge of the screen */
-        transform: translateX(50%); /* Re-centers it on the new edge */
-    }
-
-    /* Arrow rotation */
-    #sidebar-arrow {
-        transition: transform 0.3s ease-in-out;
-    }
-
-    #sidebar-toggle.closed #sidebar-arrow {
-        transform: rotate(180deg); /* Arrow points left when sidebar is closed */
-    }
-
+/* ===== TRANSITIONS ===== */
+.sidebar, .main-content, .top-nav-fixed, #sidebar-toggle { transition: all 0.3s ease-in-out; }
 </style>
 </head>
 <body>
@@ -300,18 +317,43 @@
 
 <div class="main-content">
     
-    <nav class="top-nav-fixed flex items-center justify-between px-4">
-        <div class="w-6">
+    <nav class="top-nav-fixed flex items-center justify-between px-4 h-24">
+    <!-- Placeholder for left spacing -->
+    <div class="w-6"></div>
+
+    <!-- Header Title -->
+    <h1 class="text-xl font-semibold text-white">@yield('header_title', 'Dashboard')</h1>
+
+    <!-- Notification Button -->
+    <div class="relative">
+        <button id="notification-btn" class="text-white hover:text-blue-200 relative p-2 focus:outline-none">
+            <!-- Bell Icon -->
+            <svg width="17" height="20" viewBox="0 0 17 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16.6426 13.8085C16.5692 13.7192 16.4971 13.6299 16.4263 13.5438C15.4532 12.3558 14.8644 11.6388 14.8644 8.27589C14.8644 6.53482 14.4517 5.10625 13.6383 4.03482C13.0385 3.2433 12.2277 2.64286 11.159 2.19911C11.1452 2.19139 11.133 2.18126 11.1227 2.1692C10.7383 0.870089 9.68645 0 8.50011 0C7.31377 0 6.26234 0.870089 5.87795 2.16786C5.8677 2.17949 5.85559 2.1893 5.84212 2.19688C3.34823 3.23304 2.13623 5.22098 2.13623 8.27455C2.13623 11.6388 1.54837 12.3558 0.574347 13.5424C0.503574 13.6286 0.431473 13.7161 0.358045 13.8071C0.168372 14.038 0.0481989 14.3189 0.0117471 14.6165C-0.0247047 14.9141 0.024091 15.2161 0.152359 15.4866C0.42528 16.067 1.00695 16.4272 1.6709 16.4272H15.3342C15.995 16.4272 16.5727 16.0674 16.8465 15.4897C16.9754 15.2191 17.0246 14.917 16.9885 14.619C16.9523 14.321 16.8323 14.0397 16.6426 13.8085ZM8.50011 20C9.1393 19.9995 9.76643 19.8244 10.315 19.4932C10.8636 19.1621 11.3131 18.6873 11.6159 18.1192C11.6302 18.092 11.6372 18.0615 11.6364 18.0307C11.6355 17.9999 11.6268 17.9699 11.611 17.9435C11.5953 17.9171 11.573 17.8953 11.5464 17.8802C11.5199 17.865 11.4898 17.8571 11.4593 17.8571H5.54177C5.51122 17.857 5.48116 17.8649 5.45452 17.88C5.42787 17.8951 5.40556 17.9169 5.38975 17.9433C5.37394 17.9697 5.36517 17.9998 5.36429 18.0306C5.36341 18.0614 5.37046 18.0919 5.38474 18.1192C5.68754 18.6872 6.137 19.162 6.68548 19.4931C7.23395 19.8242 7.86099 19.9994 8.50011 20Z" fill="#EFF2F4"/>
+            </svg>
+
+            <!-- Notification Count -->
+            <span id="notification-count" class="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full text-white text-xs text-center hidden"></span>
+        </button>
+
+        <!-- Notification Popover -->
+        <div id="notification-popover" class="bg-white rounded-xl shadow-xl hidden overflow-hidden w-80 max-w-full">
+            <div class="flex justify-between items-center px-4 py-3 border-b bg-gray-50">
+                <h3 class="font-bold text-lg text-gray-800">Notifications</h3>
+                <button id="close-popover" class="text-gray-400 text-2xl hover:text-gray-600 leading-none p-1">&times;</button>
             </div>
-        
-        <h1 class="text-xl font-semibold text-white">@yield('header_title', 'Dashboard')</h1>
-        
-        <a href="{{ route('admin.notifications.index') }}" class="text-white hover:text-blue-200">
-        <svg width="17" height="20" viewBox="0 0 17 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16.6426 13.8085C16.5692 13.7192 16.4971 13.6299 16.4263 13.5438C15.4532 12.3558 14.8644 11.6388 14.8644 8.27589C14.8644 6.53482 14.4517 5.10625 13.6383 4.03482C13.0385 3.2433 12.2277 2.64286 11.159 2.19911C11.1452 2.19139 11.133 2.18126 11.1227 2.1692C10.7383 0.870089 9.68645 0 8.50011 0C7.31377 0 6.26234 0.870089 5.87795 2.16786C5.8677 2.17949 5.85559 2.1893 5.84212 2.19688C3.34823 3.23304 2.13623 5.22098 2.13623 8.27455C2.13623 11.6388 1.54837 12.3558 0.574347 13.5424C0.503574 13.6286 0.431473 13.7161 0.358045 13.8071C0.168372 14.038 0.0481989 14.3189 0.0117471 14.6165C-0.0247047 14.9141 0.024091 15.2161 0.152359 15.4866C0.42528 16.067 1.00695 16.4272 1.6709 16.4272H15.3342C15.995 16.4272 16.5727 16.0674 16.8465 15.4897C16.9754 15.2191 17.0246 14.917 16.9885 14.619C16.9523 14.321 16.8323 14.0397 16.6426 13.8085ZM8.50011 20C9.1393 19.9995 9.76643 19.8244 10.315 19.4932C10.8636 19.1621 11.3131 18.6873 11.6159 18.1192C11.6302 18.092 11.6372 18.0615 11.6364 18.0307C11.6355 17.9999 11.6268 17.9699 11.611 17.9435C11.5953 17.9171 11.573 17.8953 11.5464 17.8802C11.5199 17.865 11.4898 17.8571 11.4593 17.8571H5.54177C5.51122 17.857 5.48116 17.8649 5.45452 17.88C5.42787 17.8951 5.40556 17.9169 5.38975 17.9433C5.37394 17.9697 5.36517 17.9998 5.36429 18.0306C5.36341 18.0614 5.37046 18.0919 5.38474 18.1192C5.68754 18.6872 6.137 19.162 6.68548 19.4931C7.23395 19.8242 7.86099 19.9994 8.50011 20Z" fill="#EFF2F4"/>
-        </svg>
-        </a>
-    </nav>
+
+            <div class="max-h-80 overflow-y-auto px-2 py-1">
+                <ul id="notification-list" class="space-y-2"></ul>
+            </div>
+
+            <div class="p-2 border-t text-center">
+                <a href="{{ route('admin.notifications.index') }}" class="text-sm text-blue-600 hover:text-blue-800 font-medium">View All Notifications</a>
+            </div>
+        </div>
+
+    </div>
+</nav>
 
     <main class="white-board">
         <div class="p-6">
@@ -327,32 +369,123 @@ document.addEventListener('DOMContentLoaded', function() {
     const mainContent = document.querySelector('.main-content');
     const topNav = document.querySelector('.top-nav-fixed');
     const toggleBtn = document.getElementById('sidebar-toggle');
-    const arrowIcon = toggleBtn.querySelector('svg'); // Arrow inside toggle button
+    const arrowIcon = toggleBtn.querySelector('svg');
 
-    // Initial check: sidebar is open by default
+    // --- Notification Elements ---
+    const notificationBtn = document.getElementById('notification-btn');
+    const notificationPopover = document.getElementById('notification-popover');
+    const closePopoverBtn = document.getElementById('close-popover');
+    const notificationList = document.getElementById('notification-list');
+    const notificationCount = document.getElementById('notification-count');
+
+    // --- Example notifications array ---
+    const notifications = [
+        { id: 1, type: 'teacher', title: 'New Teacher Added', message: 'John Doe has been added.', read: false, user: {name: 'Admin'}, created_at: '2025-11-15T00:00:00Z' },
+        { id: 2, type: 'room', title: 'Room Updated', message: 'Room 101 schedule updated.', read: true, user: null, created_at: '2025-11-14T12:00:00Z' },
+        { id: 3, type: 'schedule', title: 'MWF Schedule Assigned', message: 'New MWF schedule assigned.', read: false, user: {name: 'Dean Smith'}, created_at: '2025-11-15T08:00:00Z' }
+    ];
+
+    // --- Helper: format time ago ---
+    function timeAgo(dateStr) {
+        const date = new Date(dateStr);
+        const diff = Math.floor((new Date() - date) / 1000); // seconds
+        if(diff < 60) return `${diff}s ago`;
+        if(diff < 3600) return `${Math.floor(diff/60)}m ago`;
+        if(diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+        return `${Math.floor(diff/86400)}d ago`;
+    }
+
+    // --- Update notification badge ---
+    function updateNotificationCount() {
+        const unreadCount = notifications.filter(n => !n.read).length;
+        if(unreadCount > 0){
+            notificationCount.textContent = unreadCount;
+            notificationCount.classList.remove('hidden');
+            notificationCount.style.display = 'inline-block';
+        } else {
+            notificationCount.classList.add('hidden');
+            notificationCount.style.display = 'none';
+        }
+    }
+
+    // --- Populate notification list ---
+    function populateNotifications() {
+        notificationList.innerHTML = '';
+        notifications.forEach(n => {
+            const li = document.createElement('li');
+            li.className = `rounded-lg p-2 border-l-4 cursor-pointer mb-2 ${
+                n.read ? 'bg-white text-[#00477F] border-transparent' : 'bg-[#00477F] text-white border-yellow-400'
+            }`;
+
+            // Icon based on type
+            let iconHtml = '';
+            switch(n.type) {
+                case 'teacher':
+                    iconHtml = '<svg class="w-5 h-5 '+(n.read?'text-[#00477F]':'text-white')+'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 1.79-8 4v2h16v-2c0-2.21-3.582-4-8-4z"/></svg>';
+                    break;
+                case 'room':
+                    iconHtml = '<svg class="w-5 h-5 '+(n.read?'text-[#00477F]':'text-white')+'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18v10H3V10z M5 10V6h14v4"/></svg>';
+                    break;
+                default:
+                    iconHtml = '<svg class="w-5 h-5 '+(n.read?'text-[#00477F]':'text-white')+'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>';
+            }
+
+            li.innerHTML = `
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center space-x-2">${iconHtml}<span class="font-medium">${n.title}</span></div>
+                    <span class="text-xs ${n.read?'text-[#00477F]':'text-blue-300'}">${timeAgo(n.created_at)}</span>
+                </div>
+                <p class="text-sm mb-1 ${n.read?'text-[#00477F]':''}">${n.message}</p>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="${n.read?'text-[#00477F]':'text-blue-300'}">${n.user ? 'Created by: '+n.user.name : 'System'}</span>
+                    <span class="${n.read?'text-gray-400 italic':'font-medium'}">${n.read ? 'Read' : 'Unread'}</span>
+                </div>
+            `;
+
+            li.addEventListener('click', () => {
+                n.read = true;
+                populateNotifications();
+                updateNotificationCount();
+            });
+
+            notificationList.appendChild(li);
+        });
+    }
+
+    // --- Popover toggle ---
+    notificationBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        notificationPopover.classList.toggle('hidden');
+    });
+
+    closePopoverBtn.addEventListener('click', () => {
+        notificationPopover.classList.add('hidden');
+    });
+
+    document.addEventListener('click', e => {
+        if(!notificationBtn.contains(e.target) && !notificationPopover.contains(e.target)) {
+            notificationPopover.classList.add('hidden');
+        }
+    });
+
+    // --- Initialize ---
+    populateNotifications();
+    updateNotificationCount();
+
+    // --- Sidebar toggle ---
     let isOpen = true;
-
     toggleBtn.addEventListener('click', function() {
-        // Toggle sidebar, main content, top nav, and button positions
         sidebar.classList.toggle('closed');
         mainContent.classList.toggle('closed');
         topNav.classList.toggle('closed');
         toggleBtn.classList.toggle('closed');
 
-        // Update state
         isOpen = !isOpen;
-
-        // Rotate arrow: right when closed, left when open
-        if (isOpen) {
-            arrowIcon.style.transform = 'rotate(180deg)';
-        } else {
-            arrowIcon.style.transform = 'rotate(0deg)';
-        }
+        arrowIcon.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
     });
 
-    // Optional: rotate arrow initially
     arrowIcon.style.transition = 'transform 0.3s ease';
-    arrowIcon.style.transform = 'rotate(180deg)'; // sidebar is open initially
+    arrowIcon.style.transform = 'rotate(180deg)';
 });
 </script>
 </body>

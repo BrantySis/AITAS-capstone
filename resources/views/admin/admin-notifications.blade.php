@@ -9,8 +9,12 @@
     </p>
 
     @forelse($notifications as $notification)
-        <div class="bg-[#00477F] text-white rounded-lg shadow-lg p-4 border-l-4
-                    @if(!$notification->read_at) border-yellow-400 @else border-transparent @endif">
+        <div class="rounded-lg shadow-lg p-4 border-l-4
+                    @if(!$notification->read_at)
+                        bg-[#00477F] text-white border-yellow-400
+                    @else
+                        bg-white text-[#00477F] border-transparent
+                    @endif">
             
             {{-- Header --}}
             <div class="flex items-center justify-between mb-2">
@@ -18,57 +22,58 @@
                     {{-- Dynamic icon based on type --}}
                     @switch($notification->type)
                         @case('teacher')
-                            <svg class="w-5 h-5 text-white opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 @if(!$notification->read_at) text-white opacity-90 @else text-[#00477F] opacity-90 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 1.79-8 4v2h16v-2c0-2.21-3.582-4-8-4z" />
                             </svg>
                             @break
                         @case('dean')
-                            <svg class="w-5 h-5 text-white opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 @if(!$notification->read_at) text-white opacity-90 @else text-[#00477F] opacity-90 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M12 14l9-5-9-5-9 5 9 5z" />
                             </svg>
                             @break
                         @case('room')
-                            <svg class="w-5 h-5 text-white opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 @if(!$notification->read_at) text-white opacity-90 @else text-[#00477F] opacity-90 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M3 10h18v10H3V10z M5 10V6h14v4" />
                             </svg>
                             @break
                         @case('subject')
-                            <svg class="w-5 h-5 text-white opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 @if(!$notification->read_at) text-white opacity-90 @else text-[#00477F] opacity-90 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M12 20h9M12 4h9M12 12h9M3 6h.01M3 12h.01M3 18h.01" />
                             </svg>
                             @break
                         @default
-                            <svg class="w-5 h-5 text-white opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 @if(!$notification->read_at) text-white opacity-90 @else text-[#00477F] opacity-90 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
                             </svg>
                     @endswitch
 
-                    <h2 class="text-lg font-semibold">{{ $notification->title }}</h2>
+                    <h2 class="text-lg font-semibold @if($notification->read_at) text-[#00477F] @endif">{{ $notification->title }}</h2>
 
                     {{-- Type badge --}}
                     @if($notification->type)
-                        <span class="ml-2 text-xs uppercase px-2 py-0.5 rounded bg-blue-600 text-white">
+                        <span class="ml-2 text-xs uppercase px-2 py-0.5 rounded
+                                     @if(!$notification->read_at) bg-blue-600 text-white @else bg-blue-100 text-[#00477F] @endif">
                             {{ $notification->type }}
                         </span>
                     @endif
                 </div>
 
-                <span class="text-xs text-blue-300">{{ $notification->created_at->diffForHumans() }}</span>
+                <span class="text-xs @if(!$notification->read_at) text-blue-300 @else text-[#00477F] @endif">{{ $notification->created_at->diffForHumans() }}</span>
             </div>
 
             {{-- Message --}}
-            <p class="text-sm mb-3">
+            <p class="text-sm mb-3 @if($notification->read_at) text-[#00477F] @endif">
                 {{ $notification->message }}
             </p>
 
             {{-- Footer --}}
             <div class="flex justify-between items-center text-xs">
-                <span class="text-blue-300">
+                <span class="@if(!$notification->read_at) text-blue-300 @else text-[#00477F] @endif">
                     @if($notification->user)
                         Created by: <span class="font-medium">{{ $notification->user->name }}</span>
                     @else
@@ -86,7 +91,7 @@
                         </button>
                     </form>
                 @else
-                    <span class="text-blue-200 italic">Read</span>
+                    <span class="text-gray-400 italic">Read</span>
                 @endif
             </div>
         </div>

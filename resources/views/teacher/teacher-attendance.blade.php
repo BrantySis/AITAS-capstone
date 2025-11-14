@@ -10,141 +10,144 @@
 </div>
 
 @php
-    // Ensure $currentSchedule exists (provided by DashboardController)
     $schedule = $currentSchedule ?? null;
 @endphp
 
-{{-- Main schedule card --}}
 @if($schedule)
     @php
-        // Attendance record provided on the schedule object by DashboardController
         $attendance = $schedule->attendance ?? null;
-
-        $displayStatus = $schedule->status ?? 'Upcoming';
-        if ($attendance) {
-            $displayStatus = $attendance->status;
-        }
-
+        $displayStatus = $attendance->status ?? ($schedule->status ?? 'Upcoming');
         $is_checked_in_active = $attendance && $attendance->time_in && !$attendance->time_out;
         $is_checked_out = $attendance && $attendance->time_out;
 
         $endTime = \Carbon\Carbon::parse($schedule->ends_at);
-        // milliseconds until schedule end; negative if already passed
         $timeUntilEndMs = now()->diffInMilliseconds($endTime, false);
     @endphp
 
-    <div class="p-4">
-        <div class="bg-white rounded-xl shadow-lg p-4 mb-6 border border-blue-200">
-            <div class="flex items-start">
-                <div class="w-3 h-20 rounded mr-4
-                    @if($displayStatus === 'Attending' || $displayStatus === 'Ongoing' || $displayStatus === 'Late') bg-yellow-600
-                    @elseif($displayStatus === 'Upcoming') bg-blue-600
-                    @elseif($displayStatus === 'Attended') bg-green-600
-                    @elseif($displayStatus === 'Missed') bg-red-600
-                    @else bg-gray-400
-                    @endif
-                "></div>
+    <div class="p-4 grid grid-cols-1 gap-4">
 
-                <div class="flex-1">
-                    <p class="text-sm text-gray-600 font-medium mb-1">
-                        Current Class
-                        <span id="status-{{ $schedule->id }}" class="font-bold text-xs
-                            @if($displayStatus === 'Upcoming') text-blue-600
-                            @elseif($displayStatus === 'Ongoing' || $displayStatus === 'Attending' || $displayStatus === 'Late') text-yellow-600
-                            @elseif($displayStatus === 'Attended') text-green-600
-                            @elseif($displayStatus === 'Missed') text-red-600
-                            @else text-gray-600
-                            @endif
-                        ">{{ "({$displayStatus})" }}</span>
-                    </p>
-
-                    <h2 class="text-xl font-bold text-gray-900 mb-1">{{ optional($schedule->subject)->subject_name ?? 'N/A' }}</h2>
-
-                    <p class="text-sm text-gray-700">
-                        {{ \Carbon\Carbon::parse($schedule->starts_at)->format('g:i A') }} -
-                        {{ \Carbon\Carbon::parse($schedule->ends_at)->format('g:i A') }}
-                    </p>
-
-                    <p class="text-sm text-gray-700">Room: <strong>{{ optional($schedule->room)->room_code ?? 'No Room' }}</strong></p>
-
-                    {{-- Schedule End Timer Display --}}
-                    @if($is_checked_in_active)
-                        <p id="schedule-end-timer-{{ $schedule->id }}" data-time-left-ms="{{ $timeUntilEndMs }}" class="text-xs text-red-500 font-semibold mt-1">
-                            Auto Check-Out in: {{ $timeUntilEndMs > 0 ? 'Calculating...' : 'Overdue' }}
-                        </p>
-                    @endif
-
-                    <div class="mt-4 text-right">
-                        <form method="POST" action="{{ route('teacher.attendance.store') }}" id="attendance-form-{{ $schedule->id }}" class="action-form inline-block">
-                            @csrf
-                            <input type="hidden" name="user_id" value="{{ auth()->id() }}">
-                            <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
-
-                            {{-- Standard Lat/Lng for Check-in/Manual Check-out --}}
-                            <input type="hidden" name="latitude" id="lat-{{ $schedule->id }}">
-                            <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
-
-                            {{-- Last known good location (updated during live tracking) --}}
-                            <input type="hidden" name="last_good_latitude" id="last-lat-{{ $schedule->id }}">
-                            <input type="hidden" name="last_good_longitude" id="last-lng-{{ $schedule->id }}">
-
-                            {{-- Indicate whether this action is a checkout (1) or checkin (0) --}}
-                            <input type="hidden" name="checkout" id="checkout-status-{{ $schedule->id }}" value="{{ $is_checked_in_active ? '1' : '0' }}">
-                            <input type="hidden" name="attendance_id" id="attendance-id-{{ $schedule->id }}" value="{{ optional($attendance)->id }}">
-                            <input type="hidden" id="room-lat-{{ $schedule->id }}" value="{{ optional($schedule->room)->latitude }}">
-                            <input type="hidden" id="room-lng-{{ $schedule->id }}" value="{{ optional($schedule->room)->longitude }}">
-
-                            {{-- Action button --}}
-                            @if($is_checked_out)
-                                <button type="button" class="flex items-center justify-center bg-gray-400 text-white font-semibold py-2 px-4 rounded-full shadow-md cursor-not-allowed" disabled>
-                                    ✅ Attended
-                                </button>
-                            @elseif($is_checked_in_active)
-                                <button type="button" id="action-btn-{{ $schedule->id }}" class="flex items-center justify-center bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-full shadow-md transition">
-                                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                         xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                         d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3v-1"></path></svg>
-                                    Check Out
-                                </button>
-                            @elseif($displayStatus === 'Ongoing' || $displayStatus === 'Upcoming' || $displayStatus === 'Late')
-                                <button type="button" id="action-btn-{{ $schedule->id }}" class="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-full shadow-md transition">
-                                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                         xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                         d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    Check-In
-                                </button>
-                            @else
-                                <button type="button" class="flex items-center justify-center bg-gray-500 text-white font-semibold py-2 px-4 rounded-full shadow-md cursor-not-allowed" disabled>
-                                    {{ $displayStatus === 'Upcoming' ? 'Starts Soon' : 'Missed' }}
-                                </button>
-                            @endif
-                        </form>
-                    </div>
-                </div>
-            </div>
+    {{-- Panel 1: Current Class --}}
+    <div class="bg-blue-300 rounded-xl shadow-lg p-4 border border-gray-200 flex items-center">
+        <div class="w-3 h-16 rounded mr-4
+            @if(in_array($displayStatus, ['Attending','Ongoing','Late'])) bg-yellow-600
+            @elseif($displayStatus === 'Upcoming') bg-blue-600
+            @elseif($displayStatus === 'Attended') bg-green-600
+            @elseif($displayStatus === 'Missed') bg-red-600
+            @else bg-gray-400
+            @endif
+        "></div>
+        <div>
+            <p class="text-xs font-semibold text-gray-500 mb-1">Current Class</p>
+            <h2 class="text-lg font-bold text-gray-900">
+                {{ optional($schedule->subject)->subject_code ?? 'N/A' }} - {{ optional($schedule->subject)->subject_name ?? 'N/A' }}
+            </h2>
+            <p class="text-sm text-gray-600">{{ optional($schedule->room)->room_code ?? 'N/A' }}</p>
+            <p class="text-sm text-gray-500 mt-1">
+                {{ \Carbon\Carbon::parse($schedule->starts_at)->format('g:i A') }} - {{ \Carbon\Carbon::parse($schedule->ends_at)->format('g:i A') }}
+            </p>
         </div>
+    
 
-        {{-- Map card --}}
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 mb-6">
-            <div class="h-64 w-full bg-gray-200 flex items-center justify-center relative">
-                <div id="map" class="h-full w-full"></div>
+    {{-- Check-In / Check-Out Button directly below Panel 1 --}}
+    <div class="flex justify-center">
+         @if($is_checked_in_active)
+                <p id="schedule-end-timer-{{ $schedule->id }}" data-time-left-ms="{{ $timeUntilEndMs }}" class="text-sm text-red-500 font-semibold mb-2">
+                    Auto Check-Out in: {{ $timeUntilEndMs > 0 ? 'Calculating...' : 'Overdue' }}
+                </p>
+            @endif
 
-                <span class="absolute top-4 left-4 right-4 text-sm text-gray-700 p-2 bg-white rounded-lg shadow-md font-semibold text-center">
-                    @if($schedule && $schedule->room)
-                        {{ optional($schedule->room)->room_code }} - GPS Check
-                    @else
-                        Location Check Unavailable
-                    @endif
-                </span>
+            <form method="POST" action="{{ route('teacher.attendance.store') }}" id="attendance-form-{{ $schedule->id }}" class="action-form">
+            @csrf
+            <input type="hidden" name="user_id" value="{{ auth()->id() }}">
+            <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
+            <input type="hidden" name="latitude" id="lat-{{ $schedule->id }}">
+            <input type="hidden" name="longitude" id="lng-{{ $schedule->id }}">
+            <input type="hidden" name="last_good_latitude" id="last-lat-{{ $schedule->id }}">
+            <input type="hidden" name="last_good_longitude" id="last-lng-{{ $schedule->id }}">
+            <input type="hidden" name="checkout" id="checkout-status-{{ $schedule->id }}" value="{{ $is_checked_in_active ? '1' : '0' }}">
+            <input type="hidden" name="attendance_id" id="attendance-id-{{ $schedule->id }}" value="{{ optional($attendance)->id }}">
+            <input type="hidden" id="room-lat-{{ $schedule->id }}" value="{{ optional($schedule->room)->latitude }}">
+            <input type="hidden" id="room-lng-{{ $schedule->id }}" value="{{ optional($schedule->room)->longitude }}">
 
-                <a href="javascript:void(0);" onclick="stopTracking();" class="absolute top-2 right-2 text-gray-600 bg-white rounded-full p-1 shadow hover:text-red-600 z-10">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                         xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                         d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                </a>
-            </div>
+            @if($is_checked_out)
+                <button type="button" class="bg-gray-400 text-white font-semibold py-2 px-4 rounded-full cursor-not-allowed" disabled>✅ Attended</button>
+            @elseif($is_checked_in_active)
+                <button type="button" id="action-btn-{{ $schedule->id }}" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-full transition flex items-center">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3v-1"></path></svg>
+                    Check Out
+                </button>
+            @else
+                <button type="button" id="action-btn-{{ $schedule->id }}" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-full transition flex items-center">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Check In
+                </button>
+            @endif
+        </form>
         </div>
     </div>
+    
+    {{-- Panel 2: Current Time --}}
+    <div class="bg-white rounded-xl shadow-lg p-4 border border-gray-200 flex flex-col items-center">
+        <!-- Label -->
+        <p class="text-xs font-semibold text-gray-500 mb-1">Current Time</p>
+
+        <!-- Manila Time -->
+        @php
+            $manilaTime = now()->setTimezone('Asia/Manila');
+        @endphp
+        <p class="text-lg font-bold text-gray-900">{{ $manilaTime->format('g:i:s A') }}</p>
+
+        <!-- Date -->
+        <p class="text-sm text-gray-600 mt-1">{{ $manilaTime->format('F j, Y') }}</p>
+    </div>
+
+       {{-- Panel 3: Time In / Time Out / Status --}}
+<div class="bg-white rounded-xl shadow-lg p-4 border border-gray-200 flex flex-col space-y-2">
+    <!-- Time In -->
+    <div class="flex justify-between items-center">
+        <span class="text-gray-700 font-medium">Time In</span>
+        <span class="font-bold text-gray-900">
+            {{ optional($attendance)->time_in ? \Carbon\Carbon::parse($attendance->time_in)->format('g:i A') : 'Not Yet' }}
+        </span>
+    </div>
+
+    <!-- Time Out -->
+    <div class="flex justify-between items-center">
+        <span class="text-gray-700 font-medium">Time Out</span>
+        <span class="font-bold text-gray-900">
+            {{ optional($attendance)->time_out ? \Carbon\Carbon::parse($attendance->time_out)->format('g:i A') : 'Not Yet' }}
+        </span>
+    </div>
+
+    <!-- Attendance Status -->
+    <!-- Attendance Status -->
+<div class="flex justify-between items-center">
+    <span class="text-gray-700 font-medium">Status</span>
+    <span id="status-{{ $schedule->id }}" class="font-bold text-sm
+        @if($displayStatus === 'Upcoming') text-blue-600
+        @elseif(in_array($displayStatus, ['Ongoing','Attending','Late'])) text-yellow-600
+        @elseif($displayStatus === 'Attended') text-green-600
+        @elseif($displayStatus === 'Missed') text-red-600
+        @else text-gray-600
+        @endif
+    ">
+        {{ $displayStatus }}
+    </span>
+    </div>
+</div>
+
+
+ {{-- Map Panel --}}
+<div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 mt-4">
+    <div class="h-64 w-full">
+        <div id="map" class="h-full w-full"></div>
+    </div>
+</div>
+
 @else
     <div class="p-4">
         <div class="bg-white rounded-xl shadow-lg p-4 mb-6 border border-gray-200 text-center">
@@ -153,17 +156,14 @@
     </div>
 @endif
 
-{{-- Face scanner modal --}}
+{{-- Face Scanner Modal --}}
 <div id="face-scanner-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm relative">
         <h3 class="text-xl font-bold mb-4 text-center">Face Scanner</h3>
-
         <div class="w-full aspect-video bg-gray-200 rounded-lg overflow-hidden mb-4">
             <video id="scanner-video" autoplay playsinline class="w-full h-full object-cover"></video>
         </div>
-
         <p id="scanner-message" class="text-sm text-center text-gray-700 font-medium">Initializing camera...</p>
-
         <button type="button" onclick="closeFaceScanner()" class="absolute top-2 right-2 text-gray-500 hover:text-gray-900">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                  xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -172,7 +172,7 @@
     </div>
 </div>
 
-<pre id="gps-debug" class='bg-gray-100 p-2 rounded mt-4 text-xs overflow-auto max-w-full mx-auto' data-timer-start=''></pre>
+<pre id="gps-debug" class="bg-gray-100 p-2 rounded mt-4 text-xs overflow-auto max-w-full mx-auto" data-timer-start=''></pre>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
