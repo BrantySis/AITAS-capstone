@@ -13,32 +13,101 @@ class SubjectSeeder extends Seeder
     public function run(): void
     {
         $subjects = [
-            // Hospitality Management
-            ['subject_code' => 'HM101', 'subject_name' => 'Introduction to Hospitality', 'department' => 'Hospitality Management', 'course_year' => '1', 'semester' => '1', 'school_year' => '2025-2026', 'units' => 3, 'description' => 'Basics of hospitality management.'],
-            ['subject_code' => 'HM102', 'subject_name' => 'Food and Beverage Service', 'department' => 'Hospitality Management', 'course_year' => '1', 'semester' => '2', 'school_year' => '2025-2026', 'units' => 3],
-            ['subject_code' => 'HM201', 'subject_name' => 'Hotel Operations', 'department' => 'Hospitality Management', 'course_year' => '2', 'semester' => '1', 'school_year' => '2025-2026', 'units' => 4],
+            // College of Computer Studies (5 subjects)
+            [
+                'subject_code' => 'CS101',
+                'subject_name' => 'Introduction to Programming',
+                'department' => 'College of Computer Studies',
+                'course_year' => '1',
+                'semester' => '1',
+                'school_year' => '2025-2026',
+                'units' => 3,
+                'description' => 'Basics of programming using Python.',
+            ],
+            [
+                'subject_code' => 'CS102',
+                'subject_name' => 'Computer Systems',
+                'department' => 'College of Computer Studies',
+                'course_year' => '1',
+                'semester' => '2',
+                'school_year' => '2025-2026',
+                'units' => 3,
+                'description' => 'Introduction to computer hardware and software.',
+            ],
+            [
+                'subject_code' => 'CS201',
+                'subject_name' => 'Data Structures',
+                'department' => 'College of Computer Studies',
+                'course_year' => '2',
+                'semester' => '1',
+                'school_year' => '2025-2026',
+                'units' => 3,
+            ],
+            [
+                'subject_code' => 'CS202',
+                'subject_name' => 'Database Systems',
+                'department' => 'College of Computer Studies',
+                'course_year' => '2',
+                'semester' => '2',
+                'school_year' => '2025-2026',
+                'units' => 3,
+            ],
+            [
+                'subject_code' => 'CS301',
+                'subject_name' => 'Web Development',
+                'department' => 'College of Computer Studies',
+                'course_year' => '3',
+                'semester' => '1',
+                'school_year' => '2025-2026',
+                'units' => 3,
+            ],
 
-            // Engineering
-            ['subject_code' => 'ENG101', 'subject_name' => 'Engineering Mathematics', 'department' => 'Engineering', 'course_year' => '1', 'semester' => '1', 'school_year' => '2025-2026', 'units' => 4],
-            ['subject_code' => 'ENG102', 'subject_name' => 'Physics for Engineers', 'department' => 'Engineering', 'course_year' => '1', 'semester' => '2', 'school_year' => '2025-2026', 'units' => 4],
-
-            // College of Computer Studies
-            ['subject_code' => 'CS101', 'subject_name' => 'Introduction to Programming', 'department' => 'College of Computer Studies', 'course_year' => '1', 'semester' => '1', 'school_year' => '2025-2026', 'units' => 3],
-            ['subject_code' => 'CS102', 'subject_name' => 'Computer Systems', 'department' => 'College of Computer Studies', 'course_year' => '1', 'semester' => '2', 'school_year' => '2025-2026', 'units' => 3],
-
-            // Marine Engineering
-            ['subject_code' => 'ME101', 'subject_name' => 'Marine Machinery', 'department' => 'Marine Engineering', 'course_year' => '1', 'semester' => '1', 'school_year' => '2025-2026', 'units' => 4],
-            ['subject_code' => 'ME102', 'subject_name' => 'Marine Electrical Systems', 'department' => 'Marine Engineering', 'course_year' => '1', 'semester' => '2', 'school_year' => '2025-2026', 'units' => 4],
-
-            // Marine Transportation
-            ['subject_code' => 'MT101', 'subject_name' => 'Navigation Basics', 'department' => 'Marine Transportation', 'course_year' => '1', 'semester' => '1', 'school_year' => '2025-2026', 'units' => 4],
-            ['subject_code' => 'MT102', 'subject_name' => 'Ship Operations', 'department' => 'Marine Transportation', 'course_year' => '1', 'semester' => '2', 'school_year' => '2025-2026', 'units' => 4],
-
-            // Nursing
-            ['subject_code' => 'NUR101', 'subject_name' => 'Fundamentals of Nursing', 'department' => 'Nursing', 'course_year' => '1', 'semester' => '1', 'school_year' => '2025-2026', 'units' => 3],
-            ['subject_code' => 'NUR102', 'subject_name' => 'Anatomy and Physiology', 'department' => 'Nursing', 'course_year' => '1', 'semester' => '2', 'school_year' => '2025-2026', 'units' => 4],
-
-            // Add more for remaining departments as needed...
+            // Nursing (5 subjects)
+            [
+                'subject_code' => 'NUR101',
+                'subject_name' => 'Fundamentals of Nursing',
+                'department' => 'Nursing',
+                'course_year' => '1',
+                'semester' => '1',
+                'school_year' => '2025-2026',
+                'units' => 3,
+            ],
+            [
+                'subject_code' => 'NUR102',
+                'subject_name' => 'Anatomy and Physiology',
+                'department' => 'Nursing',
+                'course_year' => '1',
+                'semester' => '2',
+                'school_year' => '2025-2026',
+                'units' => 4,
+            ],
+            [
+                'subject_code' => 'NUR201',
+                'subject_name' => 'Microbiology for Nursing',
+                'department' => 'Nursing',
+                'course_year' => '2',
+                'semester' => '1',
+                'school_year' => '2025-2026',
+                'units' => 3,
+            ],
+            [
+                'subject_code' => 'NUR202',
+                'subject_name' => 'Pharmacology',
+                'department' => 'Nursing',
+                'course_year' => '2',
+                'semester' => '2',
+                'school_year' => '2025-2026',
+                'units' => 4,
+            ],
+            [
+                'subject_code' => 'NUR301',
+                'subject_name' => 'Community Health Nursing',
+                'department' => 'Nursing',
+                'course_year' => '3',
+                'semester' => '1',
+                'school_year' => '2025-2026',
+                'units' => 3,
+            ],
         ];
 
         foreach ($subjects as $subject) {

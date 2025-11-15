@@ -187,7 +187,8 @@ body {
 
 <aside class="sidebar flex flex-col p-6">
     <div class="flex flex-col items-center text-center">
-        <img src="{{ asset('images/aitas-icons/uic-logo.png') }}" alt="UIC Logo" class="w-24 h-24 rounded-full mb-3"> <h2 class="font-semibold">Dr. Janette Q. Tanquis</h2>
+        <!-- <img src="{{ asset('images/aitas-icons/uic-logo.png') }}" alt="UIC Logo" class="w-24 h-24 rounded-full mb-3"> -->
+         <h2 class="font-bold">ADMIN</h2>
     </div>
 
     <hr class="sidebar-divider my-4">

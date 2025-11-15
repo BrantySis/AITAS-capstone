@@ -17,38 +17,27 @@ class UserSeeder extends Seeder
 
         // Departments
         $departments = [
-            'Hospitality Management',
-            'Engineering',
             'College of Computer Studies',
-            'Marine Engineering',
-            'Marine Transportation',
             'Nursing',
-            'Customs Administration',
-            'Accountancy',
-            'College of Teacher Education',
-            'Criminology',
-            'SHS',
-            'Basic Education',
-            'General Education'
         ];
 
-        foreach ($departments as $dept) {
-            // 1 Admin per department
-            User::updateOrCreate(
-                ['email' => strtolower(str_replace(' ','', $dept)) . '.admin@example.com'],
-                [
-                    'name' => $dept . ' Admin',
-                    'password' => bcrypt('password'),
-                    'role_id' => $adminRole->id,
-                    'department' => $dept,
-                    'status' => 'active',
-                ]
-            );
+        // 1 Admin (global)
+        User::updateOrCreate(
+            ['email' => 'aitasuclm@gmail.com'],
+            [
+                'name' => 'Admin',
+                'password' => bcrypt('password'),
+                'role_id' => $adminRole->id,
+                'department' => 'Administration',
+                'status' => 'active',
+            ]
+        );
 
-            // 2 Teachers per department
-            for ($i=1; $i<=2; $i++) {
+        foreach ($departments as $dept) {
+            // 5 Teachers per department
+            for ($i = 1; $i <= 5; $i++) {
                 User::updateOrCreate(
-                    ['email' => strtolower(str_replace(' ','', $dept)) . ".teacher{$i}@example.com"],
+                    ['email' => strtolower(str_replace(' ', '', $dept)) . ".teacher{$i}@example.com"],
                     [
                         'name' => $dept . " Teacher {$i}",
                         'password' => bcrypt('password'),
@@ -61,7 +50,7 @@ class UserSeeder extends Seeder
 
             // 1 Dean per department
             User::updateOrCreate(
-                ['email' => strtolower(str_replace(' ','', $dept)) . '.dean@example.com'],
+                ['email' => strtolower(str_replace(' ', '', $dept)) . '.dean@example.com'],
                 [
                     'name' => $dept . ' Dean',
                     'password' => bcrypt('password'),

@@ -16,80 +16,70 @@ class ScheduleSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get teachers from database
-        $teachers = User::whereHas('role', function($q){
-            $q->where('name', 'teacher');
-        })->get();
+        // Get first 10 teachers
+        $teachers = User::whereHas('role', fn($q) => $q->where('name', 'teacher'))
+                        ->take(10)
+                        ->get();
 
-        // Get rooms and subjects
         $rooms = Room::all();
-        $subjects = Subject::all();
 
-        if ($teachers->isEmpty() || $rooms->isEmpty() || $subjects->isEmpty()) {
-            $this->command->warn('No teachers, rooms, or subjects found. Run Users, Rooms, and Subjects seeders first.');
+        // Get CCS and Nursing subjects
+        $ccsSubjects = Subject::where('department', 'College of Computer Studies')->get();
+        $nursingSubjects = Subject::where('department', 'Nursing')->get();
+
+        if ($teachers->isEmpty() || $rooms->isEmpty() || $ccsSubjects->isEmpty() || $nursingSubjects->isEmpty()) {
+            $this->command->warn('Teachers, rooms, or subjects missing. Run seeders first.');
             return;
         }
 
-        // Allowed day patterns
-        $dayPatterns = ['MWF', 'TTH', 'S'];
+        $dayPatterns = ['MWF', 'TTH'];
+        $classTypes = ['lecture', 'lab'];
+        $scheduleCount = 1;
 
-        // Map for semester ENUM values
-        $semesterMap = [
-            '1st Semester' => '1st',
-            '2nd Semester' => '2nd',
-            'Summer' => 'summer',
-            '1st' => '1st',
-            '2nd' => '2nd',
-            'summer' => 'summer',
-        ];
+        foreach ($teachers as $teacher) {
+            // Each teacher gets 2 schedules: 1 CCS + 1 Nursing
+            $assignedSubjects = [
+                $ccsSubjects->random(),
+                $nursingSubjects->random()
+            ];
 
-        // Generate 20 sample schedules
-        for ($i = 1; $i <= 20; $i++) {
-            $teacher = $teachers->random();
-            $room = $rooms->random();
-            $subject = $subjects->random();
+            foreach ($assignedSubjects as $subject) {
+                $room = $rooms->random();
 
-            // Random start time between 7:00 - 16:00
-            $startHour = rand(7, 16);
-            $startMinute = rand(0, 1) ? '00' : '30';
-            $startTime = Carbon::createFromTime($startHour, $startMinute, 0);
-            $endTime = (clone $startTime)->addHour(); // 1-hour class
+                // Random start time between 7:00 - 16:00
+                $startHour = rand(7, 16);
+                $startMinute = rand(0, 1) ? '00' : '30';
+                $startTime = Carbon::createFromTime($startHour, $startMinute, 0);
+                $endTime = (clone $startTime)->addHour(); // 1-hour class
 
-            // Normalize semester
-            $semester = $semesterMap[$subject->semester] ?? '1st';
+                // Day pattern
+                $day = $dayPatterns[array_rand($dayPatterns)];
 
-            // Class type
-            $type = rand(0, 1) ? 'lecture' : 'lab';
+                Schedule::updateOrCreate(
+                    ['edp_code' => 'EDP' . $scheduleCount],
+                    [
+                        'user_id' => $teacher->id,
+                        'room_id' => $room->id,
+                        'subject_id' => $subject->id,
+                        'edp_code' => 'EDP' . $scheduleCount,
+                        'units' => $subject->units ?? 3,
+                        'type' => $classTypes[array_rand($classTypes)],
+                        'day_of_week' => $day,
+                        'starts_at' => $startTime->format('H:i:s'),
+                        'ends_at' => $endTime->format('H:i:s'),
+                        'school_year' => $subject->school_year ?? '2025-2026',
+                        'semester' => $subject->semester ?? '1st',
+                        'start_date' => now()->startOfMonth()->toDateString(),
+                        'end_date' => now()->endOfMonth()->toDateString(),
+                        'room_lat' => $room->latitude ?? 0,
+                        'room_lng' => $room->longitude ?? 0,
+                    ]
+                );
 
-            // Day pattern
-            $day = $dayPatterns[array_rand($dayPatterns)];
-
-            // Ensure room lat/lng exist (default 0 if null)
-            $lat = $room->latitude ?? 0;
-            $lng = $room->longitude ?? 0;
-
-            Schedule::updateOrCreate(
-                ['edp_code' => 'EDP'.$i],
-                [
-                    'user_id' => $teacher->id,
-                    'room_id' => $room->id,
-                    'subject_id' => $subject->id,
-                    'edp_code' => 'EDP'.$i,
-                    'units' => $subject->units ?? 3,
-                    'type' => $type,
-                    'day_of_week' => $day,
-                    'starts_at' => $startTime->format('H:i:s'),
-                    'ends_at' => $endTime->format('H:i:s'),
-                    'school_year' => $subject->school_year ?? '2025-2026',
-                    'semester' => $semester,
-                    'start_date' => now()->startOfMonth()->toDateString(),
-                    'end_date' => now()->endOfMonth()->toDateString(),
-                    'room_lat' => $lat,
-                    'room_lng' => $lng,
-                ]
-            );
+                $scheduleCount++;
+            }
         }
 
-        $this->command->info('ScheduleSeeder completed successfully.');
+        $this->command->info('ScheduleSeeder completed: 10 teachers, 1 CCS + 1 Nursing schedule each.');
     }
 }
