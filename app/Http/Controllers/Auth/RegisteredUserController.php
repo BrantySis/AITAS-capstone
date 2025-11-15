@@ -21,9 +21,9 @@ class RegisteredUserController extends Controller
     public function create(): View
     {
         return view('auth.register', [
-        'fastapiUrl' => config('services.fastapi.url'),
-        'laravelApiUrl' => config('services.laravel.url'),
-    ]);
+            'fastapiUrl' => config('services.fastapi.url'),
+            'laravelApiUrl' => config('services.laravel.url'),
+        ]);
     }
 
     /**
@@ -47,14 +47,14 @@ class RegisteredUserController extends Controller
             'face_registered' => $request->face_registered,
         ]);
 
-        // Generate a simple verification token
+        // Generate verification token
         $token = bin2hex(random_bytes(32));
         $user->email_verification_token = $token;
         $user->save();
 
         // Send email via Brevo
         $verificationLink = url("/verify-email?token={$token}");
-        $this->sendBrevoEmail(
+        $emailSent = $this->sendBrevoEmail(
             $user->email,
             $user->name,
             "Verify Your Email",
@@ -63,15 +63,22 @@ class RegisteredUserController extends Controller
             <p><a href='{$verificationLink}'>Verify Email</a></p>"
         );
 
+        if (!$emailSent) {
+            return redirect()->back()->with('status', 'Registration complete, but email could not be sent. Please contact support.');
+        }
+
         event(new Registered($user));
         Auth::login($user);
 
         return redirect()->route('teacher.dashboard')->with('status', 'Registration successful! Check your email to verify.');
     }
 
+    /**
+     * Send email via Brevo API.
+     */
     private function sendBrevoEmail($toEmail, $toName, $subject, $htmlContent)
     {
-        $apiKey = env('BREVO_API_KEY');
+        $apiKey = config('services.brevo.key'); // <-- use config
 
         $response = Http::withHeaders([
             'api-key' => $apiKey,
@@ -80,7 +87,7 @@ class RegisteredUserController extends Controller
         ])->post('https://api.brevo.com/v3/smtp/email', [
             'sender' => [
                 'name' => 'UC Teachers Portal',
-                'email' => 'admin@aitasportal.com',
+                'email' => 'admin@aitasportal.com', // must be verified in Brevo
             ],
             'to' => [
                 ['email' => $toEmail, 'name' => $toName]
@@ -89,12 +96,24 @@ class RegisteredUserController extends Controller
             'htmlContent' => $htmlContent,
         ]);
 
-        return $response->successful();
+        // If it fails, dump the response for debugging
+        if (!$response->successful()) {
+            logger('Brevo Email Failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            return false;
+        }
+
+        return true;
     }
 
+    /**
+     * Verify email endpoint.
+     */
     public function verifyEmail(Request $request)
     {
-        $token = $request->query('token'); // Get token from query string
+        $token = $request->query('token');
 
         $user = User::where('email_verification_token', $token)->first();
 

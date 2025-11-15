@@ -44,4 +44,8 @@ return [
         'url' => env('LARAVEL_URL', 'https://aitas-capstone.test'),
     ],
 
+    'brevo' => [
+    'key' => env('BREVO_API_KEY'),
+    ],
+
 ];
