@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\TeacherAttendanceExport;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class AttendanceController extends Controller
 {
@@ -22,7 +24,7 @@ class AttendanceController extends Controller
         $user = Auth::user();
         $now = Carbon::now('Asia/Manila');
 
-        // Get all schedules for this teacher
+        // Fetch all schedules for today with related room and subject
         $allSchedules = Schedule::where('user_id', $user->id)
             ->with(['room', 'subject'])
             ->get();
@@ -31,52 +33,48 @@ class AttendanceController extends Controller
         $currentSchedule = null;
 
         foreach ($allSchedules as $schedule) {
-
-            // Skip broken schedules
             if (!$schedule->room || !$schedule->subject) continue;
+            if (!$schedule->isToday()) continue;
 
-            // ------------------------------
-            // Filter only today's schedules
-            // ------------------------------
-            if (!$schedule->isToday()) {
-                continue; // Skip schedules NOT today (fixes TTH, MWF, Sat, Sun logic)
-            }
-
-            // Add to today's list
             $todaySchedules->push($schedule);
 
-            // Status calculations
             $scheduleStart = Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
             $scheduleEnd   = Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
 
+            // Fetch the latest attendance record by time_in
             $attendance = Attendance::where('schedule_id', $schedule->id)
                 ->where('user_id', $user->id)
-                ->latest()
+                ->orderByDesc('time_in')
                 ->first();
 
-            // Cutoffs
             $lateCutoff = $scheduleStart->copy()->addMinutes(15);
-            $missedDeadline = $scheduleStart->copy()->addMinutes(30);
+            $missedCutoff = $scheduleStart->copy()->addMinutes(30);
 
-            // Determine status
+            // Determine status for display
             if ($attendance) {
-                $status = $attendance->status;
+                $status = $attendance->status ?? 'Attending';
+                // If checked out early, mark as undertime
+                if ($attendance->time_out) {
+                    $undertimeCutoff = $scheduleEnd->copy()->subMinutes(15);
+                    if (Carbon::parse($attendance->time_out)->lt($undertimeCutoff)) {
+                        $status = 'Undertime';
+                        $attendance->status = $status;
+                        $attendance->save();
+                    }
+                }
             } else {
                 if ($now->lt($scheduleStart)) $status = 'Upcoming';
                 elseif ($now->between($scheduleStart, $lateCutoff)) $status = 'Ongoing';
-                elseif ($now->between($lateCutoff, $missedDeadline)) $status = 'Late';
-                elseif ($now->between($missedDeadline, $scheduleEnd)) $status = 'Ongoing';
+                elseif ($now->between($lateCutoff, $missedCutoff)) $status = 'Late';
+                elseif ($now->between($missedCutoff, $scheduleEnd)) $status = 'Ongoing';
                 else $status = 'Missed';
             }
 
-            $schedule->status = $status;
             $schedule->attendance = $attendance;
+            $schedule->status = $status;
 
-            // Determine CURRENT schedule
-            if (
-                !$currentSchedule &&
-                in_array($status, ['Ongoing', 'Attending', 'Late', 'Upcoming'])
-            ) {
+            // Set current schedule (first schedule that's Ongoing/Attending/Late/Upcoming)
+            if (!$currentSchedule && in_array($status, ['Ongoing', 'Attending', 'Late', 'Upcoming'])) {
                 $currentSchedule = $schedule;
             }
         }
@@ -91,9 +89,10 @@ class AttendanceController extends Controller
     /**
      * Store/check-in or check-out attendance
      */
-    public function store(Request $request)
-    {
-        $request->validate([
+public function store(Request $request)
+{
+    try {
+        $validator = Validator::make($request->all(), [
             'user_id' => 'required|exists:users,id',
             'schedule_id' => 'required|exists:schedules,id',
             'latitude' => 'required|numeric',
@@ -103,6 +102,14 @@ class AttendanceController extends Controller
             'auto_missed' => 'nullable|in:1',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
         $userId = $request->user_id;
         $scheduleId = $request->schedule_id;
         $isCheckout = $request->checkout == "1";
@@ -111,16 +118,12 @@ class AttendanceController extends Controller
         $now = now('Asia/Manila');
 
         $schedule = Schedule::with(['room', 'subject'])->find($scheduleId);
-
-        if (!$schedule) {
-            return response()->json(['status' => 'error', 'message' => '❌ Schedule not found.']);
+        if (!$schedule || !$schedule->room || !$schedule->subject) {
+            return response()->json(['status' => 'error', 'message' => '❌ Schedule or room/subject not found.'], 404);
         }
 
         $room = $schedule->room;
         $subject = $schedule->subject;
-        if (!$room || !$subject) {
-            return response()->json(['status' => 'error', 'message' => '❌ Schedule room or subject not properly set.']);
-        }
 
         // Auto-Missed Logic
         if ($isAutoMissed) {
@@ -156,7 +159,7 @@ class AttendanceController extends Controller
             5
         );
 
-        // CHECK-IN
+        // ----------------- CHECK-IN -----------------
         if (!$isCheckout) {
             $attendance = Attendance::firstOrNew([
                 'user_id' => $userId,
@@ -167,23 +170,24 @@ class AttendanceController extends Controller
                 return response()->json(['status' => 'error', 'message' => '❌ Already checked in.']);
             }
 
-            $allowedCheckInTime = Carbon::parse($schedule->starts_at)->subMinutes(15);
-            if ($now->lt($allowedCheckInTime)) {
+            $scheduleStart = Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
+            $lateCutoff   = $scheduleStart->copy()->addMinutes(15);
+            $missedCutoff = $scheduleStart->copy()->addMinutes(30);
+
+            if ($now->lt($scheduleStart->copy()->subMinutes(15))) {
                 return response()->json(['status' => 'error', 'message' => '⏳ Check-in not allowed yet.']);
             }
 
-            $lateCutoff = Carbon::parse($schedule->starts_at)->addMinutes(15);
-            $missedCutoff = Carbon::parse($schedule->starts_at)->addMinutes(30);
-
             if ($now->gt($missedCutoff)) {
                 $attendance->status = 'Missed';
+                $attendance->time_in = $now;
                 $attendance->save();
 
                 TeacherNotification::create([
                     'user_id' => $userId,
                     'type' => 'attendance',
                     'title' => 'Check-in Missed',
-                    'message' => "You failed to check in for {$subject->subject_name} at {$room->room_code}. Status: Missed.",
+                    'message' => "You were automatically marked as MISSED for {$subject->subject_name} at {$room->room_code}.",
                     'created_by' => $userId,
                 ]);
 
@@ -217,18 +221,23 @@ class AttendanceController extends Controller
             ]);
         }
 
-        // CHECK-OUT
+        // ----------------- CHECK-OUT -----------------
         $attendance = Attendance::find($attendanceId);
         if (!$attendance || $attendance->time_out) {
             return response()->json(['status' => 'error', 'message' => '❌ Attendance record not found or already checked out.']);
         }
 
-        $finalStatus = match ($attendance->status) {
-            'Late' => 'Late',
-            'Attending', 'Ongoing' => 'Attended',
-            'Missed' => 'Missed',
-            default => 'Attended',
-        };
+        $scheduleEnd = Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
+        $undertimeCutoff = $scheduleEnd->copy()->subMinutes(15);
+
+        $finalStatus = 'Attended';
+        if ($now->lt($undertimeCutoff)) {
+            $finalStatus = 'Undertime';
+        } elseif ($attendance->status === 'Late') {
+            $finalStatus = 'Late';
+        } elseif ($attendance->status === 'Attending') {
+            $finalStatus = 'Attended';
+        }
 
         $attendance->update([
             'time_out' => $now,
@@ -249,8 +258,14 @@ class AttendanceController extends Controller
             'status' => 'success',
             'message' => '✅ Check-out successful. You are now marked as ' . $finalStatus . '.',
         ]);
+    } catch (\Exception $e) {
+        // Catch any exception and return JSON
+        return response()->json([
+            'status' => 'error',
+            'message' => '❌ Something went wrong: ' . $e->getMessage()
+        ], 500);
     }
-
+}
     /**
      * Attendance history with filters
      */
@@ -265,8 +280,8 @@ class AttendanceController extends Controller
 
         $query = Attendance::with(['schedule.subject', 'schedule.room'])
             ->where('user_id', $teacher->id)
-            ->whereIn('status', ['Attended', 'Late', 'Missed'])
-            ->whereHas('schedule') // <- ensure only attendances with a schedule
+            ->whereIn('status', ['Attended', 'Late', 'Missed', 'Undertime'])
+            ->whereHas('schedule')
             ->orderByDesc('created_at');
 
         if ($search) {

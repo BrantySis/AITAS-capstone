@@ -87,12 +87,13 @@ class ScheduleController extends Controller
             $daysOfWeek = $this->dayPatternMap[$dayPattern];
 
             $conflict = $this->checkScheduleConflict(
-                $request->user_id,
-                $daysOfWeek,
-                $request->starts_at,
-                $request->ends_at,
-                $request->start_date,
-                $request->end_date
+                    $request->user_id,   // teacher
+                    $request->room_id,   // room
+                    $daysOfWeek,
+                    $request->starts_at,
+                    $request->ends_at,
+                    $request->start_date,
+                    $request->end_date
             );
 
             if ($conflict) {
@@ -171,13 +172,14 @@ class ScheduleController extends Controller
         $daysOfWeek = $this->dayPatternMap[$dayPattern];
 
         $conflict = $this->checkScheduleConflict(
-            $request->user_id,
-            $daysOfWeek,
-            $request->starts_at,
-            $request->ends_at,
-            $request->start_date,
-            $request->end_date,
-            $schedule->id
+                $request->user_id,
+                $request->room_id,
+                $daysOfWeek,
+                $request->starts_at,
+                $request->ends_at,
+                $request->start_date,
+                $request->end_date,
+                $schedule->id // exclude current schedule
         );
 
         if ($conflict) {
@@ -258,35 +260,45 @@ class ScheduleController extends Controller
     /**
      * Check for schedule conflicts (supports multiple weekdays)
      */
-    private function checkScheduleConflict($teacherId, array $daysOfWeek, $startTime, $endTime, $startDate, $endDate, $excludeId = null)
-    {
-        $query = Schedule::where('user_id', $teacherId)
-            ->whereIn('day_of_week', array_keys(array_filter($this->dayPatternMap, fn($v) => count(array_intersect($v, $daysOfWeek)) > 0)));
+private function checkScheduleConflict(
+    $teacherId,
+    $roomId,
+    array $daysOfWeek,
+    $startTime,
+    $endTime,
+    $startDate,
+    $endDate,
+    $excludeId = null
+) {
+    $query = Schedule::where(function ($q) use ($teacherId, $roomId) {
+            $q->where('user_id', $teacherId)   // teacher conflict
+              ->orWhere('room_id', $roomId);  // room conflict
+        })
+        ->whereIn('day_of_week', array_keys(array_filter($this->dayPatternMap, fn($v) => count(array_intersect($v, $daysOfWeek)) > 0)));
 
-        if ($excludeId) {
-            $query->where('id', '!=', $excludeId);
-        }
-
-        $startTime = Carbon::parse($startTime);
-        $endTime = Carbon::parse($endTime);
-        $startDate = Carbon::parse($startDate);
-        $endDate = Carbon::parse($endDate);
-
-        return $query->where(function ($q) use ($startTime, $endTime) {
-                $q->whereBetween('starts_at', [$startTime, $endTime])
-                  ->orWhereBetween('ends_at', [$startTime, $endTime])
-                  ->orWhere(function ($inner) use ($startTime, $endTime) {
-                      $inner->where('starts_at', '<=', $startTime)
-                            ->where('ends_at', '>=', $endTime);
-                  });
-            })
-            ->where(function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('start_date', [$startDate, $endDate])
-                  ->orWhereBetween('end_date', [$startDate, $endDate]);
-            })
-            ->exists();
+    if ($excludeId) {
+        $query->where('id', '!=', $excludeId);
     }
 
+    $startTime = Carbon::parse($startTime);
+    $endTime = Carbon::parse($endTime);
+    $startDate = Carbon::parse($startDate);
+    $endDate = Carbon::parse($endDate);
+
+    return $query->where(function ($q) use ($startTime, $endTime) {
+            $q->whereBetween('starts_at', [$startTime, $endTime])
+              ->orWhereBetween('ends_at', [$startTime, $endTime])
+              ->orWhere(function ($inner) use ($startTime, $endTime) {
+                  $inner->where('starts_at', '<=', $startTime)
+                        ->where('ends_at', '>=', $endTime);
+              });
+        })
+        ->where(function ($q) use ($startDate, $endDate) {
+            $q->whereBetween('start_date', [$startDate, $endDate])
+              ->orWhereBetween('end_date', [$startDate, $endDate]);
+        })
+        ->exists();
+}
     /**
      * Import schedules from an uploaded Excel or CSV file.
      */
