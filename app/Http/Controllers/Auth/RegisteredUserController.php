@@ -79,8 +79,8 @@ class RegisteredUserController extends Controller
             'Accept' => 'application/json',
         ])->post('https://api.brevo.com/v3/smtp/email', [
             'sender' => [
-                'name' => 'UCLM Portal',
-                'email' => 'no-reply@uclm.edu.ph',
+                'name' => 'UC Teachers Portal',
+                'email' => 'admin@aitasportal.com',
             ],
             'to' => [
                 ['email' => $toEmail, 'name' => $toName]
