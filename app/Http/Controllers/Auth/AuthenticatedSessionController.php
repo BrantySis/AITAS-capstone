@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,18 +23,27 @@ class AuthenticatedSessionController extends Controller
      * Handle login.
      */
     public function store(LoginRequest $request): RedirectResponse
-{
-    $request->authenticate();
-    $request->session()->regenerate();
+    {
+        $request->authenticate();
+        $request->session()->regenerate();
 
-    $role = optional(Auth::user()->role)->name;
+        $user = Auth::user();
 
-    return match ($role) {
-        'admin' => redirect()->route('admin.dashboard'),
-        'teacher' => redirect()->route('teacher.dashboard'),
-        'dean' => redirect()->route('dean.dashboard')
-    };
-}
+        // Check if email is verified
+        if (!$user->hasVerifiedEmail()) {
+            // Redirect to a notice page or same login page with status
+            return redirect()->route('verification.notice')
+                ->with('status', 'Please verify your email before accessing the dashboard.');
+        }
+
+        // Redirect based on role
+        return match ($user->role) {
+            'admin' => redirect()->route('admin.dashboard'),
+            'teacher' => redirect()->route('teacher.dashboard'),
+            'dean' => redirect()->route('dean.dashboard'),
+            default => redirect()->route('login')
+        };
+    }
 
     /**
      * Handle logout.

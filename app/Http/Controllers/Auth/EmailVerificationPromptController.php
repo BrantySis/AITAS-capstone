@@ -14,11 +14,17 @@ class EmailVerificationPromptController extends Controller
      */
     public function __invoke(Request $request): RedirectResponse|View
     {
-        if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->intended($this->getDashboardRoute($request->user()));
+        $user = $request->user();
+
+        // If email is already verified, redirect to the appropriate dashboard
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->intended($this->getDashboardRoute($user));
         }
 
-        return view('auth.verify-email');
+        // Otherwise, show the email verification notice view
+        return view('auth.verify-email', [
+            'userName' => $user->name, // optional, for personalized notice
+        ]);
     }
 
     /**
@@ -26,19 +32,11 @@ class EmailVerificationPromptController extends Controller
      */
     private function getDashboardRoute($user): string
     {
-        if ($user->role === 'admin') {
-            return route('admin.dashboard', absolute: false);
-        }
-
-        if ($user->role === 'teacher') {
-            return route('teacher.dashboard', absolute: false);
-        }
-
-        if ($user->role === 'dean') {
-            return route('dean.dashboard', absolute: false);
-        }
-
-        // Default fallback (in case role is missing)
-        return route('login', absolute: false);
+        return match ($user->role) {
+            'admin' => route('admin.dashboard', absolute: false),
+            'teacher' => route('teacher.dashboard', absolute: false),
+            'dean' => route('dean.dashboard', absolute: false),
+            default => route('login', absolute: false),
+        };
     }
 }

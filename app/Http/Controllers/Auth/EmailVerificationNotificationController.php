@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class EmailVerificationNotificationController extends Controller
 {
@@ -15,35 +16,65 @@ class EmailVerificationNotificationController extends Controller
     {
         $user = $request->user();
 
-        // ✅ Check if email already verified
+        // ✅ If email is already verified, redirect to dashboard
         if ($user->hasVerifiedEmail()) {
             return redirect()->intended($this->getDashboardRoute($user));
         }
 
-        // ✅ Send verification link
-        $user->sendEmailVerificationNotification();
+        // ✅ Generate and send Brevo email verification link
+        $token = bin2hex(random_bytes(32));
+        $user->email_verification_token = $token;
+        $user->save();
 
-        return back()->with('status', 'Verification link sent');
+        $verificationLink = url("/verify-email?token={$token}");
+        $this->sendBrevoEmail(
+            $user->email,
+            $user->name,
+            "Verify Your Email",
+            "<p>Hi {$user->name},</p>
+            <p>Please click the link below to verify your email:</p>
+            <p><a href='{$verificationLink}'>Verify Email</a></p>"
+        );
+
+        return back()->with('status', 'Verification link sent! Check your email.');
     }
 
     /**
      * Determine the dashboard route based on user role.
      */
-   private function getDashboardRoute($user): string
+    private function getDashboardRoute($user): string
     {
-        if ($user->role === 'admin') {
-            return route('admin.dashboard', absolute: false);
-        }
+        return match($user->role_id) {
+            1 => route('admin.dashboard'),   // Admin
+            2 => route('teacher.dashboard'), // Teacher
+            3 => route('dean.dashboard'),    // Dean
+            default => route('login'),
+        };
+    }
 
-        if ($user->role === 'teacher') {
-            return route('teacher.dashboard', absolute: false);
-        }
+    /**
+     * Send email via Brevo API
+     */
+    private function sendBrevoEmail($toEmail, $toName, $subject, $htmlContent)
+    {
+        $apiKey = env('BREVO_API_KEY');
 
-        if ($user->role === 'dean') {
-            return route('teacher.dashboard', absolute: false);
-        }
+        $response = Http::withHeaders([
+            'api-key' => $apiKey,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ])->post('https://api.brevo.com/v3/smtp/email', [
+            'sender' => [
+                'name' => 'UCLM Portal',
+                'email' => 'no-reply@uclm.edu.ph',
+            ],
+            'to' => [
+                ['email' => $toEmail, 'name' => $toName]
+            ],
+            'subject' => $subject,
+            'htmlContent' => $htmlContent,
+        ]);
 
-        // Default fallback (in case role is missing)
-        return route('login', absolute: false);
+        return $response->successful();
     }
 }
