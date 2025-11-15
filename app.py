@@ -151,12 +151,13 @@ async def register_face(
         "embeddings": avg_embedding
     })
 
-# -------------------------------
-# RECOGNIZE FACE (FIXED)
-# -------------------------------
+# -------------------------------  
+# RECOGNIZE FACE WITH USER CHECK  
+# -------------------------------  
 @app.post("/recognize")
-async def recognize_face(image: UploadFile = File(...)):
+async def recognize_face(image: UploadFile = File(...), user_id: int = Form(...)):
     try:
+        # Read uploaded image
         file_bytes = await image.read()
         npimg = np.frombuffer(file_bytes, np.uint8)
         img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
@@ -164,6 +165,7 @@ async def recognize_face(image: UploadFile = File(...)):
         return JSONResponse({"status": "error", "message": f"Failed to read image: {e}"}, status_code=400)
 
     try:
+        # Detect faces
         faces = get_model().get(img)
         if len(faces) == 0:
             return JSONResponse({"status": "error", "message": "No face detected"}, status_code=400)
@@ -172,6 +174,7 @@ async def recognize_face(image: UploadFile = File(...)):
 
         new_embedding = faces[0].embedding
 
+        # Fetch stored embeddings from Laravel
         resp = requests.get(f"{LARAVEL_URL}/api/get-embeddings", timeout=10, verify=False)
         if resp.status_code != 200:
             return JSONResponse({"status": "error", "message": "Failed to fetch embeddings from Laravel"}, status_code=500)
@@ -181,28 +184,33 @@ async def recognize_face(image: UploadFile = File(...)):
         if not stored_embeddings:
             return JSONResponse({"status": "error", "message": "No embeddings found in DB"}, status_code=404)
 
+        # Compare against all embeddings
         best_match = None
         best_score = -1
         threshold = 0.55
 
         for item in stored_embeddings:
             emb_raw = item["embedding"]
+            stored_user_id = int(item["user_id"])
 
-            # ✅ Convert any format (stringified JSON, array, etc.) to a float numpy array
+            # Only compare embeddings for the same user_id
+            if stored_user_id != user_id:
+                continue
+
+            # Convert embedding string to numpy array if needed
             if isinstance(emb_raw, str):
                 try:
                     emb_raw = json.loads(emb_raw)
                 except Exception:
-                    logger.warning(f"Failed to parse embedding string for user {item.get('user_id')}")
+                    logger.warning(f"Failed to parse embedding for user {stored_user_id}")
                     continue
 
-            # Flatten if embedding is nested (e.g. [[...]])
             emb_array = np.array(emb_raw, dtype=float).flatten()
-
             score = cosine_similarity(new_embedding, emb_array)
+
             if score > best_score:
                 best_score = score
-                best_match = item["user_id"]
+                best_match = stored_user_id
 
         if best_score >= threshold:
             return JSONResponse({
@@ -214,10 +222,11 @@ async def recognize_face(image: UploadFile = File(...)):
             return JSONResponse({
                 "status": "fail",
                 "match": None,
-                "message": "Face not recognized",
+                "message": "Face does not match the current user",
                 "best_score": float(best_score)
             })
 
     except Exception as e:
         logger.error(f"Recognition failed: {e}")
         return JSONResponse({"status": "error", "message": f"Recognition failed: {e}"}, status_code=500)
+

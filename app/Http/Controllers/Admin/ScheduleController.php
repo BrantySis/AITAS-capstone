@@ -19,6 +19,13 @@ use App\Imports\SchedulesImport;
 
 class ScheduleController extends Controller
 {
+    private array $dayPatternMap = [
+        'MWF' => ['Monday', 'Wednesday', 'Friday'],
+        'TTH' => ['Tuesday', 'Thursday'],
+        'Sat' => ['Saturday'],
+        'Sun' => ['Sunday'],
+    ];
+
     /**
      * Display a listing of schedules.
      */
@@ -26,14 +33,12 @@ class ScheduleController extends Controller
     {
         $query = Schedule::with(['teacher', 'room', 'subject']);
 
-        // 🔍 Search
         if ($search = $request->input('search')) {
             $query->whereHas('teacher', fn($q) => $q->where('name', 'like', "%$search%"))
                 ->orWhereHas('subject', fn($q) => $q->where('subject_name', 'like', "%$search%"))
                 ->orWhereHas('room', fn($q) => $q->where('room_code', 'like', "%$search%"));
         }
 
-        // ⚙️ Filter
         $now = now();
         if ($filter = $request->input('filter')) {
             if ($filter === 'in-progress') {
@@ -48,7 +53,6 @@ class ScheduleController extends Controller
         $query->orderBy('starts_at', 'asc');
         $schedules = $query->paginate(10);
 
-        // Load dropdowns
         $teachers = User::where('role_id', 2)->get();
         $rooms = Room::all();
         $subjects = Subject::all();
@@ -67,7 +71,7 @@ class ScheduleController extends Controller
             'subject_id' => 'required|exists:subjects,id',
             'edp_code' => 'required|string|max:255',
             'type' => 'required|in:lecture,lab',
-            'day_of_week' => 'required|string',
+            'day_of_week' => 'required|in:MWF,TTH,Sat,Sun',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'semester' => 'required|string',
@@ -79,10 +83,12 @@ class ScheduleController extends Controller
         try {
             $subject = Subject::findOrFail($request->subject_id);
 
-            // Check for teacher schedule conflict
+            $dayPattern = $request->day_of_week;
+            $daysOfWeek = $this->dayPatternMap[$dayPattern];
+
             $conflict = $this->checkScheduleConflict(
                 $request->user_id,
-                $request->day_of_week,
+                $daysOfWeek,
                 $request->starts_at,
                 $request->ends_at,
                 $request->start_date,
@@ -95,7 +101,6 @@ class ScheduleController extends Controller
                 ])->withInput();
             }
 
-            // Create schedule
             $schedule = Schedule::create([
                 'user_id' => $request->user_id,
                 'room_id' => $request->room_id,
@@ -103,7 +108,7 @@ class ScheduleController extends Controller
                 'edp_code' => $request->edp_code,
                 'units' => $subject->units ?? 3,
                 'type' => $request->type,
-                'day_of_week' => $request->day_of_week,
+                'day_of_week' => $dayPattern,
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
                 'semester' => $request->semester,
@@ -112,27 +117,19 @@ class ScheduleController extends Controller
                 'ends_at' => $request->ends_at,
             ]);
 
-            // Notify the assigned teacher
-            try {
-                $teacher = User::find($schedule->user_id);
-                if ($teacher) {
-                    // Laravel notification (optional)
-                    $teacher->notify(new NewScheduleNotification($schedule));
+            $teacher = User::find($schedule->user_id);
+            if ($teacher) {
+                $teacher->notify(new NewScheduleNotification($schedule));
 
-                    // Save in teacher_notifications table
-                    TeacherNotification::create([
-                        'user_id' => $teacher->id,
-                        'type' => 'schedule',
-                        'title' => 'New Schedule Added',
-                        'message' => "You have a new schedule: {$subject->subject_name} in {$schedule->room->room_code} on {$schedule->day_of_week} at {$schedule->starts_at} - {$schedule->ends_at}.",
-                        'created_by' => auth()->id(),
-                    ]);
-                }
-            } catch (\Exception $notifyError) {
-                Log::warning('Teacher notification failed: ' . $notifyError->getMessage());
+                TeacherNotification::create([
+                    'user_id' => $teacher->id,
+                    'type' => 'schedule',
+                    'title' => 'New Schedule Added',
+                    'message' => "You have a new schedule: {$subject->subject_name} in {$schedule->room->room_code} on {$schedule->day_of_week} at {$schedule->starts_at} - {$schedule->ends_at}.",
+                    'created_by' => auth()->id(),
+                ]);
             }
 
-            // Create admin notification
             AdminNotification::create([
                 'type' => 'schedule',
                 'title' => 'New Schedule Added',
@@ -142,7 +139,6 @@ class ScheduleController extends Controller
 
             return redirect()->route('admin.schedules.index')
                 ->with('success', '✅ Schedule created and notifications sent.');
-
         } catch (\Exception $e) {
             Log::error('Schedule creation failed: ' . $e->getMessage());
             return back()->withErrors(['error' => '❌ Failed to create schedule.']);
@@ -160,7 +156,7 @@ class ScheduleController extends Controller
             'subject_id' => 'required|exists:subjects,id',
             'edp_code' => 'required|string|max:255',
             'type' => 'required|in:lecture,lab',
-            'day_of_week' => 'required|string',
+            'day_of_week' => 'required|in:MWF,TTH,Sat,Sun',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'semester' => 'required|string',
@@ -171,9 +167,12 @@ class ScheduleController extends Controller
 
         $subject = Subject::findOrFail($request->subject_id);
 
+        $dayPattern = $request->day_of_week;
+        $daysOfWeek = $this->dayPatternMap[$dayPattern];
+
         $conflict = $this->checkScheduleConflict(
             $request->user_id,
-            $request->day_of_week,
+            $daysOfWeek,
             $request->starts_at,
             $request->ends_at,
             $request->start_date,
@@ -194,7 +193,7 @@ class ScheduleController extends Controller
             'edp_code' => $request->edp_code,
             'units' => $subject->units ?? 3,
             'type' => $request->type,
-            'day_of_week' => $request->day_of_week,
+            'day_of_week' => $dayPattern,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'semester' => $request->semester,
@@ -203,7 +202,6 @@ class ScheduleController extends Controller
             'ends_at' => $request->ends_at,
         ]);
 
-        // Admin notification for update
         AdminNotification::create([
             'type' => 'schedule',
             'title' => 'Schedule Updated',
@@ -211,7 +209,6 @@ class ScheduleController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        // Teacher notification for update
         TeacherNotification::create([
             'user_id' => $schedule->user_id,
             'type' => 'schedule',
@@ -239,7 +236,6 @@ class ScheduleController extends Controller
 
         $schedule->delete();
 
-        // Admin notification
         AdminNotification::create([
             'type' => 'schedule',
             'title' => 'Schedule Deleted',
@@ -247,7 +243,6 @@ class ScheduleController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        // Teacher notification
         TeacherNotification::create([
             'user_id' => $schedule->user_id,
             'type' => 'schedule',
@@ -259,22 +254,23 @@ class ScheduleController extends Controller
         return redirect()->route('admin.schedules.index')
             ->with('success', '🗑️ Schedule deleted and notification sent.');
     }
+
     /**
-     * Check for schedule conflicts.
+     * Check for schedule conflicts (supports multiple weekdays)
      */
-    private function checkScheduleConflict($teacherId, $dayOfWeek, $startTime, $endTime, $startDate, $endDate, $excludeId = null)
+    private function checkScheduleConflict($teacherId, array $daysOfWeek, $startTime, $endTime, $startDate, $endDate, $excludeId = null)
     {
         $query = Schedule::where('user_id', $teacherId)
-            ->where('day_of_week', $dayOfWeek);
+            ->whereIn('day_of_week', array_keys(array_filter($this->dayPatternMap, fn($v) => count(array_intersect($v, $daysOfWeek)) > 0)));
 
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
         }
 
         $startTime = Carbon::parse($startTime);
-        $endTime   = Carbon::parse($endTime);
+        $endTime = Carbon::parse($endTime);
         $startDate = Carbon::parse($startDate);
-        $endDate   = Carbon::parse($endDate);
+        $endDate = Carbon::parse($endDate);
 
         return $query->where(function ($q) use ($startTime, $endTime) {
                 $q->whereBetween('starts_at', [$startTime, $endTime])
@@ -292,8 +288,8 @@ class ScheduleController extends Controller
     }
 
     /**
- * Import schedules from an uploaded Excel or CSV file.
- */
+     * Import schedules from an uploaded Excel or CSV file.
+     */
     public function importSchedules(Request $request)
     {
         $request->validate([
@@ -316,5 +312,4 @@ class ScheduleController extends Controller
             return back()->withErrors(['error' => '❌ Failed to import schedules. Please check your file format.']);
         }
     }
-
 }

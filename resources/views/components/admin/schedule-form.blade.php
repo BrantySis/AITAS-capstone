@@ -109,21 +109,30 @@
         </select>
     </div>
 
-    {{-- Day of Week --}}
-    <div>
-        <label for="{{ $prefix }}day_of_week" class="block text-sm font-medium text-gray-700 mb-1">
-            Day of Week <span class="text-red-500">*</span>
-        </label>
-        <select id="{{ $prefix }}day_of_week" name="day_of_week" required
-            class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
-            <option value="">Select Day Pattern</option>
-            <option value="MWF" {{ old('day_of_week', $schedule->day_of_week ?? '') == 'MWF' ? 'selected' : '' }}>Monday, Wednesday, Friday (MWF)</option>
-            <option value="TTH" {{ old('day_of_week', $schedule->day_of_week ?? '') == 'TTH' ? 'selected' : '' }}>Tuesday, Thursday (TTH)</option>
-            <option value="S" {{ old('day_of_week', $schedule->day_of_week ?? '') == 'S' ? 'selected' : '' }}>Saturday (S)</option>
-        </select>
-    </div>
+{{-- Day of Week --}}
+<div>
+    <label for="{{ $prefix }}day_of_week" class="block text-sm font-medium text-gray-700 mb-1">
+        Day of Week <span class="text-red-500">*</span>
+    </label>
+    <select id="{{ $prefix }}day_of_week" name="day_of_week" required
+        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+        <option value="">Select Day Pattern</option>
+        <option value="MWF" {{ old('day_of_week', $schedule->day_of_week ?? '') == 'MWF' ? 'selected' : '' }}>
+            Monday, Wednesday, Friday (MWF)
+        </option>
+        <option value="TTH" {{ old('day_of_week', $schedule->day_of_week ?? '') == 'TTH' ? 'selected' : '' }}>
+            Tuesday, Thursday (TTH)
+        </option>
+        <option value="Sat" {{ old('day_of_week', $schedule->day_of_week ?? '') == 'Sat' ? 'selected' : '' }}>
+            Saturday (Sat)
+        </option>
+        <option value="Sun" {{ old('day_of_week', $schedule->day_of_week ?? '') == 'Sun' ? 'selected' : '' }}>
+            Sunday (Sun)
+        </option>
+    </select>
+</div>
 
-    {{-- Time --}}
+{{-- Time --}}
     <div class="grid grid-cols-2 gap-4">
         <div>
             <label for="{{ $prefix }}starts_at" class="block text-sm font-medium text-gray-700 mb-1">

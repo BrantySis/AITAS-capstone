@@ -16,13 +16,22 @@ class DashboardController extends Controller
         $teacherId = Auth::id();
         $today = Carbon::today();
 
-        // Classes scheduled today
-        $schedulesToday = Schedule::where('user_id', $teacherId)
-            ->whereDate('starts_at', $today)
-            ->get();
+        // -----------------------------------------
+        // FETCH ALL SCHEDULES FOR THE TEACHER
+        // FILTER ONLY THOSE THAT MATCH TODAY
+        // -----------------------------------------
+        $allSchedules = Schedule::where('user_id', $teacherId)->get();
+
+        // Filter by isToday() method
+        $schedulesToday = $allSchedules->filter(function ($schedule) {
+            return $schedule->isToday();
+        });
+
         $classesToday = $schedulesToday->count();
 
-        // Attendance records for today
+        // -----------------------------------------
+        // ATTENDANCE FOR TODAY
+        // -----------------------------------------
         $attendancesToday = Attendance::where('user_id', $teacherId)
             ->whereDate('created_at', $today)
             ->get();
@@ -37,21 +46,25 @@ class DashboardController extends Controller
             ->whereColumn('attendances.time_in', '>', 'schedules.starts_at')
             ->count();
 
-        // Missed classes (scheduled but no attendance)
+        // -----------------------------------------
+        // MISSED CLASSES
+        // -----------------------------------------
         $attendedScheduleIds = $attendancesToday->pluck('schedule_id')->toArray();
+
         $missedClasses = $schedulesToday->whereNotIn('id', $attendedScheduleIds)->count();
 
-        // Donut chart values
-        $present = $completedAttendance - $lateToday; // marked Present
+        // -----------------------------------------
+        // DONUT CHART VALUES
+        // -----------------------------------------
+        $present = $completedAttendance - $lateToday;
         $absent = $missedClasses;
 
-        // -----------------------------
-        // Monthly attendance chart data
-        // -----------------------------
+        // -----------------------------------------
+        // MONTHLY ATTENDANCE CHART DATA
+        // -----------------------------------------
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
 
-        // Group attendance by date
         $monthlyAttendance = Attendance::where('user_id', $teacherId)
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->get()
@@ -63,12 +76,14 @@ class DashboardController extends Controller
         $period = new \DatePeriod(
             $startOfMonth,
             new \DateInterval('P1D'),
-            $endOfMonth->addDay() // include last day
+            $endOfMonth->copy()->addDay()
         );
 
         foreach ($period as $date) {
             $day = $date->format('Y-m-d');
-            $attendanceThisMonth[$day] = $monthlyAttendance->has($day) ? $monthlyAttendance[$day]->count() : 0;
+            $attendanceThisMonth[$day] = $monthlyAttendance->has($day)
+                ? $monthlyAttendance[$day]->count()
+                : 0;
         }
 
         return view('teacher.teacher-dashboard', [

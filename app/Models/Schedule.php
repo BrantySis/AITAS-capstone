@@ -64,7 +64,35 @@ class Schedule extends Model
         return $this->hasMany(Attendance::class, 'schedule_id', 'id');
     }
 
- 
+    /**
+     * =====================
+     * 📅 CHECK IF SCHEDULE IS FOR TODAY
+     * =====================
+     */
+    public function isToday()
+    {
+        $today = now()->format('D'); // Mon, Tue, Wed...
+
+        $map = [
+            'MWF' => ['Mon', 'Wed', 'Fri'],
+            'TTH' => ['Tue', 'Thu'],
+            'Sat' => ['Sat'],
+            'Sun' => ['Sun'],
+        ];
+
+        // If the format is matched (string only, not array)
+        if (isset($map[$this->day_of_week])) {
+            return in_array($today, $map[$this->day_of_week]);
+        }
+
+        return false;
+    }
+
+    /**
+     * =====================
+     * 🧭 AUTO SET ROOM COORDINATES
+     * =====================
+     */
     protected static function booted()
     {
         static::saving(function ($schedule) {

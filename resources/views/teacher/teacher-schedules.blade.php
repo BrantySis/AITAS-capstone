@@ -98,26 +98,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function parseScheduleDays(s) {
     if (!s || !s.day_of_week) return [];
-    const val = s.day_of_week.toUpperCase().replace(/\s+/g,'');
+
+    const raw = s.day_of_week.toUpperCase().replace(/\s+/g, '');
+    let val = raw;
+
     const days = [];
-    if (val.includes('SU')) days.push('SUN'); // Sunday
-    if (val.includes('M')) days.push('MON');  // Monday
-    if (val.includes('T') && !val.includes('TH')) days.push('TUE'); // Tuesday
-    if (val.includes('W')) days.push('WED');  // Wednesday
-    if (val.includes('TH')) days.push('THU'); // Thursday
-    if (val.includes('F')) days.push('FRI');  // Friday
-    if (val.includes('S') && !val.includes('SU')) days.push('SAT'); // Saturday
+
+    // Detect Thursday first & remove it
+    if (val.includes('TH')) {
+        days.push('THU');
+        val = val.replace(/TH/g, ''); // remove TH so T only means Tuesday
+    }
+
+    // Now remaining T = Tuesday
+    if (val.includes('T')) days.push('TUE');
+
+    if (val.includes('M'))   days.push('MON');
+    if (val.includes('W'))   days.push('WED');
+    if (val.includes('F'))   days.push('FRI');
+
+    // Sunday vs Saturday logic
+    if (val.includes('SU'))  days.push('SUN');
+    else if (val.includes('S')) days.push('SAT');
+
     return days;
 }
 
 function getSchedulesForDate(dateObj) {
     const dow = dayNames[dateObj.getDay()];
-    return schedules.filter(s => {
-        const days = parseScheduleDays(s);
-        if (!days.includes(dow)) return false;
 
+    return schedules.filter(s => {
+
+        const scheduleDays = parseScheduleDays(s);
+        if (!scheduleDays.includes(dow)) return false;
+
+        // Validate active date range
         const start = new Date(s.start_date);
         const end = new Date(s.end_date);
+
         return dateObj >= start && dateObj <= end;
     });
 }

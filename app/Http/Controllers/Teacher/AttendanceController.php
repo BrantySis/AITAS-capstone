@@ -22,20 +22,30 @@ class AttendanceController extends Controller
         $user = Auth::user();
         $now = Carbon::now('Asia/Manila');
 
-        // Get today's schedules for this teacher
-        $todaySchedules = Schedule::where('user_id', $user->id)
-            ->whereDate('starts_at', $now->toDateString())
+        // Get all schedules for this teacher
+        $allSchedules = Schedule::where('user_id', $user->id)
             ->with(['room', 'subject'])
-            ->orderBy('starts_at')
             ->get();
 
+        $todaySchedules = collect();
         $currentSchedule = null;
 
-        foreach ($todaySchedules as $schedule) {
+        foreach ($allSchedules as $schedule) {
 
-            // Skip broken schedules (missing room or subject)
+            // Skip broken schedules
             if (!$schedule->room || !$schedule->subject) continue;
 
+            // ------------------------------
+            // Filter only today's schedules
+            // ------------------------------
+            if (!$schedule->isToday()) {
+                continue; // Skip schedules NOT today (fixes TTH, MWF, Sat, Sun logic)
+            }
+
+            // Add to today's list
+            $todaySchedules->push($schedule);
+
+            // Status calculations
             $scheduleStart = Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
             $scheduleEnd   = Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
 
@@ -62,7 +72,11 @@ class AttendanceController extends Controller
             $schedule->status = $status;
             $schedule->attendance = $attendance;
 
-            if (!$currentSchedule && in_array($status, ['Ongoing', 'Attending', 'Late', 'Upcoming'])) {
+            // Determine CURRENT schedule
+            if (
+                !$currentSchedule &&
+                in_array($status, ['Ongoing', 'Attending', 'Late', 'Upcoming'])
+            ) {
                 $currentSchedule = $schedule;
             }
         }
@@ -96,21 +110,16 @@ class AttendanceController extends Controller
         $isAutoMissed = $request->auto_missed == "1";
         $now = now('Asia/Manila');
 
-        // Get schedule with relations
         $schedule = Schedule::with(['room', 'subject'])->find($scheduleId);
 
         if (!$schedule) {
             return response()->json(['status' => 'error', 'message' => '❌ Schedule not found.']);
         }
 
-        // Ensure room and subject exist
         $room = $schedule->room;
         $subject = $schedule->subject;
         if (!$room || !$subject) {
-            return response()->json([
-                'status' => 'error',
-                'message' => '❌ Schedule room or subject not properly set.'
-            ]);
+            return response()->json(['status' => 'error', 'message' => '❌ Schedule room or subject not properly set.']);
         }
 
         // Auto-Missed Logic
@@ -125,6 +134,7 @@ class AttendanceController extends Controller
             }
 
             TeacherNotification::create([
+                'user_id' => $userId,
                 'type' => 'attendance',
                 'title' => 'Missed Class',
                 'message' => "You were automatically marked as MISSED for {$subject->subject_name} at {$room->room_code}.",
@@ -168,6 +178,15 @@ class AttendanceController extends Controller
             if ($now->gt($missedCutoff)) {
                 $attendance->status = 'Missed';
                 $attendance->save();
+
+                TeacherNotification::create([
+                    'user_id' => $userId,
+                    'type' => 'attendance',
+                    'title' => 'Check-in Missed',
+                    'message' => "You failed to check in for {$subject->subject_name} at {$room->room_code}. Status: Missed.",
+                    'created_by' => $userId,
+                ]);
+
                 return response()->json(['status' => 'error', 'message' => '❌ Deadline passed. Marked as MISSED.']);
             }
 
@@ -183,6 +202,7 @@ class AttendanceController extends Controller
             $attendance->save();
 
             TeacherNotification::create([
+                'user_id' => $userId,
                 'type' => 'attendance',
                 'title' => 'Check-in ' . $statusToSet,
                 'message' => "You have successfully checked in for {$subject->subject_name} at {$room->room_code}. Status: $statusToSet",
@@ -218,6 +238,7 @@ class AttendanceController extends Controller
         ]);
 
         TeacherNotification::create([
+            'user_id' => $userId,
             'type' => 'attendance',
             'title' => 'Check-out Completed',
             'message' => "You checked out from {$subject->subject_name} at {$room->room_code}. Final status: $finalStatus",
@@ -236,7 +257,6 @@ class AttendanceController extends Controller
     public function history(Request $request)
     {
         $teacher = Auth::user();
-
         $search = $request->input('search');
         $status = $request->input('status');
         $subject = $request->input('subject');
@@ -246,6 +266,7 @@ class AttendanceController extends Controller
         $query = Attendance::with(['schedule.subject', 'schedule.room'])
             ->where('user_id', $teacher->id)
             ->whereIn('status', ['Attended', 'Late', 'Missed'])
+            ->whereHas('schedule') // <- ensure only attendances with a schedule
             ->orderByDesc('created_at');
 
         if ($search) {

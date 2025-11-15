@@ -127,27 +127,27 @@ document.addEventListener('DOMContentLoaded', () => {
         <h2 class="text-lg font-semibold text-gray-800 mb-3">{{ $label }}</h2>
 
         @foreach ($records as $attendance)
-            @php
-                $status = $attendance->status;
-                $borderColor = match($status) {
-                    'Attended' => 'border-green-500',
-                    'Late' => 'border-yellow-500',
-                    'Missed' => 'border-red-500',
-                    default => 'border-gray-300'
-                };
+        @php
+            $status = $attendance->status;
+            $borderColor = match($status) {
+                'Attended' => 'border-green-500',
+                'Late' => 'border-yellow-500',
+                'Missed' => 'border-red-500',
+                default => 'border-gray-300'
+            };
 
-                $statusColor = match($status) {
-                    'Attended' => 'text-green-700 bg-green-200',
-                    'Late' => 'text-yellow-700 bg-yellow-200',
-                    'Missed' => 'text-red-700 bg-red-200',
-                    default => 'text-gray-700 bg-gray-200'
-                };
+            $statusColor = match($status) {
+                'Attended' => 'text-green-700 bg-green-200',
+                'Late' => 'text-yellow-700 bg-yellow-200',
+                'Missed' => 'text-red-700 bg-red-200',
+                default => 'text-gray-700 bg-gray-200'
+            };
 
-                $subject = $attendance->schedule->subject->subject_name ?? 'N/A';
-                $room = $attendance->schedule->room->room_code ?? 'N/A';
-                $start = $attendance->schedule->starts_at ? Carbon::parse($attendance->schedule->starts_at)->format('g:i A') : '-';
-                $end = $attendance->schedule->ends_at ? Carbon::parse($attendance->schedule->ends_at)->format('g:i A') : '-';
-            @endphp
+            $subject = $attendance->schedule?->subject?->subject_name ?? 'N/A';
+            $room = $attendance->schedule?->room?->room_code ?? 'N/A';
+            $start = $attendance->schedule?->starts_at ? Carbon::parse($attendance->schedule->starts_at)->format('g:i A') : '-';
+            $end = $attendance->schedule?->ends_at ? Carbon::parse($attendance->schedule->ends_at)->format('g:i A') : '-';
+        @endphp
 
             <div class="bg-white p-4 mb-3 rounded-xl shadow-sm flex justify-between items-center border-l-4 {{ $borderColor }}">
                 <div>
