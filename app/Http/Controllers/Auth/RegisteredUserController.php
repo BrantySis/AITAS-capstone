@@ -114,24 +114,46 @@ class RegisteredUserController extends Controller
     /**
      * Verify email via token.
      */
-    public function verifyEmail(Request $request): RedirectResponse
-    {
-        $token = $request->query('token');
+/**
+ * Verify email via token.
+ */
+public function verifyEmail(string $token): RedirectResponse
+{
+    // Find the user by verification token
+    $user = User::where('email_verification_token', $token)->first();
 
-        $user = User::where('email_verification_token', $token)->first();
-
-        if (!$user) {
-            return redirect()->route('login')
-                ->with('status', 'Invalid or expired verification link.');
-        }
-
-        $user->email_verified_at = now();
-        $user->email_verification_token = null;
-        $user->save();
-
+    // Token invalid or expired
+    if (!$user) {
         return redirect()->route('login')
-            ->with('status', 'Email verified successfully! You can now log in.');
+            ->with('status', 'Invalid or expired verification link.');
     }
+
+    // Update email_verified_at and remove the token
+    $user->email_verified_at = now();
+    $user->email_verification_token = null;
+    $user->save();
+
+    // Auto-login after verification
+    Auth::login($user);
+
+    // Redirect based on role
+    $role = optional($user->role)->name;
+
+    switch ($role) {
+        case 'admin':
+            return redirect()->route('admin.dashboard')
+                ->with('status', 'Email verified successfully!');
+        case 'teacher':
+            return redirect()->route('teacher.dashboard')
+                ->with('status', 'Email verified successfully!');
+        case 'dean':
+            return redirect()->route('dean.dashboard')
+                ->with('status', 'Email verified successfully!');
+        default:
+             return redirect()->route('login')
+            ->with('status', 'Email verified successfully! Please login.');
+    }
+}
 
     /**
      * Resend verification email for authenticated user.

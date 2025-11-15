@@ -110,6 +110,7 @@ class RegisterTeacherController extends Controller
 
             DB::commit();
 
+            
             // ✅ Return JSON response for frontend
             return response()->json([
                 'success'           => true,

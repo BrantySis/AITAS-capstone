@@ -80,7 +80,28 @@ Route::middleware(['auth', 'verified.custom', 'admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-        // ... other admin routes
+        // Teachers
+        Route::resource('teachers', TeacherController::class);
+        Route::get('teachers/import/form', [TeacherController::class, 'import'])->name('teachers.import');
+        Route::post('teachers/import', [TeacherController::class, 'processImport'])->name('teachers.import.process');
+
+        // Subjects
+        Route::resource('subjects', SubjectController::class);
+        Route::get('subjects/import', [SubjectController::class, 'import'])->name('subjects.import');
+        Route::post('subjects/import', [SubjectController::class, 'processImport'])->name('subjects.processImport');
+        Route::get('subjects/template', [SubjectController::class, 'downloadTemplate'])->name('subjects.downloadTemplate');
+
+        // Rooms
+        Route::resource('rooms', RoomController::class)->except(['create', 'edit']);
+
+        // Schedules
+        Route::resource('schedules', ScheduleController::class);
+        Route::post('/schedules/import', [ScheduleController::class, 'importSchedules'])->name('schedules.import');
+
+        // Notifications
+        Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications.index');
+        Route::patch('/notifications/{id}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::patch('/notifications/read-all', [AdminNotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
     });
 
 /*
@@ -93,7 +114,31 @@ Route::middleware(['auth', 'verified.custom', 'teacher'])
     ->name('teacher.')
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        // ... other teacher routes
+        // Load & Schedule
+        Route::get('/schedule', [TeacherScheduleController::class, 'index'])->name('schedule.index');
+        Route::get('/load', [LoadController::class, 'index'])->name('load');
+        Route::get('/calendar', [DashboardController::class, 'calendar'])->name('calendar');
+
+        // Attendance
+        Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+        Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
+        Route::post('/attendance/timeout', [AttendanceController::class, 'timeout'])->name('attendance.timeout');
+        Route::post('/attendance/verify', [AttendanceController::class, 'verifyFace'])->name('attendance.verify');
+        Route::get('/history', [AttendanceController::class, 'history'])->name('history');
+        Route::get('/attendance/export', [AttendanceController::class, 'export'])->name('attendance.export');
+
+        // Face Verification
+        Route::get('/face-verification', [AttendanceController::class, 'faceVerification'])->name('face.verification');
+        Route::post('/face-verification/process', [AttendanceController::class, 'processFaceVerification'])->name('face.process');
+
+        // Location Verification
+        Route::get('/location-verify', [AttendanceController::class, 'locationVerify'])->name('location.verify');
+        Route::post('/location-verify/process', [AttendanceController::class, 'processLocationVerify'])->name('location.process');
+
+        // Notifications
+        Route::get('notifications', [TeacherNotificationController::class, 'index'])->name('notifications.index');
+        Route::patch('notifications/{id}/read', [TeacherNotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::patch('notifications/read-all', [TeacherNotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
     });
 
 /*
@@ -106,7 +151,7 @@ Route::middleware(['auth', 'verified.custom', 'dean'])
     ->name('dean.')
     ->group(function () {
         Route::get('/dashboard', [DeanDashboardController::class, 'index'])->name('dashboard');
-        // ... other dean routes
+        Route::get('/teachers-attending', [DeanTeacherLocationController::class, 'index'])->name('teachers');
     });
 
 /*

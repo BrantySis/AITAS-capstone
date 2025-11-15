@@ -26,7 +26,7 @@ class ProfileController extends Controller
             case 3:
                 return view('dean.dean-settings', compact('user'));
             default:
-                return view('profile.default-settings', compact('user'));
+                return view('profile.edit', compact('user'));
         }
     }
 
