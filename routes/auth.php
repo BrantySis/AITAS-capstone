@@ -15,8 +15,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | Guest Routes
 |--------------------------------------------------------------------------
-| These routes are for users who are *not* authenticated.
-| Handles registration, login, and password reset.
+| Routes for users who are NOT authenticated.
 */
 Route::middleware('guest')->group(function () {
 
@@ -35,6 +34,9 @@ Route::middleware('guest')->group(function () {
     // Reset Password Form
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
     Route::post('reset-password', [NewPasswordController::class, 'store'])->name('password.store');
+
+    // Custom Brevo email verification link (query string token)
+    Route::get('verify-email', [RegisteredUserController::class, 'verifyEmail'])->name('email.verify');
 });
 
 
@@ -42,24 +44,15 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 | Authenticated Routes
 |--------------------------------------------------------------------------
-| These routes require users to be logged in.
-| Includes email verification, password confirmation, and logout.
+| Routes for logged-in users.
 */
 Route::middleware('auth')->group(function () {
 
-    /*
-    |--------------------------------------------------------------------------
-    | Email Verification Routes
-    |--------------------------------------------------------------------------
-    | These routes ensure that the user verifies their email via Gmail.
-    | The user will be redirected to 'verify-email' until verified.
-    */
-    
     // Show "Verify Your Email" notice
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 
-    // Handle verification link clicked from Gmail
+    // Handle default Laravel signed verification link (if still used)
     Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
         ->middleware(['signed', 'throttle:6,1'])
         ->name('verification.verify');
@@ -69,19 +62,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:6,1')
         ->name('verification.send');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Password Confirmation & Update
-    |--------------------------------------------------------------------------
-    */
+    // Password Confirmation & Update
     Route::get('confirm-password', [ConfirmablePasswordController::class, 'show'])->name('password.confirm');
     Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Logout
-    |--------------------------------------------------------------------------
-    */
+    // Logout
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });
