@@ -24,6 +24,8 @@ class Schedule extends Model
         'semester',
         'start_date',
         'end_date',
+        'room_lat',
+        'room_lng', // Added
     ];
 
     protected $casts = [
@@ -32,6 +34,8 @@ class Schedule extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'day_of_week' => 'array',
+        'room_lat' => 'float',
+        'room_lng' => 'float',
     ];
 
     /**
@@ -58,5 +62,19 @@ class Schedule extends Model
     public function attendances()
     {
         return $this->hasMany(Attendance::class, 'schedule_id', 'id');
+    }
+
+ 
+    protected static function booted()
+    {
+        static::saving(function ($schedule) {
+            if ($schedule->room_id) {
+                $room = $schedule->room()->first();
+                if ($room) {
+                    $schedule->room_lat = $room->latitude ?? 0.0;
+                    $schedule->room_lng = $room->longitude ?? 0.0;
+                }
+            }
+        });
     }
 }

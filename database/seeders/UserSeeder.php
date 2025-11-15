@@ -8,44 +8,68 @@ use App\Models\Role;
 
 class UserSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Get role IDs from the roles table or create if they don't exist
+        // Roles
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $teacherRole = Role::firstOrCreate(['name' => 'teacher']);
-        $deanRole = Role::firstOrCreate(['name' => 'dean']); // <- Added this line
+        $deanRole = Role::firstOrCreate(['name' => 'dean']);
 
-        // Admin user
-        User::updateOrCreate(
-            ['email' => 'andreineri2002@gmail.com'], 
-            [
-                'name' => 'Andrei Neri',
-                'password' => bcrypt('password'),
-                'role_id' => $adminRole->id,
-            ]
-        );
+        // Departments
+        $departments = [
+            'Hospitality Management',
+            'Engineering',
+            'College of Computer Studies',
+            'Marine Engineering',
+            'Marine Transportation',
+            'Nursing',
+            'Customs Administration',
+            'Accountancy',
+            'College of Teacher Education',
+            'Criminology',
+            'SHS',
+            'Basic Education',
+            'General Education'
+        ];
 
-        // Teacher user
-        User::updateOrCreate(
-            ['email' => 'teacher@uclm.edu.ph'], 
-            [
-                'name' => 'Teacher One',
-                'password' => bcrypt('password'),
-                'role_id' => $teacherRole->id,
-            ]
-        );
+        foreach ($departments as $dept) {
+            // 1 Admin per department
+            User::updateOrCreate(
+                ['email' => strtolower(str_replace(' ','', $dept)) . '.admin@example.com'],
+                [
+                    'name' => $dept . ' Admin',
+                    'password' => bcrypt('password'),
+                    'role_id' => $adminRole->id,
+                    'department' => $dept,
+                    'status' => 'active',
+                ]
+            );
 
-        // Dean user
-        User::updateOrCreate(
-            ['email' => 'dean@uclm.edu.ph'], 
-            [
-                'name' => 'Dean Example',
-                'password' => bcrypt('password'),
-                'role_id' => $deanRole->id,
-            ]
-        );
+            // 2 Teachers per department
+            for ($i=1; $i<=2; $i++) {
+                User::updateOrCreate(
+                    ['email' => strtolower(str_replace(' ','', $dept)) . ".teacher{$i}@example.com"],
+                    [
+                        'name' => $dept . " Teacher {$i}",
+                        'password' => bcrypt('password'),
+                        'role_id' => $teacherRole->id,
+                        'department' => $dept,
+                        'status' => 'active',
+                    ]
+                );
+            }
+
+            // 1 Dean per department
+            User::updateOrCreate(
+                ['email' => strtolower(str_replace(' ','', $dept)) . '.dean@example.com'],
+                [
+                    'name' => $dept . ' Dean',
+                    'password' => bcrypt('password'),
+                    'role_id' => $deanRole->id,
+                    'department' => $dept,
+                    'status' => 'active',
+                ]
+            );
+        }
     }
 }

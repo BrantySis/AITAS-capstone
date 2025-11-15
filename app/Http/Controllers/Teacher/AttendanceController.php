@@ -22,16 +22,20 @@ class AttendanceController extends Controller
         $user = Auth::user();
         $now = Carbon::now('Asia/Manila');
 
-        // Get today's schedules
+        // Get today's schedules for this teacher
         $todaySchedules = Schedule::where('user_id', $user->id)
             ->whereDate('starts_at', $now->toDateString())
-            ->where('ends_at', '>=', $now)
+            ->with(['room', 'subject'])
             ->orderBy('starts_at')
             ->get();
 
         $currentSchedule = null;
 
         foreach ($todaySchedules as $schedule) {
+
+            // Skip broken schedules (missing room or subject)
+            if (!$schedule->room || !$schedule->subject) continue;
+
             $scheduleStart = Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
             $scheduleEnd   = Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
 
@@ -45,8 +49,9 @@ class AttendanceController extends Controller
             $missedDeadline = $scheduleStart->copy()->addMinutes(30);
 
             // Determine status
-            $status = $attendance->status ?? 'Unknown';
-            if (!$attendance) {
+            if ($attendance) {
+                $status = $attendance->status;
+            } else {
                 if ($now->lt($scheduleStart)) $status = 'Upcoming';
                 elseif ($now->between($scheduleStart, $lateCutoff)) $status = 'Ongoing';
                 elseif ($now->between($lateCutoff, $missedDeadline)) $status = 'Late';
@@ -64,6 +69,7 @@ class AttendanceController extends Controller
 
         return view('teacher.teacher-attendance', [
             'currentSchedule' => $currentSchedule,
+            'todaySchedules' => $todaySchedules,
             'fastapiUrl' => env('FASTAPI_URL', 'https://aitas-capstone.test:8001'),
         ]);
     }
@@ -90,33 +96,39 @@ class AttendanceController extends Controller
         $isAutoMissed = $request->auto_missed == "1";
         $now = now('Asia/Manila');
 
-        $schedule = Schedule::with('room')->findOrFail($scheduleId);
+        // Get schedule with relations
+        $schedule = Schedule::with(['room', 'subject'])->find($scheduleId);
+
+        if (!$schedule) {
+            return response()->json(['status' => 'error', 'message' => '❌ Schedule not found.']);
+        }
+
+        // Ensure room and subject exist
         $room = $schedule->room;
-
-        $scheduleStart = Carbon::parse($schedule->starts_at)->setTimezone('Asia/Manila');
-        $scheduleEnd   = Carbon::parse($schedule->ends_at)->setTimezone('Asia/Manila');
-
-        // Room coordinates check
-        if (!$room || !$room->latitude || !$room->longitude) {
+        $subject = $schedule->subject;
+        if (!$room || !$subject) {
             return response()->json([
                 'status' => 'error',
-                'message' => '❌ Room location is not properly set.'
+                'message' => '❌ Schedule room or subject not properly set.'
             ]);
         }
 
-        // AUTO-MISSED
+        // Auto-Missed Logic
         if ($isAutoMissed) {
             $attendance = Attendance::firstOrCreate(
                 ['schedule_id' => $schedule->id, 'user_id' => $userId],
                 ['status' => 'Missed']
             );
-            if ($attendance->status !== 'Missed') $attendance->update(['status' => 'Missed']);
+
+            if ($attendance->status !== 'Missed') {
+                $attendance->update(['status' => 'Missed']);
+            }
 
             TeacherNotification::create([
-            'type' => 'attendance',
-            'title' => 'Missed Class',
-            'message' => "You were automatically marked as MISSED for {$schedule->subject->subject_name} at {$schedule->room->room_code}.",
-            'created_by' => $userId,
+                'type' => 'attendance',
+                'title' => 'Missed Class',
+                'message' => "You were automatically marked as MISSED for {$subject->subject_name} at {$room->room_code}.",
+                'created_by' => $userId,
             ]);
 
             return response()->json([
@@ -129,78 +141,66 @@ class AttendanceController extends Controller
         $isValidLocation = $this->isWithinRadius(
             $request->latitude,
             $request->longitude,
-            $room->latitude,
-            $room->longitude,
+            $room->latitude ?? 0,
+            $room->longitude ?? 0,
             5
         );
 
-        // CHECK-IN LOGIC
+        // CHECK-IN
         if (!$isCheckout) {
-            $attendance = Attendance::where('user_id', $userId)
-                ->where('schedule_id', $scheduleId)
-                ->first();
+            $attendance = Attendance::firstOrNew([
+                'user_id' => $userId,
+                'schedule_id' => $scheduleId
+            ]);
 
-            if ($attendance && $attendance->time_in && !$attendance->time_out) {
-                return response()->json(['status'=>'error','message'=>'❌ Already checked in.']);
+            if ($attendance->exists && $attendance->time_in && !$attendance->time_out) {
+                return response()->json(['status' => 'error', 'message' => '❌ Already checked in.']);
             }
 
-            $allowedCheckInTime = $scheduleStart->copy()->subMinutes(15);
+            $allowedCheckInTime = Carbon::parse($schedule->starts_at)->subMinutes(15);
             if ($now->lt($allowedCheckInTime)) {
-                return response()->json(['status'=>'error','message'=>'⏳ Check-in not allowed yet.']);
+                return response()->json(['status' => 'error', 'message' => '⏳ Check-in not allowed yet.']);
             }
 
-            $lateCutoff = $scheduleStart->copy()->addMinutes(15);
-            $missedCutoff = $scheduleStart->copy()->addMinutes(30);
+            $lateCutoff = Carbon::parse($schedule->starts_at)->addMinutes(15);
+            $missedCutoff = Carbon::parse($schedule->starts_at)->addMinutes(30);
 
             if ($now->gt($missedCutoff)) {
-                Attendance::firstOrCreate(
-                    ['user_id'=>$userId,'schedule_id'=>$scheduleId],
-                    ['status'=>'Missed']
-                );
-                return response()->json(['status'=>'error','message'=>'❌ Deadline passed. Marked as MISSED.']);
+                $attendance->status = 'Missed';
+                $attendance->save();
+                return response()->json(['status' => 'error', 'message' => '❌ Deadline passed. Marked as MISSED.']);
             }
 
             $statusToSet = $now->lte($lateCutoff) ? 'Attending' : 'Late';
-            $message = $statusToSet === 'Attending' ? '✅ Check-in successful.' : '⚠️ Check-in successful, but recorded as LATE.';
 
-            $attendance = Attendance::updateOrCreate(
-                ['id'=>$attendanceId ?? null],
-                [
-                    'user_id'=>$userId,
-                    'schedule_id'=>$scheduleId,
-                    'time_in'=>$now,
-                    'latitude'=>$request->latitude,
-                    'longitude'=>$request->longitude,
-                    'is_valid'=>$isValidLocation,
-                    'status'=>$statusToSet,
-                ]
-            );
+            $attendance->fill([
+                'time_in' => $now,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'is_valid' => $isValidLocation,
+                'status' => $statusToSet,
+            ]);
+            $attendance->save();
 
-            // ✅ TEACHER NOTIFICATION
             TeacherNotification::create([
                 'type' => 'attendance',
                 'title' => 'Check-in ' . $statusToSet,
-                'message' => "You have successfully checked in for {$schedule->subject->subject_name} at {$schedule->room->room_code}. Status: $statusToSet",
+                'message' => "You have successfully checked in for {$subject->subject_name} at {$room->room_code}. Status: $statusToSet",
                 'created_by' => $userId,
             ]);
-    
+
             return response()->json([
-                'status'=>'success',
-                'message'=>$message,
-                'attendance_id'=>$attendance->id,
-                'check_in_status'=>$statusToSet
+                'status' => 'success',
+                'message' => $statusToSet === 'Attending' ? '✅ Check-in successful.' : '⚠️ Check-in successful, but recorded as LATE.',
+                'attendance_id' => $attendance->id,
+                'check_in_status' => $statusToSet
             ]);
         }
 
-        // CHECK-OUT LOGIC
-        if (!$attendanceId) {
-            return response()->json(['status'=>'error','message'=>'❌ Attendance record not found for checkout.']);
-        }
-
+        // CHECK-OUT
         $attendance = Attendance::find($attendanceId);
-
         if (!$attendance || $attendance->time_out) {
-            return response()->json(['status'=>'error','message'=>'❌ You have not checked in yet or already checked out.']);
+            return response()->json(['status' => 'error', 'message' => '❌ Attendance record not found or already checked out.']);
         }
 
         $finalStatus = match ($attendance->status) {
@@ -211,22 +211,22 @@ class AttendanceController extends Controller
         };
 
         $attendance->update([
-            'time_out'=>$now,
-            'status'=>$finalStatus,
-            'latitude_out'=>$request->latitude,
-            'longitude_out'=>$request->longitude,
+            'time_out' => $now,
+            'status' => $finalStatus,
+            'latitude_out' => $request->latitude,
+            'longitude_out' => $request->longitude,
         ]);
 
         TeacherNotification::create([
-        'type' => 'attendance',
-        'title' => 'Check-out Completed',
-        'message' => "You checked out from {$schedule->subject->subject_name} at {$schedule->room->room_code}. Final status: $finalStatus",
-        'created_by' => $userId,
+            'type' => 'attendance',
+            'title' => 'Check-out Completed',
+            'message' => "You checked out from {$subject->subject_name} at {$room->room_code}. Final status: $finalStatus",
+            'created_by' => $userId,
         ]);
-        
+
         return response()->json([
-            'status'=>'success',
-            'message'=>'✅ Check-out successful. You are now marked as ' . $finalStatus . '.',
+            'status' => 'success',
+            'message' => '✅ Check-out successful. You are now marked as ' . $finalStatus . '.',
         ]);
     }
 
@@ -245,28 +245,28 @@ class AttendanceController extends Controller
 
         $query = Attendance::with(['schedule.subject', 'schedule.room'])
             ->where('user_id', $teacher->id)
-            ->whereIn('status',['Attended','Late','Missed'])
+            ->whereIn('status', ['Attended', 'Late', 'Missed'])
             ->orderByDesc('created_at');
 
-        if (!empty($search)) {
-            $query->where(function($q) use ($search){
-                $q->whereHas('schedule.subject', fn($subQ)=>$subQ->where('subject_name','like',"%$search%"))
-                  ->orWhereHas('schedule.room', fn($roomQ)=>$roomQ->where('room_code','like',"%$search%"))
-                  ->orWhere('status','like',"%$search%");
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('schedule.subject', fn($subQ) => $subQ->where('subject_name', 'like', "%$search%"))
+                  ->orWhereHas('schedule.room', fn($roomQ) => $roomQ->where('room_code', 'like', "%$search%"))
+                  ->orWhere('status', 'like', "%$search%");
             });
         }
 
-        if (!empty($status)) $query->where('status',$status);
-        if (!empty($subject)) $query->whereHas('schedule.subject', fn($q)=>$q->where('subject_name',$subject));
-        if (!empty($startDate) && !empty($endDate)) {
-            $query->whereBetween('created_at',[
+        if ($status) $query->where('status', $status);
+        if ($subject) $query->whereHas('schedule.subject', fn($q) => $q->where('subject_name', $subject));
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [
                 Carbon::parse($startDate)->startOfDay(),
                 Carbon::parse($endDate)->endOfDay()
             ]);
         }
 
         $attendanceHistory = $query->get()
-            ->groupBy(fn($attendance)=>Carbon::parse($attendance->created_at)->toDateString());
+            ->groupBy(fn($attendance) => Carbon::parse($attendance->created_at)->toDateString());
 
         $subjects = Schedule::where('user_id', $teacher->id)
             ->with('subject')
@@ -276,9 +276,9 @@ class AttendanceController extends Controller
             ->filter()
             ->values();
 
-        return view('teacher.teacher-history',[
-            'attendanceHistory'=>$attendanceHistory,
-            'subjects'=>$subjects
+        return view('teacher.teacher-history', [
+            'attendanceHistory' => $attendanceHistory,
+            'subjects' => $subjects
         ]);
     }
 
@@ -287,8 +287,8 @@ class AttendanceController extends Controller
      */
     public function export(Request $request)
     {
-        $filters = $request->only(['search','status','start_date','end_date','subject']);
-        $filename = 'attendance_export_'.now()->format('Ymd_His').'.xlsx';
+        $filters = $request->only(['search', 'status', 'start_date', 'end_date', 'subject']);
+        $filename = 'attendance_export_' . now()->format('Ymd_His') . '.xlsx';
 
         return Excel::download(new TeacherAttendanceExport($filters), $filename);
     }
@@ -296,15 +296,15 @@ class AttendanceController extends Controller
     /**
      * Validate location within radius (meters)
      */
-    private function isWithinRadius($lat1,$lon1,$lat2,$lon2,$radius=5)
+    private function isWithinRadius($lat1, $lon1, $lat2, $lon2, $radius = 5)
     {
         $earthRadius = 6371000; // meters
-        $dLat = deg2rad($lat2-$lat1);
-        $dLon = deg2rad($lon2-$lon1);
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
 
-        $a = sin($dLat/2)**2 + cos(deg2rad($lat1))*cos(deg2rad($lat2))*sin($dLon/2)**2;
-        $c = 2*atan2(sqrt($a),sqrt(1-$a));
-        $distance = $earthRadius*$c;
+        $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $distance = $earthRadius * $c;
 
         return $distance <= $radius;
     }

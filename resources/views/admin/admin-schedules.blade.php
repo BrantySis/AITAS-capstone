@@ -227,11 +227,6 @@
         @endforelse
     </div>
 
-    @if (method_exists($schedules ?? null, 'links'))
-        <div class="mt-8 px-4">
-            {{ $schedules->appends(request()->except('page'))->links() }}
-        </div>
-    @endif
 
 {{-- ===================== ADD SCHEDULE MODAL (fixed) ===================== --}}
 <div id="addScheduleModal" class="modal-wrapper modal-closed fixed inset-0 z-50 overflow-y-auto bg-gray-900 bg-opacity-75 backdrop-blur-sm transition-opacity duration-300" aria-hidden="true">
