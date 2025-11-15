@@ -29,19 +29,21 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
 
-        // Check if email is verified
-        if (!$user->hasVerifiedEmail()) {
-            // Redirect to a notice page or same login page with status
-            return redirect()->route('verification.notice')
+        // Check if email is verified via custom Brevo verification
+        if (!$user->email_verified_at) {
+            // Redirect to custom verification notice page
+            return redirect()->route('email.verify')
                 ->with('status', 'Please verify your email before accessing the dashboard.');
         }
 
-        // Redirect based on role
-        return match ($user->role) {
+        // Redirect based on role safely
+        $role = optional($user->role)->name ?? null;
+
+        return match ($role) {
             'admin' => redirect()->route('admin.dashboard'),
             'teacher' => redirect()->route('teacher.dashboard'),
             'dean' => redirect()->route('dean.dashboard'),
-            default => redirect()->route('login')
+            default => redirect()->route('login'),
         };
     }
 

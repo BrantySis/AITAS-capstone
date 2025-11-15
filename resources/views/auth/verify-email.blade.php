@@ -29,7 +29,8 @@
                     </svg>
                     <div>
                         <strong class="font-bold">Email Verification Required:</strong>
-                        <p class="mt-1">Please check your inbox and click the verification link to proceed.</p>
+                        <p class="mt-1">Please check your inbox and click the verification link sent via email.</p>
+                        <p class="mt-1 text-xs text-gray-500">Didn't receive it? You can resend below.</p>
                     </div>
                 </div>
             </div>
@@ -41,7 +42,7 @@
                         window.dispatchEvent(new CustomEvent('show-modal', {
                             detail: {
                                 type: 'success',
-                                message: '{{ session('status') }}'
+                                message: @json(session('status'))
                             }
                         }));
                     });
@@ -50,7 +51,8 @@
 
             {{-- 🔹 Form Actions --}}
             <div class="mt-6 flex flex-col space-y-3">
-                <form method="POST" action="{{ route('verification.send') }}">
+                {{-- Resend Verification Email --}}
+                <form method="POST" action="{{ route('email.resend') }}">
                     @csrf
                     <button type="submit"
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-semibold">

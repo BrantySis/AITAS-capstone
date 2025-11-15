@@ -28,14 +28,12 @@ class RegisteredUserController extends Controller
 
     /**
      * Handle an incoming registration request.
-     *
-     * @throws \Illuminate\Validation\ValidationException
      */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'face_registered' => ['required', 'boolean'],
         ]);
@@ -48,37 +46,43 @@ class RegisteredUserController extends Controller
         ]);
 
         // Generate verification token
-        $token = bin2hex(random_bytes(32));
-        $user->email_verification_token = $token;
+        $user->email_verification_token = bin2hex(random_bytes(32));
         $user->save();
 
-        // Send email via Brevo
-        $verificationLink = url("/verify-email?token={$token}");
-        $emailSent = $this->sendBrevoEmail(
-            $user->email,
-            $user->name,
-            "Verify Your Email",
-            "<p>Hi {$user->name},</p>
-            <p>Thank you for registering! Please click the link below to verify your email:</p>
-            <p><a href='{$verificationLink}'>Verify Email</a></p>"
-        );
-
-        if (!$emailSent) {
-            return redirect()->back()->with('status', 'Registration complete, but email could not be sent. Please contact support.');
-        }
+        // Send verification email via Brevo
+        $this->sendVerificationEmail($user);
 
         event(new Registered($user));
         Auth::login($user);
 
-        return redirect()->route('teacher.dashboard')->with('status', 'Registration successful! Check your email to verify.');
+        // Redirect to custom verification page
+        return redirect()->route('email.verify')
+            ->with('status', 'Registration successful! Please check your email to verify.');
+    }
+
+    /**
+     * Send verification email via Brevo.
+     */
+    public function sendVerificationEmail(User $user): bool
+    {
+        $verificationLink = route('email.verify.token', ['token' => $user->email_verification_token]);
+
+        return $this->sendBrevoEmail(
+            $user->email,
+            $user->name,
+            'Verify Your Email',
+            "<p>Hi {$user->name},</p>
+            <p>Thank you for registering! Please click the link below to verify your email:</p>
+            <p><a href='{$verificationLink}'>Verify Email</a></p>"
+        );
     }
 
     /**
      * Send email via Brevo API.
      */
-    private function sendBrevoEmail($toEmail, $toName, $subject, $htmlContent)
+    private function sendBrevoEmail(string $toEmail, string $toName, string $subject, string $htmlContent): bool
     {
-        $apiKey = config('services.brevo.key'); // <-- use config
+        $apiKey = config('services.brevo.key');
 
         $response = Http::withHeaders([
             'api-key' => $apiKey,
@@ -87,7 +91,7 @@ class RegisteredUserController extends Controller
         ])->post('https://api.brevo.com/v3/smtp/email', [
             'sender' => [
                 'name' => 'UC Teachers Portal',
-                'email' => 'admin@aitasportal.com', // must be verified in Brevo
+                'email' => 'admin@aitasportal.com',
             ],
             'to' => [
                 ['email' => $toEmail, 'name' => $toName]
@@ -96,7 +100,6 @@ class RegisteredUserController extends Controller
             'htmlContent' => $htmlContent,
         ]);
 
-        // If it fails, dump the response for debugging
         if (!$response->successful()) {
             logger('Brevo Email Failed', [
                 'status' => $response->status(),
@@ -109,22 +112,48 @@ class RegisteredUserController extends Controller
     }
 
     /**
-     * Verify email endpoint.
+     * Verify email via token.
      */
-    public function verifyEmail(Request $request)
+    public function verifyEmail(Request $request): RedirectResponse
     {
         $token = $request->query('token');
 
         $user = User::where('email_verification_token', $token)->first();
 
         if (!$user) {
-            return redirect()->route('login')->with('status', 'Invalid or expired verification link.');
+            return redirect()->route('login')
+                ->with('status', 'Invalid or expired verification link.');
         }
 
         $user->email_verified_at = now();
         $user->email_verification_token = null;
         $user->save();
 
-        return redirect()->route('login')->with('status', 'Email verified successfully! You can now log in.');
+        return redirect()->route('login')
+            ->with('status', 'Email verified successfully! You can now log in.');
+    }
+
+    /**
+     * Resend verification email for authenticated user.
+     */
+    public function resendVerificationEmail(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->route('email.verify')
+                ->with('status', 'Your email is already verified.');
+        }
+
+        $user->email_verification_token = bin2hex(random_bytes(32));
+        $user->save();
+
+        $emailSent = $this->sendVerificationEmail($user);
+
+        if (!$emailSent) {
+            return redirect()->back()->with('status', 'Unable to resend verification email. Contact support.');
+        }
+
+        return redirect()->back()->with('status', 'Verification email resent! Check your inbox.');
     }
 }

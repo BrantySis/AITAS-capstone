@@ -345,8 +345,22 @@ async function registerFacePhases(userId, captures) {
     formData.append('user_id', userId);
 
     const res = await fetch(`${FASTAPI_URL}/register`, { method: 'POST', body: formData });
-    const data = await res.json();
-    if (!res.ok || !data.embeddings) throw new Error("Face scan failed. Try again.");
+
+    const text = await res.text(); // get raw response
+    let data;
+
+    try {
+        data = JSON.parse(text); // try parsing as JSON
+    } catch (err) {
+        console.error("FastAPI returned non-JSON response:", text);
+        throw new Error("Face scan failed: server did not return valid JSON.");
+    }
+
+    if (!res.ok || !data.embeddings) {
+        console.error("FastAPI error response:", data);
+        throw new Error(data.detail || "Face scan failed. Try again.");
+    }
+
     return data.embeddings;
 }
 
