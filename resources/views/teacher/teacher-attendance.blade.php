@@ -321,7 +321,7 @@ function handleAttendanceAction(scheduleId, isCheckout, posData = null) {
             const roomLat = parseFloat(document.getElementById('room-lat-' + scheduleId)?.value || 0);
             const roomLng = parseFloat(document.getElementById('room-lng-' + scheduleId)?.value || 0);
             const dist = getDistanceInMeters(finalLat, finalLng, roomLat, roomLng);
-            if (dist > 50) {
+            if (dist > 80) {
                 showNotification(`❌ You are too far! (${Math.round(dist)}m)`, 'error');
                 return;
             }
