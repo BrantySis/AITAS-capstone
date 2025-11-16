@@ -81,7 +81,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function latestAttendance()
 {
-    return $this->hasOne(\App\Models\Attendance::class)
-                ->latest('created_at');
+    return $this->hasOne(Attendance::class)
+        ->latestOfMany()
+        ->with(['schedule.room', 'schedule.subject']); // ⚡ Eager load nested
 }
 }

@@ -310,11 +310,21 @@ body {
     </div>
 </aside>
 
-<div id="sidebar-toggle" class="-mt-7">
-    <svg id="sidebar-arrow" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+<button id="sidebar-toggle" class="-mt-7">
+    <svg class="hidden h-6 w-6" id="icon-close" width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path 
+            transform="rotate(180, 8.5, 8.5)" 
+            d="M5.5892 11.5836C5.33023 11.8453 5.33245 12.2674 5.59416 12.5264C5.85588 12.7853 6.27798 12.7831 6.53696 12.5214L10.5159 8.50041C10.7748 8.2387 10.7726 7.81659 10.5109 7.55762L6.4899 3.57872C6.22818 3.31975 5.80608 3.32197 5.5471 3.58368C5.28813 3.8454 5.29035 4.2675 5.55207 4.52648L9.09918 8.03646L5.5892 11.5836Z" 
+            fill="white" 
+            fill-opacity="0.8"
+        />
     </svg>
-</div>
+
+    <svg class="h-6 w-6" id="icon-open" width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M5.5892 11.5836C5.33023 11.8453 5.33245 12.2674 5.59416 12.5264C5.85588 12.7853 6.27798 12.7831 6.53696 12.5214L10.5159 8.50041C10.7748 8.2387 10.7726 7.81659 10.5109 7.55762L6.4899 3.57872C6.22818 3.31975 5.80608 3.32197 5.5471 3.58368C5.28813 3.8454 5.29035 4.2675 5.55207 4.52648L9.09918 8.03646L5.5892 11.5836Z" fill="white" fill-opacity="0.8"/>
+    </svg>
+
+</button>
 
 <div class="main-content">
     
@@ -357,129 +367,28 @@ body {
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const sidebar = document.querySelector('.sidebar');
-    const mainContent = document.querySelector('.main-content');
-    const topNav = document.querySelector('.top-nav-fixed');
-    const toggleBtn = document.getElementById('sidebar-toggle');
-    const arrowIcon = toggleBtn.querySelector('svg');
+ document.addEventListener('DOMContentLoaded', function() {
+        // Get elements
+        const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.querySelector('.main-content');
+        const topNav = document.querySelector('.top-nav-fixed');
+        const toggleButton = document.getElementById('sidebar-toggle');
+        const iconClose = document.getElementById('icon-close');
+        const iconOpen = document.getElementById('icon-open');
 
-    // --- Notification Elements ---
-    const notificationBtn = document.getElementById('notification-btn');
-    const notificationPopover = document.getElementById('notification-popover');
-    const closePopoverBtn = document.getElementById('close-popover');
-    const notificationList = document.getElementById('notification-list');
-    const notificationCount = document.getElementById('notification-count');
+        // Add click listener
+        toggleButton.addEventListener('click', function() {
+            // Toggle the 'closed' class on all elements
+            sidebar.classList.toggle('closed');
+            mainContent.classList.toggle('closed');
+            topNav.classList.toggle('closed');
+            toggleButton.classList.toggle('closed');
 
-    // --- Example notifications array ---
-    const notifications = [
-        { id: 1, type: 'teacher', title: 'New Teacher Added', message: 'John Doe has been added.', read: false, user: {name: 'Admin'}, created_at: '2025-11-15T00:00:00Z' },
-        { id: 2, type: 'room', title: 'Room Updated', message: 'Room 101 schedule updated.', read: true, user: null, created_at: '2025-11-14T12:00:00Z' },
-        { id: 3, type: 'schedule', title: 'MWF Schedule Assigned', message: 'New MWF schedule assigned.', read: false, user: {name: 'Dean Smith'}, created_at: '2025-11-15T08:00:00Z' }
-    ];
-
-    // --- Helper: format time ago ---
-    function timeAgo(dateStr) {
-        const date = new Date(dateStr);
-        const diff = Math.floor((new Date() - date) / 1000); // seconds
-        if(diff < 60) return `${diff}s ago`;
-        if(diff < 3600) return `${Math.floor(diff/60)}m ago`;
-        if(diff < 86400) return `${Math.floor(diff/3600)}h ago`;
-        return `${Math.floor(diff/86400)}d ago`;
-    }
-
-    // --- Update notification badge ---
-    function updateNotificationCount() {
-        const unreadCount = notifications.filter(n => !n.read).length;
-        if(unreadCount > 0){
-            notificationCount.textContent = unreadCount;
-            notificationCount.classList.remove('hidden');
-            notificationCount.style.display = 'inline-block';
-        } else {
-            notificationCount.classList.add('hidden');
-            notificationCount.style.display = 'none';
-        }
-    }
-
-    // --- Populate notification list ---
-    function populateNotifications() {
-        notificationList.innerHTML = '';
-        notifications.forEach(n => {
-            const li = document.createElement('li');
-            li.className = `rounded-lg p-2 border-l-4 cursor-pointer mb-2 ${
-                n.read ? 'bg-white text-[#00477F] border-transparent' : 'bg-[#00477F] text-white border-yellow-400'
-            }`;
-
-            // Icon based on type
-            let iconHtml = '';
-            switch(n.type) {
-                case 'teacher':
-                    iconHtml = '<svg class="w-5 h-5 '+(n.read?'text-[#00477F]':'text-white')+'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 1.79-8 4v2h16v-2c0-2.21-3.582-4-8-4z"/></svg>';
-                    break;
-                case 'room':
-                    iconHtml = '<svg class="w-5 h-5 '+(n.read?'text-[#00477F]':'text-white')+'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18v10H3V10z M5 10V6h14v4"/></svg>';
-                    break;
-                default:
-                    iconHtml = '<svg class="w-5 h-5 '+(n.read?'text-[#00477F]':'text-white')+'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>';
-            }
-
-            li.innerHTML = `
-                <div class="flex items-center justify-between mb-1">
-                    <div class="flex items-center space-x-2">${iconHtml}<span class="font-medium">${n.title}</span></div>
-                    <span class="text-xs ${n.read?'text-[#00477F]':'text-blue-300'}">${timeAgo(n.created_at)}</span>
-                </div>
-                <p class="text-sm mb-1 ${n.read?'text-[#00477F]':''}">${n.message}</p>
-                <div class="flex justify-between items-center text-xs">
-                    <span class="${n.read?'text-[#00477F]':'text-blue-300'}">${n.user ? 'Created by: '+n.user.name : 'System'}</span>
-                    <span class="${n.read?'text-gray-400 italic':'font-medium'}">${n.read ? 'Read' : 'Unread'}</span>
-                </div>
-            `;
-
-            li.addEventListener('click', () => {
-                n.read = true;
-                populateNotifications();
-                updateNotificationCount();
-            });
-
-            notificationList.appendChild(li);
+            // Toggle the button's icons
+            iconClose.classList.toggle('hidden');
+            iconOpen.classList.toggle('hidden');
         });
-    }
-
-    // --- Popover toggle ---
-    notificationBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        notificationPopover.classList.toggle('hidden');
     });
-
-    closePopoverBtn.addEventListener('click', () => {
-        notificationPopover.classList.add('hidden');
-    });
-
-    document.addEventListener('click', e => {
-        if(!notificationBtn.contains(e.target) && !notificationPopover.contains(e.target)) {
-            notificationPopover.classList.add('hidden');
-        }
-    });
-
-    // --- Initialize ---
-    populateNotifications();
-    updateNotificationCount();
-
-    // --- Sidebar toggle ---
-    let isOpen = true;
-    toggleBtn.addEventListener('click', function() {
-        sidebar.classList.toggle('closed');
-        mainContent.classList.toggle('closed');
-        topNav.classList.toggle('closed');
-        toggleBtn.classList.toggle('closed');
-
-        isOpen = !isOpen;
-        arrowIcon.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-    });
-
-    arrowIcon.style.transition = 'transform 0.3s ease';
-    arrowIcon.style.transform = 'rotate(180deg)';
-});
 </script>
 </body>
 </html>
