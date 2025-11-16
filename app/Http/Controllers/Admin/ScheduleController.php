@@ -303,25 +303,28 @@ private function checkScheduleConflict(
      * Import schedules from an uploaded Excel or CSV file.
      */
     public function importSchedules(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|mimes:xlsx,csv,xls|max:4096',
+{
+    $request->validate([
+        'file' => 'required|mimes:xlsx,csv,xls|max:4096',
+    ]);
+
+    try {
+        Excel::import(new SchedulesImport, $request->file('file'));
+
+        AdminNotification::create([
+            'type' => 'schedule',
+            'title' => 'Schedules Imported',
+            'message' => 'New schedules have been successfully imported.',
+            'created_by' => auth()->id(),
         ]);
 
-        try {
-            Excel::import(new SchedulesImport, $request->file('file'));
-
-            AdminNotification::create([
-                'type' => 'schedule',
-                'title' => 'Schedules Imported',
-                'message' => 'New schedules have been successfully imported.',
-                'created_by' => auth()->id(),
-            ]);
-
-            return back()->with('success', '✅ Schedules imported successfully.');
-        } catch (\Exception $e) {
-            \Log::error('Schedule import failed: ' . $e->getMessage());
-            return back()->withErrors(['error' => '❌ Failed to import schedules. Please check your file format.']);
-        }
+        // Redirect to index to reload schedules properly
+        return redirect()->route('admin.schedules.index')
+                         ->with('success', '✅ Schedules imported successfully.');
+    } catch (\Exception $e) {
+        Log::error('Schedule import failed: ' . $e->getMessage());
+        return redirect()->route('admin.schedules.index')
+                         ->withErrors(['error' => '❌ Failed to import schedules. Please check your file format.']);
     }
+}
 }

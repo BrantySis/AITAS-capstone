@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Subject;
 use Illuminate\Http\Request;
+use App\Models\Subject;
 use App\Imports\SubjectsImport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\AdminNotification;
@@ -94,7 +94,6 @@ class SubjectController extends Controller
             'school_year',
         ]));
 
-        // ✅ Admin Notification
         AdminNotification::create([
             'type' => 'subject',
             'title' => 'Subject Added',
@@ -139,7 +138,6 @@ class SubjectController extends Controller
             'school_year',
         ]));
 
-        // ✅ Admin Notification
         AdminNotification::create([
             'type' => 'subject',
             'title' => 'Subject Updated',
@@ -157,7 +155,6 @@ class SubjectController extends Controller
         $subjectCode = $subject->subject_code;
         $subject->delete();
 
-        // ✅ Admin Notification
         AdminNotification::create([
             'type' => 'subject',
             'title' => 'Subject Deleted',
@@ -169,24 +166,62 @@ class SubjectController extends Controller
             ->with('success', 'Subject deleted successfully.');
     }
 
+    /**
+     * Show import page for subjects.
+     */
     public function import()
     {
         return view('admin.admin-subjects', ['page_mode' => 'import']);
     }
 
+    /**
+     * Process imported subjects using SubjectsImport.
+     */
     public function processImport(Request $request)
     {
-        $request->validate(['file' => 'required|mimes:xlsx,csv,xls|max:2048']);
+        $request->validate([
+            'file' => 'required|mimes:xlsx,csv,xls|max:2048',
+        ]);
 
         try {
-            Excel::import(new SubjectsImport, $request->file('file'));
+            $import = new SubjectsImport();
+            Excel::import($import, $request->file('file'));
+
+            // ✅ Admin Notification
+            AdminNotification::create([
+                'type' => 'subject',
+                'title' => 'Subjects Imported',
+                'message' => 'New subjects have been successfully imported.',
+                'created_by' => auth()->id(),
+            ]);
+
+            // Check for validation failures
+            $failures = $import->getFailures();
+            $errors = $import->getErrors();
+            $messages = [];
+            foreach ($failures as $failure) {
+                $messages[] = "Row {$failure->row()}: " . implode(', ', $failure->errors());
+            }
+            foreach ($errors as $error) {
+                $messages[] = $error;
+            }
+
+            if (!empty($messages)) {
+                return redirect()->route('admin.subjects.index')
+                    ->with('error', implode(' | ', $messages));
+            }
+
             return redirect()->route('admin.subjects.index')
-                ->with('success', 'Subjects imported successfully!');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
+                ->with('success', 'Subjects imported successfully.');
+        } catch (\Throwable $e) {
+            \Log::error('Subjects import failed: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => '❌ Failed to import subjects. Please check your file format.']);
         }
     }
 
+    /**
+     * Download CSV template for subjects import.
+     */
     public function downloadTemplate()
     {
         $headers = [

@@ -19,7 +19,7 @@ class TeacherController extends Controller
     public function index(Request $request)
     {
         $teacherRoleId = Role::where('name', 'teacher')->value('id');
-        $deanRoleId = Role::where('name', 'dean')->value('id');
+        $deanRoleId    = Role::where('name', 'dean')->value('id');
 
         $search = $request->input('search');
 
@@ -62,18 +62,18 @@ class TeacherController extends Controller
         ]);
 
         try {
-        // ✅ Admin notification
-        AdminNotification::create([
-            'type' => 'teacher',
-            'title' => ucfirst($request->role) . ' Added',
-            'message' => ucfirst($request->role) . " {$user->name} has been added.",
-            'created_by' => auth()->id(),
-        ]);
+            AdminNotification::create([
+                'type'       => 'teacher',
+                'title'      => ucfirst($request->role) . ' Added',
+                'message'    => ucfirst($request->role) . " {$user->name} has been added.",
+                'created_by' => auth()->id(),
+            ]);
         } catch (\Exception $e) {
-    \Log::error('AdminNotification failed: '.$e->getMessage());
-}
+            \Log::error('AdminNotification failed: ' . $e->getMessage());
+        }
 
-        return redirect()->route('admin.teachers.index')
+        return redirect()
+            ->route('admin.teachers.index')
             ->with('success', ucfirst($request->role) . ' created successfully.');
     }
 
@@ -83,10 +83,10 @@ class TeacherController extends Controller
     public function update(Request $request, User $teacher)
     {
         $request->validate([
-            'name'            => 'required|string|max:255',
-            'email'           => 'required|email|unique:users,email,' . $teacher->id,
-            'faculty_number'  => 'required|string|max:8|unique:users,faculty_number,' . $teacher->id,
-            'password'        => 'nullable|string|min:6',
+            'name'           => 'required|string|max:255',
+            'email'          => 'required|email|unique:users,email,' . $teacher->id,
+            'faculty_number' => 'required|string|max:8|unique:users,faculty_number,' . $teacher->id,
+            'password'       => 'nullable|string|min:6',
         ]);
 
         $updateData = [
@@ -101,15 +101,15 @@ class TeacherController extends Controller
 
         $teacher->update($updateData);
 
-        // ✅ Admin notification
         AdminNotification::create([
-            'type' => 'teacher',
-            'title' => ucfirst($teacher->role->name) . ' Updated',
-            'message' => ucfirst($teacher->role->name) . " {$teacher->name} has been updated.",
+            'type'       => 'teacher',
+            'title'      => ucfirst($teacher->role->name) . ' Updated',
+            'message'    => ucfirst($teacher->role->name) . " {$teacher->name} has been updated.",
             'created_by' => auth()->id(),
         ]);
 
-        return redirect()->route('admin.teachers.index')
+        return redirect()
+            ->route('admin.teachers.index')
             ->with('success', ucfirst($teacher->role->name) . ' updated successfully.');
     }
 
@@ -120,37 +120,45 @@ class TeacherController extends Controller
     {
         $roleName = ucfirst($teacher->role->name);
         $teacherName = $teacher->name;
+
         $teacher->delete();
 
-        // ✅ Admin notification
         AdminNotification::create([
-            'type' => 'teacher',
-            'title' => $roleName . ' Deleted',
-            'message' => "$roleName {$teacherName} has been deleted.",
+            'type'       => 'teacher',
+            'title'      => $roleName . ' Deleted',
+            'message'    => "$roleName {$teacherName} has been deleted.",
             'created_by' => auth()->id(),
         ]);
 
-        return redirect()->route('admin.teachers.index')
+        return redirect()
+            ->route('admin.teachers.index')
             ->with('success', $roleName . ' deleted successfully.');
     }
 
     /**
-     * Import Teachers from an Excel file.
+     * Import Teachers from a file.
      */
     public function processImport(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|mimes:xlsx,csv|max:2048',
-        ]);
+{
+    $request->validate([
+        'file' => 'required|mimes:xlsx,csv|max:2048',
+    ]);
 
-        try {
-            Excel::import(new TeachersImport, $request->file('file'));
+    try {
+        $import = new TeachersImport;
+        Excel::import($import, $request->file('file'));
 
+        if ($import->getRowCount() === 0) {
             return redirect()->route('admin.teachers.index')
-                ->with('success', 'Users imported successfully!');
-        } catch (\Exception $e) {
-            return redirect()->route('admin.teachers.index')
-                ->with('error', 'Import failed: ' . $e->getMessage());
+                ->with('error', 'The file contains no data rows to import.');
         }
+
+        return redirect()->route('admin.teachers.index')
+            ->with('success', 'Users imported successfully!');
+    } catch (\Exception $e) {
+        return redirect()->route('admin.teachers.index')
+            ->with('error', 'Import failed: ' . $e->getMessage());
     }
+}
+
 }

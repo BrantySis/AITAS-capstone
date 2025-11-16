@@ -51,7 +51,7 @@
         <div class="space-x-3 flex flex-shrink-0 pt-1">
             
             {{-- Import Users --}}
-            <button type="button" data-modal-target="importModal"
+             <button type="button" data-modal-target="importModal"
                 class="open-modal-btn bg-blue-100 text-blue-700 px-5 py-2.5 rounded-xl hover:bg-blue-200 transition duration-200 ease-in-out flex items-center text-sm font-semibold whitespace-nowrap">
                 <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
@@ -154,7 +154,6 @@
                     <div>
                         <label for="add_role" class="block text-sm font-medium text-gray-700 mb-1">Role</label>
                         <select id="add_role" name="role" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 transition">
-                            <option value="teacher">Teacher</option>
                             <option value="dean">Dean</option>
                         </select>
                     </div>
@@ -192,16 +191,30 @@
                 <h3 class="text-2xl font-bold text-gray-900 mb-2">Import Faculty Data</h3>
                 <p class="text-sm text-gray-500 mb-6">Upload a file to bulk import faculty accounts.</p>
 
-                <form action="{{ route('admin.teachers.import') }}" method="POST" enctype="multipart/form-data" class="space-y-5">
+                {{-- FORM: POST to import route --}}
+                <form action="{{ route('admin.teachers.import.process') }}" method="POST" enctype="multipart/form-data" class="space-y-5">
                     @csrf
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Upload File</label>
-                        <input type="file" name="file" class="w-full border-2 border-gray-300 rounded-xl p-3 text-sm focus:ring-blue-500 focus:border-blue-500 transition file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
-                        <p class="text-xs text-gray-500 mt-2">Accepted formats: **.csv, .xlsx** (Columns needed: `name`, `email`, `faculty_number`, `password`)</p>
+                        <input type="file" name="file" 
+                               class="w-full border-2 border-gray-300 rounded-xl p-3 text-sm focus:ring-blue-500 focus:border-blue-500 transition
+                                      file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold
+                                      file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                               required>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Accepted formats: <strong>.csv, .xlsx</strong> (Columns needed: <code>name</code>, <code>email</code>, <code>faculty_number</code>, <code>password</code>)
+                        </p>
                     </div>
+
                     <div class="mt-8 flex justify-end space-x-3 border-t border-gray-100 pt-5">
-                        <button type="button" data-modal-close="importModal" class="px-5 py-2.5 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition font-semibold">Cancel</button>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition">Import Data</button>
+                        <button type="button" data-modal-close="importModal" 
+                                class="px-5 py-2.5 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition font-semibold">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition">
+                            Import Data
+                        </button>
                     </div>
                 </form>
             </div>

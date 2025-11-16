@@ -90,6 +90,13 @@
         </div>
     </div>
 
+    @if(session('success'))
+    <div class="p-4 mb-4 text-green-800 bg-green-200 rounded">{{ session('success') }}</div>
+@endif
+@if(session('error'))
+    <div class="p-4 mb-4 text-red-800 bg-red-200 rounded">{{ session('error') }}</div>
+@endif
+
     {{-- ===================== SUBJECT CARDS ===================== --}}
     @if(isset($subjects) && $subjects->count() > 0)
         <div class="space-y-12">

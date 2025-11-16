@@ -80,10 +80,11 @@ Route::middleware(['auth', 'verified.custom', 'admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-        // Teachers
-        Route::resource('teachers', TeacherController::class);
-        Route::get('teachers/import/form', [TeacherController::class, 'import'])->name('teachers.import');
-        Route::post('teachers/import', [TeacherController::class, 'processImport'])->name('teachers.import.process');
+         Route::resource('teachers', TeacherController::class);
+        Route::get('teachers/import/form', [TeacherController::class, 'import'])
+            ->name('teachers.import');
+        Route::post('teachers/import', [TeacherController::class, 'processImport'])
+            ->name('teachers.import.process');
 
         // Subjects
         Route::resource('subjects', SubjectController::class);
