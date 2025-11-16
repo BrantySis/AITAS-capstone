@@ -383,7 +383,7 @@ function initMap(){
     map=L.map('map').setView([lat,lng],16);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
     roomMarker=L.marker([lat,lng],{title:'Classroom'}).addTo(map);
-    accuracyCircle=L.circle([lat,lng],{radius:50,color:'#34d399',fillOpacity:0.2}).addTo(map);
+    accuracyCircle=L.circle([lat,lng],{radius:15,color:'#34d399',fillOpacity:0.2}).addTo(map);
 
     if(navigator.geolocation){
         geoWatchId = navigator.geolocation.watchPosition(pos=>{
