@@ -62,6 +62,26 @@
     </div>
 </div>
 
+{{-- ===================== IMPORT FEEDBACK ===================== --}}
+<div class="mb-6">
+    @if(session('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('failed') && count(session('failed')) > 0)
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-2">
+            <strong>⚠️ Some rows failed to import:</strong>
+            <ul class="list-disc ml-5 mt-1">
+                @foreach(session('failed') as $fail)
+                    <li>Row {{ $fail['row'] }}: {{ $fail['reason'] }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+</div>
+
     {{-- ===================== IMPORT MODAL ===================== --}}
     <div id="importModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50">
         <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
@@ -108,6 +128,7 @@
             <thead class="bg-blue-200 text-gray-600 uppercase tracking-wider font-semibold">
                 <tr>
                     <th class="px-6 py-4 border-b-2 border-gray-200">Teacher</th>
+                    <th class="px-6 py-4 border-b-2 border-gray-200">EDP Code</th>
                     <th class="px-6 py-4 border-b-2 border-gray-200">Subject</th>
                     <th class="px-6 py-4 border-b-2 border-gray-200">Units</th>
                     <th class="px-6 py-4 border-b-2 border-gray-200">Course Year</th>
@@ -125,6 +146,7 @@
                 @forelse ($schedules ?? [] as $schedule)
                     <tr class="hover:bg-blue-50/50 transition duration-150">
                         <td class="px-6 py-4 font-bold">{{ $schedule->teacher->name ?? 'N/A' }}</td>
+                        <td class="px-6 py-4 font-semibold text-blue-700">{{ $schedule->edp_code ?? '—' }}</td>
                         <td class="px-6 py-4 font-medium">{{ $schedule->subject->subject_name ?? 'N/A' }}</td>
                         <td class="px-6 py-4">{{ $schedule->subject->units ?? '—' }}</td>
                         <td class="px-6 py-4">{{ $schedule->subject->course_year ?? '—' }}</td>

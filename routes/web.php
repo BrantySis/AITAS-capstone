@@ -103,6 +103,10 @@ Route::middleware(['auth', 'verified.custom', 'admin'])
         Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications.index');
         Route::patch('/notifications/{id}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::patch('/notifications/read-all', [AdminNotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
+
+        Route::get('attendance-export', [\App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('attendance.export.index');
+        Route::get('attendance-export/download', [\App\Http\Controllers\Admin\AttendanceController::class, 'export'])->name('attendance.export');
+
     });
 
 /*

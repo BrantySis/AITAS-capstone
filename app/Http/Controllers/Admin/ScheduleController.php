@@ -308,23 +308,124 @@ private function checkScheduleConflict(
         'file' => 'required|mimes:xlsx,csv,xls|max:4096',
     ]);
 
+    $imported = [];
+    $failed = [];
+
     try {
-        Excel::import(new SchedulesImport, $request->file('file'));
+        $path = $request->file('file')->getRealPath();
+        $rows = Excel::toArray([], $request->file('file'))[0]; // first sheet
+
+        foreach ($rows as $index => $row) {
+            // Skip header row if detected
+            if ($index === 0 && isset($row[0]) && strtolower($row[0]) === 'teacher_name') {
+                continue;
+            }
+
+            $row = array_map('trim', $row); // trim whitespace
+
+            $teacherName = $row[0] ?? null;
+            $roomCode    = $row[1] ?? null;
+            $subjectCode = $row[2] ?? null;
+            $edpCode     = $row[3] ?? null;
+            $type        = strtolower($row[4] ?? '');
+            $dayPattern  = strtoupper($row[5] ?? '');
+            $startDate   = $row[6] ?? null;
+            $endDate     = $row[7] ?? null;
+            $semester    = $row[8] ?? null;
+            $schoolYear  = $row[9] ?? null;
+            $startsAt    = $row[10] ?? null;
+            $endsAt      = $row[11] ?? null;
+
+            // Validate teacher, room, subject
+            $teacher = User::where('name', $teacherName)->where('role_id', 2)->first();
+            $room    = Room::where('room_code', $roomCode)->first();
+            $subject = Subject::where('subject_code', $subjectCode)->first();
+
+            if (!$teacher) {
+                $failed[] = ['row' => $index + 1, 'reason' => "Teacher '{$teacherName}' not found or not a teacher."];
+                continue;
+            }
+
+            if (!$room) {
+                $failed[] = ['row' => $index + 1, 'reason' => "Room '{$roomCode}' not found."];
+                continue;
+            }
+
+            if (!$subject) {
+                $failed[] = ['row' => $index + 1, 'reason' => "Subject '{$subjectCode}' not found."];
+                continue;
+            }
+
+            if (!in_array($dayPattern, array_keys($this->dayPatternMap))) {
+                $failed[] = ['row' => $index + 1, 'reason' => "Invalid day pattern '{$dayPattern}'."];
+                continue;
+            }
+
+            // Parse datetime
+            try {
+                $startDateCarbon = Carbon::parse($startDate);
+                $endDateCarbon   = Carbon::parse($endDate);
+                $startsAtCarbon  = Carbon::parse($startDate . ' ' . $startsAt);
+                $endsAtCarbon    = Carbon::parse($startDate . ' ' . $endsAt);
+            } catch (\Exception $e) {
+                $failed[] = ['row' => $index + 1, 'reason' => 'Invalid date/time format.'];
+                continue;
+            }
+
+            // Check conflicts
+            $daysOfWeek = $this->dayPatternMap[$dayPattern];
+
+            $conflict = $this->checkScheduleConflict(
+                $teacher->id,
+                $room->id,
+                $daysOfWeek,
+                $startsAtCarbon,
+                $endsAtCarbon,
+                $startDateCarbon,
+                $endDateCarbon
+            );
+
+            if ($conflict) {
+                $failed[] = ['row' => $index + 1, 'reason' => 'Schedule conflict detected.'];
+                continue;
+            }
+
+            // Create schedule
+            Schedule::create([
+                'user_id'     => $teacher->id,
+                'room_id'     => $room->id,
+                'subject_id'  => $subject->id,
+                'edp_code'    => $edpCode,
+                'units'       => $subject->units ?? 3,
+                'type'        => $type,
+                'day_of_week' => $dayPattern,
+                'start_date'  => $startDateCarbon->format('Y-m-d'),
+                'end_date'    => $endDateCarbon->format('Y-m-d'),
+                'semester'    => $semester,
+                'school_year' => $schoolYear,
+                'starts_at'   => $startsAtCarbon,
+                'ends_at'     => $endsAtCarbon,
+            ]);
+
+            $imported[] = ['row' => $index + 1, 'teacher' => $teacherName, 'subject' => $subjectCode];
+        }
 
         AdminNotification::create([
             'type' => 'schedule',
             'title' => 'Schedules Imported',
-            'message' => 'New schedules have been successfully imported.',
+            'message' => count($imported) . ' schedules imported successfully.',
             'created_by' => auth()->id(),
         ]);
 
-        // Redirect to index to reload schedules properly
         return redirect()->route('admin.schedules.index')
-                         ->with('success', '✅ Schedules imported successfully.');
+            ->with('success', count($imported) . ' schedules imported.')
+            ->with('failed', $failed);
+
     } catch (\Exception $e) {
         Log::error('Schedule import failed: ' . $e->getMessage());
         return redirect()->route('admin.schedules.index')
                          ->withErrors(['error' => '❌ Failed to import schedules. Please check your file format.']);
     }
 }
+
 }

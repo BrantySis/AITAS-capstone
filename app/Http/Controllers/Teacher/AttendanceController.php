@@ -321,14 +321,19 @@ public function store(Request $request)
     /**
      * Export attendance to Excel
      */
-    public function export(Request $request)
-    {
-        $filters = $request->only(['search', 'status', 'start_date', 'end_date', 'subject']);
-        $filename = 'attendance_export_' . now()->format('Ymd_His') . '.xlsx';
+public function export(Request $request)
+{
+    $teacher = Auth::user();
 
-        return Excel::download(new TeacherAttendanceExport($filters), $filename);
-    }
+    // Collect only relevant filters
+    $filters = $request->only(['search', 'status', 'start_date', 'end_date', 'subject']);
 
+    // Define export filename with teacher name and timestamp
+    $filename = 'attendance_' . str_replace(' ', '_', $teacher->name) . '_' . now()->format('Ymd_His') . '.xlsx';
+
+    // Download the Excel file using the updated export class
+    return Excel::download(new TeacherAttendanceExport($filters), $filename);
+}
     /**
      * Validate location within radius (meters)
      */

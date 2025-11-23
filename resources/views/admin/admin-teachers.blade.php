@@ -67,6 +67,16 @@
                 </svg>
                 Add Faculty
             </button>
+
+            {{-- Export Attendance --}}
+            <button type="button" data-modal-target="exportAttendanceModal"
+                class="open-modal-btn bg-green-600 text-white px-5 py-2.5 rounded-xl shadow-lg hover:bg-green-700 transition duration-200 ease-in-out flex items-center text-sm font-semibold whitespace-nowrap">
+                <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Export Attendance
+            </button>
+
         </div>
     </div>
     {{---}}
@@ -252,6 +262,64 @@
                     <div class="mt-8 flex justify-end space-x-3 border-t border-gray-100 pt-5">
                         <button type="button" data-modal-close="editUserModal" class="px-5 py-2.5 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition font-semibold">Cancel</button>
                         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- EXPORT MODAL --}}
+<div id="exportAttendanceModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-75 backdrop-blur-sm transition-opacity duration-300 modal-wrapper" aria-hidden="true">
+    <div class="absolute top-0 left-0 w-full h-full grid place-items-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl transform transition-all sm:max-w-md w-full scale-95 opacity-0 duration-300">
+            <div class="p-6 sm:p-8">
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">Export Attendance</h3>
+                <p class="text-sm text-gray-500 mb-6">Select teacher and timeframe to export attendance.</p>
+
+                <form action="{{ route('admin.attendance.export') }}" method="GET" class="space-y-5">
+                    @php
+                        // Ensure $teachers is always defined and only role_id = 2
+                        $teachers = $teachers ?? \App\Models\User::where('role_id', 2)->get();
+                    @endphp
+
+                    {{-- Teacher Dropdown --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
+                        <select name="teacher_id" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition" required>
+                            <option value="">Select Teacher</option>
+                            @foreach($teachers as $teacher)
+                                <option value="{{ $teacher->id }}">{{ $teacher->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Timeframe Dropdown --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Timeframe</label>
+                        <select name="timeframe" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition" required>
+                            <option value="">Select Timeframe</option>
+                            <option value="daily">Today</option>
+                            <option value="weekly">This Week</option>
+                            <option value="monthly">This Month</option>
+                        </select>
+                    </div>
+
+                    {{-- Optional Date Inputs --}}
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date (Optional)</label>
+                            <input type="date" name="start_date" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Date (Optional)</label>
+                            <input type="date" name="end_date" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition">
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end space-x-3 border-t border-gray-100 pt-5">
+                        <button type="button" data-modal-close="exportAttendanceModal" class="px-5 py-2.5 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition font-semibold">Cancel</button>
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition">Export</button>
                     </div>
                 </form>
             </div>
