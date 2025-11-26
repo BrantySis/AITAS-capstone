@@ -275,79 +275,126 @@
         <div class="bg-white rounded-2xl shadow-2xl transform transition-all sm:max-w-md w-full scale-95 opacity-0 duration-300">
             <div class="p-6 sm:p-8">
                 <h3 class="text-2xl font-bold text-gray-900 mb-2">Export Attendance</h3>
-                <p class="text-sm text-gray-500 mb-6">Select teacher and timeframe to export attendance.</p>
+                <p class="text-sm text-gray-500 mb-6">Select teachers, timeframe, and status to export attendance.</p>
 
-                <form action="{{ route('admin.attendance.export') }}" method="GET" class="space-y-5">
-                    @php
-                        // Ensure $teachers is always defined and only role_id = 2
-                        $teachers = $teachers ?? \App\Models\User::where('role_id', 2)->get();
-                    @endphp
+               <form action="{{ route('admin.attendance.bulkExport') }}" method="POST" class="space-y-5">
+    @csrf
 
-                    {{-- Teacher Dropdown --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
-                        <select name="teacher_id" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition" required>
-                            <option value="">Select Teacher</option>
-                            @foreach($teachers as $teacher)
-                                <option value="{{ $teacher->id }}">{{ $teacher->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+    @php
+        // Get distinct departments for teachers (role_id = 2)
+        $departments = \App\Models\User::where('role_id', 2)
+                        ->select('department')
+                        ->distinct()
+                        ->get();
+    @endphp
 
-                    {{-- Timeframe Dropdown --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Timeframe</label>
-                        <select name="timeframe" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition" required>
-                            <option value="">Select Timeframe</option>
-                            <option value="daily">Today</option>
-                            <option value="weekly">This Week</option>
-                            <option value="monthly">This Month</option>
-                        </select>
-                    </div>
+    {{-- Department Select --}}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+        <select name="department" id="departmentSelect" data-url="{{ route('admin.teachers.byDepartment') }}" required
+            class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition">
+            <option value="">Select Department</option>
+            @foreach($departments as $dept)
+                <option value="{{ $dept->department }}">{{ $dept->department }}</option>
+            @endforeach
+        </select>
+    </div>
 
-                    {{-- Optional Date Inputs --}}
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date (Optional)</label>
-                            <input type="date" name="start_date" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">End Date (Optional)</label>
-                            <input type="date" name="end_date" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition">
-                        </div>
-                    </div>
+    {{-- Teachers Multi-Select (populated dynamically) --}}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Teachers</label>
+        <select name="teacher_ids[]" id="teacherSelect" multiple required
+            class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition">
+            <option value="">Select a department first</option>
+        </select>
+        <p class="text-xs text-gray-400 mt-1">Hold Ctrl (Windows) / Cmd (Mac) to select multiple teachers.</p>
+    </div>
 
-                    <div class="mt-6 flex justify-end space-x-3 border-t border-gray-100 pt-5">
-                        <button type="button" data-modal-close="exportAttendanceModal" class="px-5 py-2.5 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition font-semibold">Cancel</button>
-                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition">Export</button>
-                    </div>
-                </form>
+    {{-- Status Multi-Select --}}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+        <select name="status[]" multiple
+            class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition">
+            <option value="attended" selected>Attended</option>
+            <option value="missed" selected>Missed</option>
+            <option value="late" selected>Late</option>
+            <option value="undertime" selected>Undertime</option>
+        </select>
+    </div>
+
+    {{-- Timeframe & Dates --}}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Timeframe</label>
+        <select name="timeframe" required
+            class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition">
+            <option value="">Select Timeframe</option>
+            <option value="daily">Today</option>
+            <option value="weekly">This Week</option>
+            <option value="monthly">This Month</option>
+            <option value="custom">Custom</option>
+        </select>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date (Optional)</label>
+            <input type="date" name="start_date"
+                class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">End Date (Optional)</label>
+            <input type="date" name="end_date"
+                class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 transition">
+        </div>
+    </div>
+
+    {{-- Buttons --}}
+    <div class="mt-6 flex justify-end space-x-3 border-t border-gray-100 pt-5">
+        <button type="button" data-modal-close="exportAttendanceModal"
+            class="px-5 py-2.5 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition font-semibold">
+            Cancel
+        </button>
+        <button type="submit"
+            class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition">
+            Export
+        </button>
+    <!-- PDF Export Button -->
+<button formaction="{{ route('admin.attendance.export.pdf') }}"
+    formmethod="POST"
+    class="w-full bg-red-600 text-white px-5 py-2.5 rounded-xl shadow hover:bg-red-700 transition text-sm font-semibold flex items-center justify-center gap-2">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M19 11H5m14 0l-4 4m4-4l-4-4M5 19h14M5 5h14" />
+    </svg>
+
+    Export as PDF
+</button>
+    </div>
+</form>
+
             </div>
         </div>
     </div>
 </div>
+
 
 {{-- ========================================================== --}}
 {{-- 💻 JAVASCRIPT FOR MODAL FUNCTIONALITY (FIXED & ANIMATED) 💻 --}}
 {{-- ========================================================== --}}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    
-    // --- 1. Modal Control Functions with Animation ---
+    // --- 1. Modal Control Functions ---
     const getInnerModal = (id) => document.getElementById(id)?.querySelector('.shadow-2xl');
 
     const openModal = id => {
         const modal = document.getElementById(id);
         const inner = getInnerModal(id);
-
-        if (modal && inner) {
-            // Step 1: Make container visible
+        if(modal && inner){
             modal.classList.remove('hidden');
-            modal.classList.add('flex'); // Use flex for centering
+            modal.classList.add('flex');
             modal.classList.remove('pointer-events-none');
             document.body.style.overflow = 'hidden';
-
-            // Step 2: Animate inner content
             requestAnimationFrame(() => {
                 inner.classList.add('scale-100', 'opacity-100');
                 inner.classList.remove('scale-95', 'opacity-0');
@@ -358,27 +405,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeModal = id => {
         const modal = document.getElementById(id);
         const inner = getInnerModal(id);
-
-        if (modal && inner) {
-            // Step 1: Animate inner content out
+        if(modal && inner){
             inner.classList.remove('scale-100', 'opacity-100');
             inner.classList.add('scale-95', 'opacity-0');
-            
-            // Step 2: Hide container after transition duration (300ms)
             setTimeout(() => {
                 modal.classList.remove('flex');
                 modal.classList.add('hidden');
                 modal.classList.add('pointer-events-none');
                 document.body.style.overflow = '';
-            }, 300); 
+            }, 300);
         }
     };
 
-    // --- 2. Event Listeners for Opening/Closing ---
+    // --- 2. Modal Open/Close Event Listeners ---
     document.querySelectorAll('.open-modal-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const target = btn.dataset.modalTarget;
-            openModal(target);
+            openModal(btn.dataset.modalTarget);
         });
     });
 
@@ -386,56 +428,86 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => closeModal(btn.dataset.modalClose));
     });
 
-    // --- 3. Edit Button Logic (Data Transfer) ---
+    document.addEventListener('keydown', e => {
+        if(e.key === 'Escape'){
+            document.querySelectorAll('.modal-wrapper.flex').forEach(modal => closeModal(modal.id));
+        }
+    });
+
+    document.querySelectorAll('.modal-wrapper').forEach(modal => {
+        const inner = getInnerModal(modal.id);
+        if(inner){
+            inner.classList.add('scale-95','opacity-0');
+            inner.classList.remove('scale-100','opacity-100');
+        }
+        modal.classList.add('hidden','pointer-events-none');
+        modal.classList.remove('flex');
+    });
+
+    // --- 3. Edit Button Logic ---
     document.querySelectorAll('.edit-user-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const data = btn.dataset; 
-            
-            // Populate form fields in the edit modal using their IDs
+            const data = btn.dataset;
             document.getElementById('edit_name').value = data.name;
             document.getElementById('edit_email').value = data.email;
             document.getElementById('edit_faculty_number').value = data.facultyNumber;
-            document.getElementById('edit_password').value = ''; // Always clear password field on open
-
-            // Set the dynamic form action URL
-            const form = document.getElementById('editUserForm');
-            // Assuming base URL logic for resource route is correct
-            form.action = `{{ url('admin/teachers') }}/${data.id}`;
-
+            document.getElementById('edit_password').value = '';
+            document.getElementById('editUserForm').action = `{{ url('admin/teachers') }}/${data.id}`;
             openModal('editUserModal');
         });
     });
 
-    // --- 4. Close modal on background click and ESC key ---
-    document.querySelectorAll('.modal-wrapper').forEach(wrapper => {
-        wrapper.addEventListener('click', e => {
-            if (e.target === wrapper) closeModal(wrapper.id);
+    // --- 4. Department → Teachers Filtering ---
+    const departmentSelect = document.getElementById('departmentSelect');
+    const teacherSelect = document.getElementById('teacherSelect');
+
+    if(departmentSelect && teacherSelect){
+        const baseUrl = departmentSelect.dataset.url || "{{ route('admin.teachers.byDepartment') }}";
+
+        departmentSelect.addEventListener('change', function(){
+            const department = this.value;
+            teacherSelect.innerHTML = ''; // clear previous options
+
+            if(!department){
+                const option = document.createElement('option');
+                option.value = '';
+                option.text = 'Select a department first';
+                teacherSelect.appendChild(option);
+                return;
+            }
+
+            const url = `${baseUrl}?department=${encodeURIComponent(department)}`;
+
+            fetch(url)
+                .then(res => {
+                    if(!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    if(data.length === 0){
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.text = 'No teachers found';
+                        teacherSelect.appendChild(option);
+                        return;
+                    }
+
+                    data.forEach(teacher => {
+                        const option = document.createElement('option');
+                        option.value = teacher.id;
+                        option.text = teacher.name;
+                        teacherSelect.appendChild(option);
+                    });
+                })
+                .catch(err => {
+                    console.error('Error loading teachers:', err);
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.text = 'Error loading teachers';
+                    teacherSelect.appendChild(option);
+                });
         });
-    });
-    
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            document.querySelectorAll('.modal-wrapper:not(.hidden)').forEach(modal => {
-                if (modal.classList.contains('flex')) {
-                    closeModal(modal.id);
-                }
-            });
-        }
-    });
-
-    // --- 5. Initial State Safety (for animation preparation) ---
-    document.querySelectorAll('.modal-wrapper').forEach(modal => {
-        const inner = getInnerModal(modal.id);
-        if(inner) {
-             // Reset animation state for initial load
-            inner.classList.add('scale-95', 'opacity-0');
-            inner.classList.remove('scale-100', 'opacity-100');
-        }
-        // Ensure initial hidden state
-        modal.classList.add('hidden', 'pointer-events-none');
-        modal.classList.remove('flex');
-    });
-
+    }
 });
 </script>
 @endsection

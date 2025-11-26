@@ -80,7 +80,7 @@ Route::middleware(['auth', 'verified.custom', 'admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-         Route::resource('teachers', TeacherController::class);
+        //  Route::resource('teachers', TeacherController::class);
         Route::get('teachers/import/form', [TeacherController::class, 'import'])
             ->name('teachers.import');
         Route::post('teachers/import', [TeacherController::class, 'processImport'])
@@ -106,7 +106,10 @@ Route::middleware(['auth', 'verified.custom', 'admin'])
 
         Route::get('attendance-export', [\App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('attendance.export.index');
         Route::get('attendance-export/download', [\App\Http\Controllers\Admin\AttendanceController::class, 'export'])->name('attendance.export');
-
+        Route::post('attendance/bulk-export', [\App\Http\Controllers\Admin\AttendanceController::class, 'bulkExport'])->name('attendance.bulkExport');
+        Route::post('attendance/bulk-export/pdf', [\App\Http\Controllers\Admin\AttendanceController::class, 'exportPDF'])->name('attendance.export.pdf');
+        Route::get('/admin/attendance/export/pdf', [\App\Http\Controllers\Admin\AttendanceController::class, 'getTeachersByDepartment'])->name('teachers.byDepartment');
+        Route::resource('teachers', TeacherController::class)->except(['show']); 
     });
 
 /*
