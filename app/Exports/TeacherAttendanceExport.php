@@ -11,6 +11,7 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class TeacherAttendanceExport implements 
     FromCollection, 
@@ -31,8 +32,8 @@ class TeacherAttendanceExport implements
      */
     public function collection()
     {
-        $status = array_map(fn($s) => ucfirst(strtolower($s)), $this->filters['status'] ?? [
-            'Attended','Missed','Late','Undertime'
+        $status = array_map(fn($s) => strtolower($s), $this->filters['status'] ?? [
+            'attended','missed','late','undertime','upcoming'
         ]);
 
         $query = Attendance::query()
@@ -43,18 +44,31 @@ class TeacherAttendanceExport implements
             $query->whereIn('user_id', $this->filters['teacher_ids']);
         }
 
+        // Filter by created_at date instead of schedule starts_at
         if (!empty($this->filters['start_date']) && !empty($this->filters['end_date'])) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->filters['start_date'])->startOfDay(),
-                Carbon::parse($this->filters['end_date'])->endOfDay(),
-            ]);
+            $from = Carbon::parse($this->filters['start_date'], 'Asia/Manila')->startOfDay();
+            $to   = Carbon::parse($this->filters['end_date'], 'Asia/Manila')->endOfDay();
+
+            $query->whereDate('created_at', '>=', $from->toDateString())
+                  ->whereDate('created_at', '<=', $to->toDateString());
         }
 
-        return $query->get();
+        $attendances = $query->get()
+            ->sortBy(function($attendance) {
+                return $attendance->schedule->teacher->name ?? 'ZZZ';
+            })
+            ->values();
+
+        Log::info('TeacherAttendanceExport: Attendance records count', [
+            'count' => $attendances->count(),
+            'filters' => $this->filters,
+        ]);
+
+        return $attendances;
     }
 
     /**
-     * HEADER ROWS (Professional SAP-style)
+     * HEADER ROWS
      */
     public function headings(): array
     {
@@ -62,26 +76,26 @@ class TeacherAttendanceExport implements
 
         $period = 'All Dates';
         if (!empty($this->filters['start_date']) && !empty($this->filters['end_date'])) {
-            $period = Carbon::parse($this->filters['start_date'])->format('M d, Y') .
-                      " - " .
+            $period = Carbon::parse($this->filters['start_date'])->format('M d, Y') . 
+                      " - " . 
                       Carbon::parse($this->filters['end_date'])->format('M d, Y');
         }
 
         $status = !empty($this->filters['status'])
-            ? implode(', ', $this->filters['status'])
+            ? implode(', ', array_map('ucfirst', $this->filters['status']))
             : 'All Statuses';
 
         return [
-            ["UCLM - Teacher Attendance Report"],  
-            ["Department: " . $department],
+            ["UCLM - Teacher Attendance Report"],
+            ["Department: " . strtoupper($department)],
             ["Period Covered: " . $period],
             ["Status Filter: " . $status],
-            ["Date Generated: " . now()->format('M d, Y g:i A')],
-            [], 
+            ["Date Generated: " . Carbon::now('Asia/Manila')->format('M d, Y g:i A')],
+            [],
             [
                 'Date',
                 'Instructor',
-                'Department',     // 🔥 NEW COLUMN ADDED
+                'Department',
                 'EDP Code',
                 'Subject Code',
                 'Room',
@@ -106,20 +120,79 @@ class TeacherAttendanceExport implements
             3 => ['font' => ['bold' => true]],
             4 => ['font' => ['bold' => true]],
             5 => ['font' => ['bold' => true]],
-            7 => ['font' => ['bold' => true]], // Table header row
+            7 => ['font' => ['bold' => true]],
         ];
     }
 
     /**
-     * Auto-merge title row
+     * Auto-merge title row and add summary at the bottom
      */
     public function registerEvents(): array
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-
-                // Now 12 columns (A to L)
-                $event->sheet->mergeCells('A1:L1');  
+                $event->sheet->mergeCells('A1:L1');
+                
+                // Auto-size columns for better readability
+                foreach (range('A', 'L') as $column) {
+                    $event->sheet->getColumnDimension($column)->setAutoSize(true);
+                }
+                
+                // Add summary at the bottom
+                $lastRow = $event->sheet->getHighestRow();
+                $summaryRow = $lastRow + 2;
+                
+                // Get the collection to calculate summary
+                $attendances = $this->collection();
+                
+                $totalRecords = $attendances->count();
+                $totalAttended = $attendances->filter(fn($a) => strtolower($a->status) === 'attended')->count();
+                $totalLate = $attendances->filter(fn($a) => strtolower($a->status) === 'late')->count();
+                $totalMissed = $attendances->filter(fn($a) => strtolower($a->status) === 'missed')->count();
+                $totalUndertime = $attendances->filter(fn($a) => strtolower($a->status) === 'undertime')->count();
+                
+                // Summary title
+                $event->sheet->setCellValue('A' . $summaryRow, 'ATTENDANCE SUMMARY');
+                $event->sheet->mergeCells('A' . $summaryRow . ':L' . $summaryRow);
+                $event->sheet->getStyle('A' . $summaryRow)->applyFromArray([
+                    'font' => ['bold' => true, 'size' => 12],
+                    'alignment' => ['horizontal' => 'center'],
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'CCCCCC']],
+                ]);
+                
+                // Summary data row
+                $dataRow = $summaryRow + 1;
+                $event->sheet->setCellValue('A' . $dataRow, 'Total Records');
+                $event->sheet->setCellValue('B' . $dataRow, $totalRecords);
+                $event->sheet->setCellValue('D' . $dataRow, 'Attended');
+                $event->sheet->setCellValue('E' . $dataRow, $totalAttended);
+                $event->sheet->setCellValue('G' . $dataRow, 'Late');
+                $event->sheet->setCellValue('H' . $dataRow, $totalLate);
+                $event->sheet->setCellValue('J' . $dataRow, 'Missed');
+                $event->sheet->setCellValue('K' . $dataRow, $totalMissed);
+                
+                // Second summary row for undertime
+                $dataRow2 = $summaryRow + 2;
+                $event->sheet->setCellValue('D' . $dataRow2, 'Undertime');
+                $event->sheet->setCellValue('E' . $dataRow2, $totalUndertime);
+                
+                // Style summary data
+                foreach ([$dataRow, $dataRow2] as $row) {
+                    $event->sheet->getStyle('A' . $row . ':L' . $row)->applyFromArray([
+                        'font' => ['bold' => true],
+                        'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'F9F9F9']],
+                    ]);
+                }
+                
+                // Add borders to summary section
+                $event->sheet->getStyle('A' . $summaryRow . ':L' . $dataRow2)->applyFromArray([
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'color' => ['rgb' => '000000'],
+                        ],
+                    ],
+                ]);
             }
         ];
     }
@@ -131,18 +204,18 @@ class TeacherAttendanceExport implements
     {
         $schedule = $attendance->schedule;
 
-        $timeIn  = $attendance->time_in ? Carbon::parse($attendance->time_in)->format('g:i A') : '-';
-        $timeOut = $attendance->time_out ? Carbon::parse($attendance->time_out)->format('g:i A') : '-';
+        $timeIn  = $attendance->time_in ? Carbon::parse($attendance->time_in, 'Asia/Manila')->format('g:i A') : '-';
+        $timeOut = $attendance->time_out ? Carbon::parse($attendance->time_out, 'Asia/Manila')->format('g:i A') : '-';
 
         $scheduleTime = 
-            ($schedule->starts_at ? Carbon::parse($schedule->starts_at)->format('g:i A') : '-') 
+            ($schedule->starts_at ? Carbon::parse($schedule->starts_at, 'Asia/Manila')->format('g:i A') : '-') 
             . ' - ' . 
-            ($schedule->ends_at ? Carbon::parse($schedule->ends_at)->format('g:i A') : '-');
+            ($schedule->ends_at ? Carbon::parse($schedule->ends_at, 'Asia/Manila')->format('g:i A') : '-');
 
         return [
-            $attendance->created_at ? $attendance->created_at->format('Y-m-d') : '-',
+            $attendance->created_at ? Carbon::parse($attendance->created_at, 'Asia/Manila')->format('M d, Y') : '-',
             $schedule->teacher->name ?? 'N/A',
-            $schedule->teacher->department ?? 'N/A',        // 🔥 NEW COLUMN DATA
+            $schedule->teacher->department ?? 'N/A',
             $schedule->edp_code ?? '—',
             $schedule->subject->subject_code ?? 'N/A',
             $schedule->room->room_code ?? 'N/A',

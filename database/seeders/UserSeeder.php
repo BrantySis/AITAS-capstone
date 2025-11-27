@@ -23,7 +23,7 @@ class UserSeeder extends Seeder
 
         // 1 Admin (global)
         User::updateOrCreate(
-            ['email' => 'aitasuclm@gmail.com'],
+            ['email' => 'uclmaitas@gmail.com'],
             [
                 'name' => 'Admin',
                 'password' => bcrypt('password'),
