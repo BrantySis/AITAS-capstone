@@ -48,6 +48,7 @@ class TeacherController extends Controller
             'email'           => 'required|email|unique:users,email',
             'faculty_number'  => 'required|string|max:8|unique:users,faculty_number',
             'password'        => 'required|string|min:6',
+            'department'      => 'required|string|max:255',
             'role'            => 'required|in:teacher,dean',
         ]);
 
@@ -58,6 +59,7 @@ class TeacherController extends Controller
             'email'           => $request->email,
             'faculty_number'  => $request->faculty_number,
             'password'        => Hash::make($request->password),
+            'department'      => $request->department,
             'role_id'         => $role->id,
         ]);
 
@@ -86,6 +88,7 @@ class TeacherController extends Controller
             'name'           => 'required|string|max:255',
             'email'          => 'required|email|unique:users,email,' . $teacher->id,
             'faculty_number' => 'required|string|max:8|unique:users,faculty_number,' . $teacher->id,
+            'department'     => 'required|string|max:255',
             'password'       => 'nullable|string|min:6',
         ]);
 
@@ -93,6 +96,7 @@ class TeacherController extends Controller
             'name'           => $request->name,
             'email'          => $request->email,
             'faculty_number' => $request->faculty_number,
+            'department'     => $request->department,
         ];
 
         if ($request->filled('password')) {
@@ -139,26 +143,25 @@ class TeacherController extends Controller
      * Import Teachers from a file.
      */
     public function processImport(Request $request)
-{
-    $request->validate([
-        'file' => 'required|mimes:xlsx,csv|max:2048',
-    ]);
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,csv|max:2048',
+        ]);
 
-    try {
-        $import = new TeachersImport;
-        Excel::import($import, $request->file('file'));
+        try {
+            $import = new TeachersImport;
+            Excel::import($import, $request->file('file'));
 
-        if ($import->getRowCount() === 0) {
+            if ($import->getRowCount() === 0) {
+                return redirect()->route('admin.teachers.index')
+                    ->with('error', 'The file contains no data rows to import.');
+            }
+
             return redirect()->route('admin.teachers.index')
-                ->with('error', 'The file contains no data rows to import.');
+                ->with('success', 'Users imported successfully!');
+        } catch (\Exception $e) {
+            return redirect()->route('admin.teachers.index')
+                ->with('error', 'Import failed: ' . $e->getMessage());
         }
-
-        return redirect()->route('admin.teachers.index')
-            ->with('success', 'Users imported successfully!');
-    } catch (\Exception $e) {
-        return redirect()->route('admin.teachers.index')
-            ->with('error', 'Import failed: ' . $e->getMessage());
     }
-}
-
 }

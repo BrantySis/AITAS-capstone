@@ -1,5 +1,4 @@
 <?php
-
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -13,12 +12,23 @@ class UserSeeder extends Seeder
         // Roles
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $teacherRole = Role::firstOrCreate(['name' => 'teacher']);
-        $deanRole = Role::firstOrCreate(['name' => 'dean']);
 
-        // Departments
+        // Departments with realistic teacher names
         $departments = [
-            'College of Computer Studies',
-            'Nursing',
+            'College of Computer Studies' => [
+                'John Doe',
+                'Sarah Mitchell',
+                'Michael Chen',
+                'Emily Rodriguez',
+                'David Thompson'
+            ],
+            'Nursing' => [
+                'Jennifer Anderson',
+                'Robert Martinez',
+                'Lisa Williams',
+                'James Parker',
+                'Maria Garcia'
+            ],
         ];
 
         // 1 Admin (global)
@@ -33,13 +43,16 @@ class UserSeeder extends Seeder
             ]
         );
 
-        foreach ($departments as $dept) {
-            // 5 Teachers per department
-            for ($i = 1; $i <= 5; $i++) {
+        // Create teachers for each department
+        foreach ($departments as $dept => $teachers) {
+            foreach ($teachers as $index => $teacherName) {
+                // Generate email from name (e.g., john.doe@example.com)
+                $emailName = strtolower(str_replace(' ', '.', $teacherName));
+                
                 User::updateOrCreate(
-                    ['email' => strtolower(str_replace(' ', '', $dept)) . ".teacher{$i}@example.com"],
+                    ['email' => $emailName . '@example.com'],
                     [
-                        'name' => $dept . " Teacher {$i}",
+                        'name' => $teacherName,
                         'password' => bcrypt('password'),
                         'role_id' => $teacherRole->id,
                         'department' => $dept,
@@ -47,18 +60,6 @@ class UserSeeder extends Seeder
                     ]
                 );
             }
-
-            // 1 Dean per department
-            User::updateOrCreate(
-                ['email' => strtolower(str_replace(' ', '', $dept)) . '.dean@example.com'],
-                [
-                    'name' => $dept . ' Dean',
-                    'password' => bcrypt('password'),
-                    'role_id' => $deanRole->id,
-                    'department' => $dept,
-                    'status' => 'active',
-                ]
-            );
         }
     }
 }

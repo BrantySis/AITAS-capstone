@@ -34,7 +34,7 @@ class ScheduleSeeder extends Seeder
 
         $dayPatterns = ['MWF', 'TTH'];
         $classTypes = ['lecture', 'lab'];
-        $scheduleCount = 1;
+        $usedEdpCodes = []; // Track used codes to avoid duplicates
 
         foreach ($teachers as $teacher) {
             // Each teacher gets 2 schedules: 1 CCS + 1 Nursing
@@ -55,13 +55,20 @@ class ScheduleSeeder extends Seeder
                 // Day pattern
                 $day = $dayPatterns[array_rand($dayPatterns)];
 
+                // Generate unique 8-digit EDP code (e.g., 35389733, 87654321, etc.)
+                do {
+                    $edpCode = str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT);
+                } while (in_array($edpCode, $usedEdpCodes));
+                
+                $usedEdpCodes[] = $edpCode;
+
                 Schedule::updateOrCreate(
-                    ['edp_code' => 'EDP' . $scheduleCount],
+                    ['edp_code' => $edpCode],
                     [
                         'user_id' => $teacher->id,
                         'room_id' => $room->id,
                         'subject_id' => $subject->id,
-                        'edp_code' => 'EDP' . $scheduleCount,
+                        'edp_code' => $edpCode,
                         'units' => $subject->units ?? 3,
                         'type' => $classTypes[array_rand($classTypes)],
                         'day_of_week' => $day,
@@ -75,8 +82,6 @@ class ScheduleSeeder extends Seeder
                         'room_lng' => $room->longitude ?? 0,
                     ]
                 );
-
-                $scheduleCount++;
             }
         }
 

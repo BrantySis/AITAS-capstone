@@ -43,7 +43,7 @@ Route::get('/', function () {
         return match ($role) {
             'admin' => redirect()->route('admin.dashboard'),
             'teacher' => redirect()->route('teacher.dashboard'),
-            'dean' => redirect()->route('dean.dashboard'),
+            // 'dean' => redirect()->route('dean.dashboard'),
             default => redirect('/profile'),
         };
     }
@@ -149,18 +149,18 @@ Route::middleware(['auth', 'verified.custom', 'teacher'])
         Route::patch('notifications/read-all', [TeacherNotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
     });
 
-/*
-|--------------------------------------------------------------------------
-| DEAN-ONLY ROUTES
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth', 'verified.custom', 'dean'])
-    ->prefix('dean')
-    ->name('dean.')
-    ->group(function () {
-        Route::get('/dashboard', [DeanDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/teachers-attending', [DeanTeacherLocationController::class, 'index'])->name('teachers');
-    });
+// /*
+// |--------------------------------------------------------------------------
+// | DEAN-ONLY ROUTES
+// |--------------------------------------------------------------------------
+// */
+// Route::middleware(['auth', 'verified.custom', 'dean'])
+//     ->prefix('dean')
+//     ->name('dean.')
+//     ->group(function () {
+//         Route::get('/dashboard', [DeanDashboardController::class, 'index'])->name('dashboard');
+//         Route::get('/teachers-attending', [DeanTeacherLocationController::class, 'index'])->name('teachers');
+//     });
 
 /*
 |--------------------------------------------------------------------------

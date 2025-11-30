@@ -50,7 +50,7 @@
         {{-- RIGHT COLUMN: ACTION BUTTONS (Add/Import) --}}
         <div class="space-x-3 flex flex-shrink-0 pt-1">
             
-            {{-- Import Users --}}
+            <!-- {{-- Import Users --}}
              <button type="button" data-modal-target="importModal"
                 class="open-modal-btn bg-blue-100 text-blue-700 px-5 py-2.5 rounded-xl hover:bg-blue-200 transition duration-200 ease-in-out flex items-center text-sm font-semibold whitespace-nowrap">
                 <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,7 +66,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
                 Add Faculty
-            </button>
+            </button> -->
 
             {{-- Export Attendance --}}
             <button type="button" data-modal-target="exportAttendanceModal"
@@ -113,11 +113,12 @@
                 </div>
                 <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end gap-3">
                     {{-- Edit Button --}}
-                    <button class="edit-user-btn text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition"
+                    <button type="button" class="edit-user-btn text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition"
                         data-id="{{ $user->id }}"
                         data-name="{{ $user->name }}"
                         data-email="{{ $user->email }}"
                         data-faculty-number="{{ $user->faculty_number }}"
+                        data-department="{{ $user->department }}"
                         data-modal-target="editUserModal">
                         Edit
                     </button>
@@ -151,7 +152,7 @@
 {{-- 🚀 MODALS (Styled to match the new UI) 🚀 --}}
 {{-- ========================================================== --}}
 
-{{-- ADD FACULTY MODAL --}}
+<!-- {{-- ADD FACULTY MODAL --}}
 <div id="addFacultyModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-75 backdrop-blur-sm transition-opacity duration-300 modal-wrapper" aria-hidden="true">
     <div class="absolute top-0 left-0 w-full h-full grid place-items-center p-4 overflow-y-auto">
         <div class="bg-white rounded-2xl shadow-2xl transform transition-all sm:max-w-lg w-full scale-95 opacity-0 duration-300" id="addFacultyModalContent">
@@ -191,9 +192,9 @@
             </div>
         </div>
     </div>
-</div>
+</div> -->
 
-{{-- IMPORT MODAL --}}
+<!-- {{-- IMPORT MODAL --}}
 <div id="importModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-75 backdrop-blur-sm transition-opacity duration-300 modal-wrapper" aria-hidden="true">
     <div class="absolute top-0 left-0 w-full h-full grid place-items-center p-4 overflow-y-auto">
         <div class="bg-white rounded-2xl shadow-2xl transform transition-all sm:max-w-lg w-full scale-95 opacity-0 duration-300" id="importModalContent">
@@ -230,7 +231,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> -->
 
 {{-- EDIT MODAL --}}
 <div id="editUserModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-75 backdrop-blur-sm transition-opacity duration-300 modal-wrapper" aria-hidden="true">
@@ -254,6 +255,24 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Faculty ID</label>
                         <input type="text" name="faculty_number" id="edit_faculty_number" maxlength="8" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 transition" required>
+                    </div>
+                    @php
+                        // Fetch distinct departments (same logic as export modal)
+                        $departments = \App\Models\User::where('role_id', 2)
+                                        ->select('department')
+                                        ->distinct()
+                                        ->get();
+                    @endphp
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                        <select name="department" id="edit_department"
+                            class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 transition" required>
+                            <option value="">Select Department</option>
+                            @foreach($departments as $dept)
+                                <option value="{{ $dept->department }}">{{ $dept->department }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">New Password (optional)</label>
@@ -384,17 +403,23 @@
 {{-- ========================================================== --}}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 1. Modal Control Functions ---
-    const getInnerModal = (id) => document.getElementById(id)?.querySelector('.shadow-2xl');
 
-    const openModal = id => {
+    /* ---------------------------------------------------------
+       1. Modal Helper Functions
+    --------------------------------------------------------- */
+    const getInnerModal = (id) =>
+        document.getElementById(id)?.querySelector('.shadow-2xl');
+
+    const openModal = (id) => {
         const modal = document.getElementById(id);
         const inner = getInnerModal(id);
-        if(modal && inner){
+
+        if (modal && inner) {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             modal.classList.remove('pointer-events-none');
             document.body.style.overflow = 'hidden';
+
             requestAnimationFrame(() => {
                 inner.classList.add('scale-100', 'opacity-100');
                 inner.classList.remove('scale-95', 'opacity-0');
@@ -402,12 +427,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const closeModal = id => {
+    const closeModal = (id) => {
         const modal = document.getElementById(id);
         const inner = getInnerModal(id);
-        if(modal && inner){
+
+        if (modal && inner) {
             inner.classList.remove('scale-100', 'opacity-100');
             inner.classList.add('scale-95', 'opacity-0');
+
             setTimeout(() => {
                 modal.classList.remove('flex');
                 modal.classList.add('hidden');
@@ -417,7 +444,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- 2. Modal Open/Close Event Listeners ---
+    /* ---------------------------------------------------------
+       2. Modal Open / Close Listeners
+    --------------------------------------------------------- */
     document.querySelectorAll('.open-modal-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             openModal(btn.dataset.modalTarget);
@@ -425,54 +454,68 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('[data-modal-close]').forEach(btn => {
-        btn.addEventListener('click', () => closeModal(btn.dataset.modalClose));
+        btn.addEventListener('click', () => {
+            closeModal(btn.dataset.modalClose);
+        });
     });
 
     document.addEventListener('keydown', e => {
-        if(e.key === 'Escape'){
-            document.querySelectorAll('.modal-wrapper.flex').forEach(modal => closeModal(modal.id));
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-wrapper.flex').forEach(modal =>
+                closeModal(modal.id)
+            );
         }
     });
 
+    // Initialize modals to hidden
     document.querySelectorAll('.modal-wrapper').forEach(modal => {
         const inner = getInnerModal(modal.id);
-        if(inner){
-            inner.classList.add('scale-95','opacity-0');
-            inner.classList.remove('scale-100','opacity-100');
+        if (inner) {
+            inner.classList.add('scale-95', 'opacity-0');
+            inner.classList.remove('scale-100', 'opacity-100');
         }
-        modal.classList.add('hidden','pointer-events-none');
+        modal.classList.add('hidden', 'pointer-events-none');
         modal.classList.remove('flex');
     });
 
-    // --- 3. Edit Button Logic ---
+    /* ---------------------------------------------------------
+       3. Edit Teacher Button Logic
+    --------------------------------------------------------- */
     document.querySelectorAll('.edit-user-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+
             const data = btn.dataset;
+
             document.getElementById('edit_name').value = data.name;
             document.getElementById('edit_email').value = data.email;
             document.getElementById('edit_faculty_number').value = data.facultyNumber;
+            document.getElementById('edit_department').value = data.department;
             document.getElementById('edit_password').value = '';
-            document.getElementById('editUserForm').action = `{{ url('admin/teachers') }}/${data.id}`;
+
+            // update the form action
+            document.getElementById('editUserForm').action =
+                `{{ url('admin/teachers') }}/${data.id}`;
+
             openModal('editUserModal');
         });
     });
 
-    // --- 4. Department → Teachers Filtering ---
+    /* ---------------------------------------------------------
+       4. Department → Teacher Filtering (AJAX)
+    --------------------------------------------------------- */
     const departmentSelect = document.getElementById('departmentSelect');
     const teacherSelect = document.getElementById('teacherSelect');
 
-    if(departmentSelect && teacherSelect){
-        const baseUrl = departmentSelect.dataset.url || "{{ route('admin.teachers.byDepartment') }}";
+    if (departmentSelect && teacherSelect) {
+        const baseUrl = departmentSelect.dataset.url ||
+                        "{{ route('admin.teachers.byDepartment') }}";
 
-        departmentSelect.addEventListener('change', function(){
+        departmentSelect.addEventListener('change', function () {
             const department = this.value;
-            teacherSelect.innerHTML = ''; // clear previous options
+            teacherSelect.innerHTML = '';
 
-            if(!department){
-                const option = document.createElement('option');
-                option.value = '';
-                option.text = 'Select a department first';
-                teacherSelect.appendChild(option);
+            if (!department) {
+                teacherSelect.innerHTML = '<option value="">Select a department first</option>';
                 return;
             }
 
@@ -480,34 +523,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             fetch(url)
                 .then(res => {
-                    if(!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+                    if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
                     return res.json();
                 })
                 .then(data => {
-                    if(data.length === 0){
-                        const option = document.createElement('option');
-                        option.value = '';
-                        option.text = 'No teachers found';
-                        teacherSelect.appendChild(option);
+                    if (!data.length) {
+                        teacherSelect.innerHTML = '<option value="">No teachers found</option>';
                         return;
                     }
 
                     data.forEach(teacher => {
-                        const option = document.createElement('option');
-                        option.value = teacher.id;
-                        option.text = teacher.name;
-                        teacherSelect.appendChild(option);
+                        const opt = document.createElement('option');
+                        opt.value = teacher.id;
+                        opt.textContent = teacher.name;
+                        teacherSelect.appendChild(opt);
                     });
                 })
                 .catch(err => {
                     console.error('Error loading teachers:', err);
-                    const option = document.createElement('option');
-                    option.value = '';
-                    option.text = 'Error loading teachers';
-                    teacherSelect.appendChild(option);
+                    teacherSelect.innerHTML = '<option value="">Error loading teachers</option>';
                 });
         });
     }
+
 });
 </script>
 @endsection
