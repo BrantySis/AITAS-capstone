@@ -49,24 +49,6 @@
 
         {{-- RIGHT COLUMN: ACTION BUTTONS (Add/Import) --}}
         <div class="space-x-3 flex flex-shrink-0 pt-1">
-            
-            <!-- {{-- Import Users --}}
-             <button type="button" data-modal-target="importModal"
-                class="open-modal-btn bg-blue-100 text-blue-700 px-5 py-2.5 rounded-xl hover:bg-blue-200 transition duration-200 ease-in-out flex items-center text-sm font-semibold whitespace-nowrap">
-                <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                </svg>
-                Import
-            </button>
-            
-            {{-- Add Faculty --}}
-            <button type="button" data-modal-target="addFacultyModal"
-                class="open-modal-btn bg-blue-600 text-white px-5 py-2.5 rounded-xl shadow-lg hover:bg-blue-700 transition duration-200 ease-in-out flex items-center text-sm font-semibold whitespace-nowrap">
-                <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Add Faculty
-            </button> -->
 
             {{-- Export Attendance --}}
             <button type="button" data-modal-target="exportAttendanceModal"
@@ -96,14 +78,14 @@
             <div class="bg-white rounded-2xl border border-gray-100 shadow-xl p-6 flex flex-col justify-between hover:ring-2 hover:ring-blue-500 transition duration-300">
                 <div class="flex-grow mb-4">
                     <p class="text-xs font-bold text-blue-600 tracking-widest uppercase mb-1">
-                        {{ $user->role->name ?? 'User' }}
+                    {{ $user->department ?? 'N/A' }}
                     </p>
                     <h3 class="text-2xl font-bold text-gray-900 leading-tight mb-2">{{ $user->name }}</h3>
                     
                     <div class="space-y-1 text-sm text-gray-700 pt-3 border-t border-gray-100">
                         <p class="font-medium truncate">
-                            <span class="text-gray-500">ID:</span> 
-                            <span class="font-semibold text-gray-900">{{ $user->faculty_number }}</span>
+                        <span class="text-gray-500">Faculty ID:</span>
+                        <span class="font-semibold text-gray-900">{{ $user->faculty_number ?? 'N/A' }}</span>
                         </p>
                         <p class="font-medium truncate">
                             <span class="text-gray-500">Email:</span> 
@@ -152,86 +134,6 @@
 {{-- 🚀 MODALS (Styled to match the new UI) 🚀 --}}
 {{-- ========================================================== --}}
 
-<!-- {{-- ADD FACULTY MODAL --}}
-<div id="addFacultyModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-75 backdrop-blur-sm transition-opacity duration-300 modal-wrapper" aria-hidden="true">
-    <div class="absolute top-0 left-0 w-full h-full grid place-items-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl shadow-2xl transform transition-all sm:max-w-lg w-full scale-95 opacity-0 duration-300" id="addFacultyModalContent">
-            <div class="p-6 sm:p-8">
-                <h3 class="text-2xl font-bold text-gray-900 mb-2">Add Faculty Member</h3>
-                <p class="text-sm text-gray-500 mb-6">Create a new faculty account.</p>
-
-                <form action="{{ route('admin.teachers.store') }}" method="POST" class="space-y-5">
-                    @csrf
-                    <div>
-                        <label for="add_role" class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                        <select id="add_role" name="role" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 transition">
-                            <option value="dean">Dean</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                        <input type="text" name="name" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 transition" required placeholder="Full Name">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" name="email" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 transition" required placeholder="email@example.com">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Faculty ID</label>
-                        <input type="text" name="faculty_number" maxlength="8" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 transition" required placeholder="e.g., F1234567">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <input type="password" name="password" class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 transition" required placeholder="Secure Password">
-                    </div>
-                    <div class="mt-8 flex justify-end space-x-3 border-t border-gray-100 pt-5">
-                        <button type="button" data-modal-close="addFacultyModal" class="px-5 py-2.5 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition font-semibold">Cancel</button>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition">Add Faculty</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div> -->
-
-<!-- {{-- IMPORT MODAL --}}
-<div id="importModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-75 backdrop-blur-sm transition-opacity duration-300 modal-wrapper" aria-hidden="true">
-    <div class="absolute top-0 left-0 w-full h-full grid place-items-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl shadow-2xl transform transition-all sm:max-w-lg w-full scale-95 opacity-0 duration-300" id="importModalContent">
-            <div class="p-6 sm:p-8">
-                <h3 class="text-2xl font-bold text-gray-900 mb-2">Import Faculty Data</h3>
-                <p class="text-sm text-gray-500 mb-6">Upload a file to bulk import faculty accounts.</p>
-
-                {{-- FORM: POST to import route --}}
-                <form action="{{ route('admin.teachers.import.process') }}" method="POST" enctype="multipart/form-data" class="space-y-5">
-                    @csrf
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Upload File</label>
-                        <input type="file" name="file" 
-                               class="w-full border-2 border-gray-300 rounded-xl p-3 text-sm focus:ring-blue-500 focus:border-blue-500 transition
-                                      file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold
-                                      file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
-                               required>
-                        <p class="text-xs text-gray-500 mt-2">
-                            Accepted formats: <strong>.csv, .xlsx</strong> (Columns needed: <code>name</code>, <code>email</code>, <code>faculty_number</code>, <code>password</code>)
-                        </p>
-                    </div>
-
-                    <div class="mt-8 flex justify-end space-x-3 border-t border-gray-100 pt-5">
-                        <button type="button" data-modal-close="importModal" 
-                                class="px-5 py-2.5 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition font-semibold">
-                            Cancel
-                        </button>
-                        <button type="submit" 
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition">
-                            Import Data
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div> -->
 
 {{-- EDIT MODAL --}}
 <div id="editUserModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-75 backdrop-blur-sm transition-opacity duration-300 modal-wrapper" aria-hidden="true">

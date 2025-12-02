@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Attendance;
-use App\Models\Schedule;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\TeacherAttendanceExport;
@@ -31,97 +30,101 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Bulk export attendance for selected teachers (Excel)
+     * Generate date range (shared by Excel & PDF)
+     */
+    private function getDateRange($request)
+    {
+        $now = Carbon::now('Asia/Manila');
+
+        if ($request->timeframe === 'custom' && $request->start_date && $request->end_date) {
+            return [
+                Carbon::parse($request->start_date)->startOfDay(),
+                Carbon::parse($request->end_date)->endOfDay()
+            ];
+        }
+
+        return match ($request->timeframe) {
+            'daily' => [
+                $now->copy()->startOfDay(),
+                $now->copy()->endOfDay(),
+            ],
+            'weekly' => [
+                $now->copy()->startOfWeek()->startOfDay(),
+                $now->copy()->endOfWeek()->endOfDay(),
+            ],
+            'monthly' => [
+                $now->copy()->startOfMonth()->startOfDay(),
+                $now->copy()->endOfMonth()->endOfDay(),
+            ],
+            default => [
+                $now->copy()->startOfDay(),
+                $now->copy()->endOfDay(),
+            ],
+        };
+    }
+
+    /**
+     * Bulk export (Excel)
      */
     public function bulkExport(Request $request)
     {
         $request->validate([
             'teacher_ids' => 'nullable|array',
             'teacher_ids.*' => 'exists:users,id',
-            'status'     => 'nullable|array',
-            'status.*'   => 'in:attended,missed,late,undertime',
-            'timeframe'  => 'required|in:daily,weekly,monthly,custom',
+            'status' => 'nullable|array',
+            'status.*' => 'in:attended,missed,late,undertime,upcoming',
+            'timeframe' => 'required|in:daily,weekly,monthly,custom',
             'start_date' => 'nullable|date',
-            'end_date'   => 'nullable|date',
+            'end_date' => 'nullable|date',
             'department' => 'required|string',
         ]);
 
-        $teacherIds = $request->teacher_ids ?? User::where('role_id', 2)
-            ->where('department', $request->department)
-            ->pluck('id')
-            ->toArray();
+        $teacherIds = $request->teacher_ids ??
+            User::where('role_id', 2)
+                ->where('department', $request->department)
+                ->pluck('id')
+                ->toArray();
 
         if (empty($teacherIds)) {
             return back()->with('error', 'No teachers found for the selected department.');
         }
 
-        // Determine date range
-        $now = Carbon::now('Asia/Manila');
-        
-        if ($request->timeframe === 'custom' && $request->start_date && $request->end_date) {
-            $from = Carbon::parse($request->start_date, 'Asia/Manila')->startOfDay();
-            $to   = Carbon::parse($request->end_date, 'Asia/Manila')->endOfDay();
-        } else {
-            switch ($request->timeframe) {
-                case 'daily':
-                    $from = $now->copy()->startOfDay();
-                    $to   = $now->copy()->endOfDay();
-                    break;
-                case 'weekly':
-                    $from = $now->copy()->startOfWeek()->startOfDay();
-                    $to   = $now->copy()->endOfWeek()->endOfDay();
-                    break;
-                case 'monthly':
-                    $from = $now->copy()->startOfMonth()->startOfDay();
-                    $to   = $now->copy()->endOfMonth()->endOfDay();
-                    break;
-                default:
-                    $from = $now->copy()->startOfDay();
-                    $to   = $now->copy()->endOfDay();
-            }
-        }
+        [$from, $to] = $this->getDateRange($request);
 
-        Log::info('Excel Export Date Range', [
-            'from' => $from->toDateTimeString(),
-            'to' => $to->toDateTimeString(),
-            'timeframe' => $request->timeframe
+        Log::info('Excel Export Range', [
+            'from' => $from,
+            'to' => $to,
+            'teacher_ids' => $teacherIds
         ]);
 
         $filters = [
-            'department'  => $request->department,
+            'department' => $request->department,
             'teacher_ids' => $teacherIds,
-            'status'      => $request->status ?? ['attended','missed','late','undertime'],
-            'start_date'  => $from->toDateTimeString(),
-            'end_date'    => $to->toDateTimeString(),
+            'status' => $request->status ?? ['attended','missed','late','undertime','upcoming'],
+            'start_date' => $from->toDateTimeString(),
+            'end_date' => $to->toDateTimeString(),
         ];
 
-        $filename = 'attendance_bulk_' . now()->format('Ymd_His') . '.xlsx';
-        return Excel::download(new TeacherAttendanceExport($filters), $filename);
+        return Excel::download(
+            new TeacherAttendanceExport($filters),
+            'attendance_' . now()->format('Ymd_His') . '.xlsx'
+        );
     }
 
     /**
-     * AJAX endpoint to get teachers by department
+     * AJAX: Load teachers based on department
      */
     public function getTeachersByDepartment(Request $request)
     {
-        try {
-            $department = $request->query('department');
+        $teachers = User::where('role_id', 2)
+                        ->where('department', $request->query('department'))
+                        ->get(['id', 'name']);
 
-            $teachers = User::where('role_id', 2)
-                ->where('department', $department)
-                ->get(['id', 'name']);
-
-            return response()->json($teachers);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return response()->json($teachers);
     }
 
     /**
-     * Export attendance to PDF
+     * Export PDF
      */
     public function exportPDF(Request $request)
     {
@@ -136,82 +139,50 @@ class AttendanceController extends Controller
             'end_date' => 'nullable|date',
         ]);
 
-        $teacherIds = $request->teacher_ids ?? User::where('role_id', 2)
-            ->where('department', $request->department)
-            ->pluck('id')
-            ->toArray();
+        $teacherIds = $request->teacher_ids ??
+            User::where('role_id', 2)
+                ->where('department', $request->department)
+                ->pluck('id')
+                ->toArray();
 
         if (empty($teacherIds)) {
-            return back()->with('error', 'No teachers found for the selected department.');
+            return back()->with('error', 'No teachers found for this department.');
         }
 
-        // Determine date range
-        $now = Carbon::now('Asia/Manila');
-        
-        if ($request->timeframe === 'custom' && $request->start_date && $request->end_date) {
-            $from = Carbon::parse($request->start_date, 'Asia/Manila')->toDateString();
-            $to   = Carbon::parse($request->end_date, 'Asia/Manila')->toDateString();
-        } else {
-            switch ($request->timeframe) {
-                case 'daily':
-                    $from = $now->copy()->toDateString();
-                    $to   = $now->copy()->toDateString();
-                    break;
-                case 'weekly':
-                    $from = $now->copy()->startOfWeek()->toDateString();
-                    $to   = $now->copy()->endOfWeek()->toDateString();
-                    break;
-                case 'monthly':
-                    $from = $now->copy()->startOfMonth()->toDateString();
-                    $to   = $now->copy()->endOfMonth()->toDateString();
-                    break;
-                default:
-                    $from = $now->copy()->toDateString();
-                    $to   = $now->copy()->toDateString();
-            }
-        }
+        [$from, $to] = $this->getDateRange($request);
 
-        Log::info('PDF Export Date Range', [
+        Log::info('PDF Export Range', [
             'from' => $from,
-            'to' => $to,
-            'timeframe' => $request->timeframe
+            'to'   => $to,
+            'teacher_ids' => $teacherIds
         ]);
 
-        $status = $request->status ?? ['attended','missed','late','undertime','upcoming'];
+        $statuses = $request->status ?? ['attended','missed','late','undertime','upcoming'];
 
+        // 🔥 FINAL FIX: use created_at for date filtering
         $attendances = Attendance::with(['schedule.teacher', 'schedule.subject', 'schedule.room'])
             ->whereIn('user_id', $teacherIds)
-            ->whereIn('status', $status)
-            ->whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<=', $to)
-            ->get()
-            ->sortBy(function($attendance) {
-                return $attendance->schedule->teacher->name ?? 'ZZZ';
-            })
-            ->values();
+            ->whereIn('status', $statuses)
+            ->whereBetween('created_at', [$from, $to])   // <-- FIXED
+            ->orderBy('created_at')
+            ->get();
 
         if ($attendances->isEmpty()) {
-            Log::warning("No attendance records found for PDF export.", [
-                'department' => $request->department,
-                'teacher_ids' => $teacherIds,
-                'status' => $status,
+            Log::warning('PDF Export EMPTY', [
+                'teachers' => $teacherIds,
                 'from' => $from,
                 'to' => $to,
+                'status' => $statuses
             ]);
+
             return back()->with('error', 'No attendance records found for this date range.');
         }
 
-        Log::info('PDF Export Attendance Count', [
-            'count' => $attendances->count(),
-            'first_date' => $attendances->first()->schedule->starts_at ?? 'N/A',
-            'last_date' => $attendances->last()->schedule->starts_at ?? 'N/A'
-        ]);
-
         $pdf = Pdf::loadView('admin.pdf', [
             'attendances' => $attendances,
+            'department'  => $request->department,
             'from'        => $from,
             'to'          => $to,
-            'department'  => $request->department,
         ])->setPaper('A4', 'portrait');
 
         return $pdf->download('Teacher_Attendance_Report.pdf');
