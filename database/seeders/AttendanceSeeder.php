@@ -23,7 +23,7 @@ class AttendanceSeeder extends Seeder
             return;
         }
 
-        $statuses = ['Attended', 'Late', 'Missed'];
+        $statuses = ['Attended', 'Late', 'Missed', 'Undertime']; // added Undertime
 
         foreach ($schedules as $schedule) {
             // Randomly pick a status
@@ -35,24 +35,37 @@ class AttendanceSeeder extends Seeder
 
             if ($status === 'Attended') {
                 $timeIn = Carbon::parse($schedule->starts_at)
-                    ->subMinutes(rand(0, 5)) // on time or slightly early
-                    ->format('H:i:s');
-
-                $timeOut = Carbon::parse($schedule->ends_at)
-                    ->addMinutes(rand(0, 10)) // slightly longer class
-                    ->format('H:i:s');
-
-                $isValid = 1;
-            } elseif ($status === 'Late') {
-                $timeIn = Carbon::parse($schedule->starts_at)
-                    ->addMinutes(rand(5, 15)) // late by 5-15 minutes
+                    ->subMinutes(rand(0, 5))
                     ->format('H:i:s');
 
                 $timeOut = Carbon::parse($schedule->ends_at)
                     ->addMinutes(rand(0, 10))
                     ->format('H:i:s');
 
-                $isValid = 1; // still considered valid attendance
+                $isValid = 1;
+
+            } elseif ($status === 'Late') {
+                $timeIn = Carbon::parse($schedule->starts_at)
+                    ->addMinutes(rand(5, 15))
+                    ->format('H:i:s');
+
+                $timeOut = Carbon::parse($schedule->ends_at)
+                    ->addMinutes(rand(0, 10))
+                    ->format('H:i:s');
+
+                $isValid = 1;
+
+            } elseif ($status === 'Undertime') {
+                $timeIn = Carbon::parse($schedule->starts_at)
+                    ->subMinutes(rand(0, 5))
+                    ->format('H:i:s');
+
+                // Time out is before the scheduled end
+                $timeOut = Carbon::parse($schedule->ends_at)
+                    ->subMinutes(rand(5, 15))
+                    ->format('H:i:s');
+
+                $isValid = 1; // still counted as valid attendance
             }
             // Missed: timeIn & timeOut remain null, isValid = 0
 
@@ -81,6 +94,6 @@ class AttendanceSeeder extends Seeder
             );
         }
 
-        $this->command->info('Attendances seeded with Attended, Late, and Missed statuses.');
+        $this->command->info('Attendances seeded with Attended, Late, Missed, and Undertime statuses.');
     }
 }

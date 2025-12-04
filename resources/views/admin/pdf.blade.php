@@ -5,191 +5,123 @@
     <title>Teacher Attendance Report</title>
 
     <style>
-        body {
-            font-family: DejaVu Sans, sans-serif;
-            margin: 20px;
-            font-size: 11px;
-            color: #333;
-        }
+body {
+    font-family: DejaVu Sans, sans-serif;
+    margin: 15px;
+    font-size: 10px; /* slightly smaller for fitting */
+    color: #333;
+}
 
-        .header {
-            text-align: center;
-            border-bottom: 3px solid #1a1a1a;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-            padding-top: 10px;
-        }
+.header {
+    text-align: center;
+    border-bottom: 2px solid #1a1a1a;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
 
-        .header img {
-            width: 80px;
-            margin-bottom: 8px;
-        }
+.header img {
+    width: 70px; /* slightly smaller */
+    margin-bottom: 5px;
+}
 
-        .report-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-top: 8px;
-            color: #1a1a1a;
-        }
+.report-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 5px;
+}
 
-        .sub-heading {
-            margin-top: 5px;
-            font-size: 14px;
-            color: #555;
-            font-weight: 600;
-        }
+.sub-heading {
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 3px;
+}
 
-        .department-badge {
-            background: #0066cc;
-            color: white;
-            padding: 5px 16px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-top: 8px;
-            border: 2px solid #0052a3;
-        }
+.department-badge {
+    background: #0066cc;
+    color: white;
+    padding: 4px 12px;
+    font-size: 10px;
+    font-weight: bold;
+    margin-top: 5px;
+    border: 1px solid #0052a3;
+}
 
-        .details {
-            margin-top: 20px;
-            margin-bottom: 15px;
-            background: #f0f0f0;
-            padding: 12px;
-            border-left: 4px solid #0066cc;
-        }
+.details {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    background: #f0f0f0;
+    padding: 8px;
+    border-left: 3px solid #0066cc;
+}
 
-        .details table {
-            width: 100%;
-            font-size: 11px;
-        }
+.details table {
+    width: 100%;
+    font-size: 10px;
+}
 
-        .details td {
-            padding: 3px 0;
-        }
+table.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 9.5px; /* smaller font for table */
+}
 
-        .label {
-            font-weight: bold;
-            color: #555;
-        }
+table.report-table th, table.report-table td {
+    border: 1px solid #cbd5e0;
+    padding: 5px 4px;
+    text-align: center;
+}
 
-        table.report-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
+table.report-table th {
+    background: #4a5568;
+    color: white;
+    font-weight: 600;
+    font-size: 10px;
+}
 
-        table.report-table th {
-            background: #4a5568;
-            color: white;
-            border: 1px solid #2d3748;
-            padding: 10px 6px;
-            font-size: 11px;
-            text-align: center;
-            font-weight: 600;
-        }
+table.report-table tbody tr:nth-child(even) {
+    background-color: #f7f7f7;
+}
 
-        table.report-table td {
-            border: 1px solid #cbd5e0;
-            padding: 8px 6px;
-            font-size: 10px;
-            text-align: center;
-        }
+.summary-box {
+    margin-top: 20px;
+    border: 1px solid #cccccc;
+    padding: 10px;
+    background: #f9f9f9;
+    font-size: 10px;
+}
 
-        table.report-table tbody tr:nth-child(even) {
-            background-color: #f7f7f7;
-        }
+.summary-title {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #cccccc;
+    padding-bottom: 3px;
+}
 
-        .status-attended {
-            color: #22543d;
-            font-weight: 600;
-        }
+.summary-table td {
+    padding: 5px;
+    font-size: 10px;
+}
 
-        .status-late {
-            color: #c05621;
-            font-weight: 600;
-        }
+.footer-container {
+    margin-top: 25px;
+    page-break-inside: avoid; /* prevents splitting across pages */
+}
 
-        .status-missed {
-            color: #c53030;
-            font-weight: 600;
-        }
+.footer-text {
+    font-size: 10px;
+    color: #4a5568;
+}
 
-        .status-undertime {
-            color: #744210;
-            font-weight: 600;
-        }
+.signature-line {
+    display: inline-block;
+    width: 180px; /* smaller for fitting */
+    border-bottom: 1px solid #333;
+    margin-left: 10px;
+}
+</style>
 
-        .summary-box {
-            margin-top: 25px;
-            border: 2px solid #cccccc;
-            padding: 15px;
-            background: #f9f9f9;
-        }
-
-        .summary-title {
-            font-size: 13px;
-            font-weight: bold;
-            color: #2d3748;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #cccccc;
-            padding-bottom: 5px;
-        }
-
-        .summary-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .summary-table td {
-            padding: 8px;
-            text-align: center;
-            border-right: 1px solid #cccccc;
-            font-size: 11px;
-        }
-
-        .summary-table td:last-child {
-            border-right: none;
-        }
-
-        .summary-label {
-            display: block;
-            font-size: 10px;
-            color: #666666;
-            margin-bottom: 4px;
-        }
-
-        .summary-value {
-            display: block;
-            font-size: 18px;
-            font-weight: bold;
-            color: #2d3748;
-        }
-
-        .footer-text {
-            margin-top: 40px;
-            font-size: 11px;
-            color: #4a5568;
-        }
-
-        .signature-line {
-            display: inline-block;
-            width: 200px;
-            border-bottom: 1px solid #333;
-            margin-left: 10px;
-        }
-
-        .page-break {
-            page-break-after: always;
-        }
-
-        .debug-info {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            padding: 8px;
-            margin-bottom: 10px;
-            font-size: 10px;
-            color: #856404;
-        }
-    </style>
 </head>
 <body>
 
@@ -221,6 +153,13 @@
 </div>
 
 <!-- ATTENDANCE TABLE -->
+@php
+    // Sort attendances by teacher name alphabetically
+    $attendances = $attendances->sortBy(function($a) {
+        return $a->schedule->teacher->name ?? '';
+    })->values();
+@endphp
+
 <table class="report-table">
     <thead>
         <tr>
@@ -240,12 +179,10 @@
             @php
                 $schedule = $a->schedule;
                 
-                // Use attendance created_at as the actual attendance date
                 $attendanceDate = \Carbon\Carbon::parse($a->created_at, 'Asia/Manila');
                 $timeIn = $a->time_in ? \Carbon\Carbon::parse($a->time_in, 'Asia/Manila')->format('g:i A') : '--';
                 $timeOut = $a->time_out ? \Carbon\Carbon::parse($a->time_out, 'Asia/Manila')->format('g:i A') : '--';
                 
-                // Status class for styling
                 $statusClass = 'status-' . strtolower($a->status ?? 'unknown');
             @endphp
             <tr>

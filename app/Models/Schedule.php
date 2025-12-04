@@ -81,18 +81,18 @@ class Schedule extends Model
      * 📅 CHECK IF SCHEDULE IS FOR TODAY
      * =====================
      */
-    public function isToday()
-    {
-        $today = now()->format('D'); // Mon, Tue, Wed...
-        $map = [
-            'MWF' => ['Mon', 'Wed', 'Fri'],
-            'TTH' => ['Tue', 'Thu'],
-            'Sat' => ['Sat'],
-            'Sun' => ['Sun'],
-        ];
+    public function isToday(): bool
+{
+    $today = now()->format('l'); // e.g., "Monday"
 
-        return isset($map[$this->day_of_week]) && in_array($today, $map[$this->day_of_week]);
-    }
+    // If stored value is comma-separated days, explode into array
+    $days = is_string($this->day_of_week) ? explode(',', $this->day_of_week) : (array)$this->day_of_week;
+
+    // Remove extra spaces
+    $days = array_map('trim', $days);
+
+    return in_array($today, $days);
+}
 
     /**
      * =====================

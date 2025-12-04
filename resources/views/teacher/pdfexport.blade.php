@@ -81,7 +81,7 @@
             background: #4a5568;
             color: white;
             border: 1px solid #2d3748;
-            padding: 10px 6px;
+            padding: 8px 6px;
             font-size: 11px;
             text-align: center;
             font-weight: 600;
@@ -89,7 +89,7 @@
 
         table.report-table td {
             border: 1px solid #cbd5e0;
-            padding: 8px 6px;
+            padding: 6px 4px;
             font-size: 10px;
             text-align: center;
         }
@@ -102,6 +102,27 @@
         .status-late { color: #c05621; font-weight: 600; }
         .status-missed { color: #c53030; font-weight: 600; }
         .status-undertime { color: #744210; font-weight: 600; }
+
+        .summary-box {
+            margin-top: 20px;
+            border: 1px solid #cccccc;
+            padding: 10px;
+            background: #f9f9f9;
+            font-size: 10px;
+        }
+
+        .summary-title {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #cccccc;
+            padding-bottom: 3px;
+        }
+
+        .summary-table td {
+            padding: 5px;
+            font-size: 10px;
+        }
     </style>
 </head>
 <body>
@@ -110,7 +131,6 @@
     $logoPath = public_path('images/UClogo.png');
     $logoData = base64_encode(file_get_contents($logoPath));
 
-    // Determine period covered based on attendance
     if ($attendances->isNotEmpty()) {
         $from = $attendances->min(fn($a) => $a->created_at);
         $to = $attendances->max(fn($a) => $a->created_at);
@@ -147,7 +167,11 @@
     <thead>
         <tr>
             <th>Date</th>
+            <th>Instructor</th>
+            <th>Department</th>
             <th>Subject</th>
+            <th>EDP Code</th>
+            <th>Type</th>
             <th>Room</th>
             <th>Status</th>
             <th>Time-in</th>
@@ -164,10 +188,18 @@
                 $statusClass = 'status-' . strtolower($a->status ?? 'unknown');
                 $subject = $schedule->subject->subject_name ?? 'N/A';
                 $room = $schedule->room->room_code ?? 'N/A';
+                $instructor = $schedule->teacher->name ?? 'N/A';
+                $department = $schedule->teacher->department ?? 'N/A';
+                $edp = $schedule->edp_code ?? 'N/A';
+                $type = $schedule->type ?? 'N/A';
             @endphp
             <tr>
                 <td>{{ $attendanceDate->format('M d, Y') }}</td>
+                <td>{{ $instructor }}</td>
+                <td>{{ strtoupper($department) }}</td>
                 <td>{{ $subject }}</td>
+                <td>{{ $edp }}</td>
+                <td>{{ $type }}</td>
                 <td>{{ $room }}</td>
                 <td class="{{ $statusClass }}">{{ strtoupper($a->status ?? '--') }}</td>
                 <td>{{ $timeIn }}</td>
@@ -175,11 +207,34 @@
             </tr>
         @empty
             <tr>
-                <td colspan="6" style="text-align:center; padding:10px;">No attendance records found for this date range.</td>
+                <td colspan="10" style="text-align:center; padding:10px;">No attendance records found for this date range.</td>
             </tr>
         @endforelse
     </tbody>
 </table>
+
+<!-- SUMMARY -->
+@if($attendances->isNotEmpty())
+@php
+    $totalAttended = $attendances->filter(fn($a) => strtolower($a->status) === 'attended')->count();
+    $totalLate = $attendances->filter(fn($a) => strtolower($a->status) === 'late')->count();
+    $totalMissed = $attendances->filter(fn($a) => strtolower($a->status) === 'missed')->count();
+    $totalUndertime = $attendances->filter(fn($a) => strtolower($a->status) === 'undertime')->count();
+    $totalRecords = $attendances->count();
+@endphp
+<div class="summary-box">
+    <div class="summary-title">ATTENDANCE SUMMARY</div>
+    <table class="summary-table">
+        <tr>
+            <td><strong>Total Records:</strong> {{ $totalRecords }}</td>
+            <td><strong>Attended:</strong> <span style="color:#22543d;">{{ $totalAttended }}</span></td>
+            <td><strong>Late:</strong> <span style="color:#c05621;">{{ $totalLate }}</span></td>
+            <td><strong>Missed:</strong> <span style="color:#c53030;">{{ $totalMissed }}</span></td>
+            <td><strong>Undertime:</strong> <span style="color:#744210;">{{ $totalUndertime }}</span></td>
+        </tr>
+    </table>
+</div>
+@endif
 
 </body>
 </html>

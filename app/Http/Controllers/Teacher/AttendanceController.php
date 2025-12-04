@@ -333,75 +333,70 @@ public function store(Request $request)
         return Excel::download(new OwnAttendanceExport($filters), $filename);
     }
 
-        public function exportPdf(Request $request)
-    {
-        $teacher = Auth::user();
+       // In AttendanceController.php
 
-        // Filters from request
-        $filters = $request->only(['search', 'status', 'start_date', 'end_date', 'subject']);
+public function exportPdf(Request $request)
+{
+    $teacher = Auth::user();
+    // Filters from request
+    $filters = $request->only(['search', 'status', 'start_date', 'end_date', 'subject']);
 
-        // Determine date range in Asia/Manila timezone
-        $from = !empty($filters['start_date']) 
-            ? Carbon::parse($filters['start_date'], 'Asia/Manila')->startOfDay() 
-            : Carbon::today('Asia/Manila')->startOfDay();
+    // Build attendance query
+    $query = Attendance::with(['schedule.subject', 'schedule.room'])
+        ->where('user_id', $teacher->id)
+        ->whereIn('status', ['Attended', 'Late', 'Missed', 'Undertime'])
+        ->whereHas('schedule')
+        ->orderByDesc('created_at');
 
-        $to = !empty($filters['end_date']) 
-            ? Carbon::parse($filters['end_date'], 'Asia/Manila')->endOfDay() 
-            : Carbon::today('Asia/Manila')->endOfDay();
-
-        // Build attendance query
-        $query = Attendance::with(['schedule.subject', 'schedule.room'])
-            ->where('user_id', $teacher->id)
-            ->whereIn('status', ['Attended', 'Late', 'Missed', 'Undertime'])
-            ->whereHas('schedule')
-            ->whereDate('created_at', '>=', $from->format('Y-m-d'))
-            ->whereDate('created_at', '<=', $to->format('Y-m-d'))
-            ->orderByDesc('created_at');
-
-        // Apply additional filters
-        if (!empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function($q) use ($search) {
-                $q->whereHas('schedule.subject', fn($subQ) => $subQ->where('subject_name', 'like', "%$search%"))
-                ->orWhereHas('schedule.room', fn($roomQ) => $roomQ->where('room_code', 'like', "%$search%"))
-                ->orWhere('status', 'like', "%$search%");
-            });
-        }
-
-        if (!empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-
-        if (!empty($filters['subject'])) {
-            $query->whereHas('schedule.subject', fn($q) => $q->where('subject_name', $filters['subject']));
-        }
-
-        $attendances = $query->get();
-
-        // Determine period covered for PDF header
-        if ($attendances->isNotEmpty()) {
-            $periodStart = $attendances->min(fn($a) => $a->created_at);
-            $periodEnd = $attendances->max(fn($a) => $a->created_at);
-        } else {
-            $periodStart = $from;
-            $periodEnd = $to;
-        }
-
-        // Load PDF view
-        $pdf = Pdf::loadView('teacher.pdfexport', [
-            'attendances' => $attendances,
-            'teacher' => $teacher,
-            'filters' => [
-                'start_date' => $periodStart,
-                'end_date' => $periodEnd,
-            ],
-            'generated_at' => Carbon::now('Asia/Manila')->format('M d, Y g:i A'),
-        ])->setPaper('a4', 'landscape');
-
-        $filename = 'attendance_' . str_replace(' ', '_', $teacher->name) . '_' . now()->format('Ymd_His') . '.pdf';
-
-        return $pdf->download($filename);
+    // Apply date range filter *only if both start_date and end_date are provided*
+    if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
+        $query->whereBetween('created_at', [
+            Carbon::parse($filters['start_date'])->startOfDay(),
+            Carbon::parse($filters['end_date'])->endOfDay()
+        ]);
     }
+    // Remove the default date filtering that forces it to today/current range.
+
+    // Apply search filter (Same as in history method)
+    if (!empty($filters['search'])) {
+        $search = $filters['search'];
+        $query->where(function($q) use ($search) {
+            $q->whereHas('schedule.subject', fn($subQ) => $subQ->where('subject_name', 'like', "%$search%"))
+            ->orWhereHas('schedule.room', fn($roomQ) => $roomQ->where('room_code', 'like', "%$search%"))
+            ->orWhere('status', 'like', "%$search%");
+        });
+    }
+
+    if (!empty($filters['status'])) {
+        $query->where('status', $filters['status']);
+    }
+
+    if (!empty($filters['subject'])) {
+        $query->whereHas('schedule.subject', fn($q) => $q->where('subject_name', $filters['subject']));
+    }
+
+    $attendances = $query->get();
+
+    // ... (rest of the exportPdf method remains the same)
+    // Note: The period covered logic in pdfexport.blade uses the min/max created_at which is correct.
+
+    // ... (PDF loading and download code)
+
+    $pdf = Pdf::loadView('teacher.pdfexport', [
+        'attendances' => $attendances,
+        'teacher' => $teacher,
+        // The date filters are now passed to the blade to correctly show the covered period.
+        'filters' => [
+            'start_date' => $filters['start_date'] ?? null,
+            'end_date' => $filters['end_date'] ?? null,
+        ],
+        'generated_at' => Carbon::now('Asia/Manila')->format('M d, Y g:i A'),
+    ])->setPaper('a4', 'landscape');
+
+    $filename = 'attendance_' . str_replace(' ', '_', $teacher->name) . '_' . now()->format('Ymd_His') . '.pdf';
+
+    return $pdf->download($filename);
+}
 
 
     /**
