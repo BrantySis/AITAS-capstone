@@ -10,9 +10,10 @@ use App\Models\TeacherNotification;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\TeacherAttendanceExport;
+use App\Exports\OwnAttendanceExport;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AttendanceController extends Controller
 {
@@ -319,21 +320,90 @@ public function store(Request $request)
     }
 
     /**
-     * Export attendance to Excel
-     */
-public function export(Request $request)
-{
-    $teacher = Auth::user();
+ * Export attendance to Excel
+ */
+    public function export(Request $request)
+    {
+        $teacher = Auth::user();
+        $filters = $request->only(['search', 'status', 'start_date', 'end_date', 'subject']);
 
-    // Collect only relevant filters
-    $filters = $request->only(['search', 'status', 'start_date', 'end_date', 'subject']);
+        $filename = 'attendance_' . str_replace(' ', '_', $teacher->name) . '_' . now()->format('Ymd_His') . '.xlsx';
 
-    // Define export filename with teacher name and timestamp
-    $filename = 'attendance_' . str_replace(' ', '_', $teacher->name) . '_' . now()->format('Ymd_His') . '.xlsx';
+        // Use OwnAttendanceExport instead of TeacherAttendanceExport
+        return Excel::download(new OwnAttendanceExport($filters), $filename);
+    }
 
-    // Download the Excel file using the updated export class
-    return Excel::download(new TeacherAttendanceExport($filters), $filename);
-}
+        public function exportPdf(Request $request)
+    {
+        $teacher = Auth::user();
+
+        // Filters from request
+        $filters = $request->only(['search', 'status', 'start_date', 'end_date', 'subject']);
+
+        // Determine date range in Asia/Manila timezone
+        $from = !empty($filters['start_date']) 
+            ? Carbon::parse($filters['start_date'], 'Asia/Manila')->startOfDay() 
+            : Carbon::today('Asia/Manila')->startOfDay();
+
+        $to = !empty($filters['end_date']) 
+            ? Carbon::parse($filters['end_date'], 'Asia/Manila')->endOfDay() 
+            : Carbon::today('Asia/Manila')->endOfDay();
+
+        // Build attendance query
+        $query = Attendance::with(['schedule.subject', 'schedule.room'])
+            ->where('user_id', $teacher->id)
+            ->whereIn('status', ['Attended', 'Late', 'Missed', 'Undertime'])
+            ->whereHas('schedule')
+            ->whereDate('created_at', '>=', $from->format('Y-m-d'))
+            ->whereDate('created_at', '<=', $to->format('Y-m-d'))
+            ->orderByDesc('created_at');
+
+        // Apply additional filters
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function($q) use ($search) {
+                $q->whereHas('schedule.subject', fn($subQ) => $subQ->where('subject_name', 'like', "%$search%"))
+                ->orWhereHas('schedule.room', fn($roomQ) => $roomQ->where('room_code', 'like', "%$search%"))
+                ->orWhere('status', 'like', "%$search%");
+            });
+        }
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['subject'])) {
+            $query->whereHas('schedule.subject', fn($q) => $q->where('subject_name', $filters['subject']));
+        }
+
+        $attendances = $query->get();
+
+        // Determine period covered for PDF header
+        if ($attendances->isNotEmpty()) {
+            $periodStart = $attendances->min(fn($a) => $a->created_at);
+            $periodEnd = $attendances->max(fn($a) => $a->created_at);
+        } else {
+            $periodStart = $from;
+            $periodEnd = $to;
+        }
+
+        // Load PDF view
+        $pdf = Pdf::loadView('teacher.pdfexport', [
+            'attendances' => $attendances,
+            'teacher' => $teacher,
+            'filters' => [
+                'start_date' => $periodStart,
+                'end_date' => $periodEnd,
+            ],
+            'generated_at' => Carbon::now('Asia/Manila')->format('M d, Y g:i A'),
+        ])->setPaper('a4', 'landscape');
+
+        $filename = 'attendance_' . str_replace(' ', '_', $teacher->name) . '_' . now()->format('Ymd_His') . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+
     /**
      * Validate location within radius (meters)
      */

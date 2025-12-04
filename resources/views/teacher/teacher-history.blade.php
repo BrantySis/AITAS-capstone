@@ -17,7 +17,7 @@
         <img src="{{ asset('images/aitas-icons/Dashboard/search.png') }}" 
              class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2" 
              alt="Search Icon">                                                   
-    </form>  ,, .
+    </form>
 
     {{-- ⚙️ Filter Button --}}
     <button id="openFilterModal" type="button" class="flex-shrink-0 p-2 text-gray-600 hover:text-blue-600">
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 {{-- 📤 Export Button --}}
 <div class="flex justify-end pt-4 pb-20">
-    {{-- Keep filter params when exporting --}}
+    {{-- Excel Export --}}
     <form method="GET" action="{{ route('teacher.attendance.export') }}">
         <input type="hidden" name="search" value="{{ request('search') }}">
         <input type="hidden" name="status" value="{{ request('status') }}">
@@ -173,8 +173,21 @@ document.addEventListener('DOMContentLoaded', () => {
         <input type="hidden" name="end_date" value="{{ request('end_date') }}">
         <input type="hidden" name="subject" value="{{ request('subject') }}">
         <button type="submit" 
+                class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-full shadow-lg transition duration-150 ease-in-out">
+            Export Excel
+        </button>
+    </form>
+
+    {{-- PDF Export --}}
+    <form method="GET" action="{{ route('teacher.attendance.exportPdf') }}">
+        <input type="hidden" name="search" value="{{ request('search') }}">
+        <input type="hidden" name="status" value="{{ request('status') }}">
+        <input type="hidden" name="start_date" value="{{ request('start_date') }}">
+        <input type="hidden" name="end_date" value="{{ request('end_date') }}">
+        <input type="hidden" name="subject" value="{{ request('subject') }}">
+        <button type="submit" 
                 class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-full shadow-lg transition duration-150 ease-in-out">
-            Export
+            Export PDF
         </button>
     </form>
 </div>

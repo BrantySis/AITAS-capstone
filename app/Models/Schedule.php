@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Carbon\Carbon;
 
 class Schedule extends Model
 {
@@ -25,17 +26,17 @@ class Schedule extends Model
         'start_date',
         'end_date',
         'room_lat',
-        'room_lng', // Added
+        'room_lng',
     ];
 
     protected $casts = [
-        'starts_at' => 'datetime',
-        'ends_at' => 'datetime',
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'day_of_week' => 'array',
-        'room_lat' => 'float',
-        'room_lng' => 'float',
+        'starts_at'   => 'string', // TIME column stored as H:i:s
+        'ends_at'     => 'string', 
+        'start_date'  => 'date',
+        'end_date'    => 'date',
+        'day_of_week' => 'array',  // store as array
+        'room_lat'    => 'float',
+        'room_lng'    => 'float',
     ];
 
     /**
@@ -64,6 +65,17 @@ class Schedule extends Model
         return $this->hasMany(Attendance::class, 'schedule_id', 'id');
     }
 
+    public function getDayOfWeekAttribute($value)
+    {
+        // Always return as array
+        if (is_string($value)) {
+            $clean = trim(str_replace(['[',']','"'], '', $value));
+            return array_filter(array_map('trim', explode(',', $clean)));
+        }
+
+        return $value ?? [];
+    }
+
     /**
      * =====================
      * 📅 CHECK IF SCHEDULE IS FOR TODAY
@@ -72,7 +84,6 @@ class Schedule extends Model
     public function isToday()
     {
         $today = now()->format('D'); // Mon, Tue, Wed...
-
         $map = [
             'MWF' => ['Mon', 'Wed', 'Fri'],
             'TTH' => ['Tue', 'Thu'],
@@ -80,13 +91,82 @@ class Schedule extends Model
             'Sun' => ['Sun'],
         ];
 
-        // If the format is matched (string only, not array)
-        if (isset($map[$this->day_of_week])) {
-            return in_array($today, $map[$this->day_of_week]);
-        }
-
-        return false;
+        return isset($map[$this->day_of_week]) && in_array($today, $map[$this->day_of_week]);
     }
+
+    /**
+     * =====================
+     * 🕒 ACCESSORS FOR TIME FORMATTING
+     * =====================
+     */
+    public function getStartsAtAttribute($value)
+    {
+        return Carbon::createFromFormat('H:i:s', $value)->format('H:i'); 
+    }
+
+    public function getEndsAtAttribute($value)
+    {
+        return Carbon::createFromFormat('H:i:s', $value)->format('H:i'); 
+    }
+
+    /**
+     * =====================
+     * SHORT DAY STRING (e.g., MWF)
+     * =====================
+     */
+   public function getDayShortAttribute(): string
+{
+    // Mapping of full day names to standard short forms
+    $map = [
+        'MONDAY'    => 'M',
+        'TUESDAY'   => 'T',
+        'WEDNESDAY' => 'W',
+        'THURSDAY'  => 'TH',
+        'FRIDAY'    => 'F',
+        'SATURDAY'  => 'SAT',
+        'SUNDAY'    => 'SUN',
+    ];
+
+    // Get raw input
+    $raw = $this->day_of_week ?? [];
+
+    // Convert string to array if needed
+    if (!is_array($raw)) {
+        $raw = explode(',', str_replace(['[',']','"'], '', $raw));
+    }
+
+    $output = [];
+    foreach ($raw as $d) {
+        $key = strtoupper(trim($d));
+
+        if (isset($map[$key])) {
+            $output[] = $map[$key];
+        } else {
+            // Handle short names like Mon, Tue
+            $short = strtoupper(substr($key, 0, 3));
+            $alias = [
+                'MON' => 'M',
+                'TUE' => 'T',
+                'WED' => 'W',
+                'THU' => 'TH',
+                'FRI' => 'F',
+                'SAT' => 'SAT',
+                'SUN' => 'SUN',
+            ];
+            if (isset($alias[$short])) {
+                $output[] = $alias[$short];
+            }
+        }
+    }
+
+    $dayString = implode('', $output);
+
+    // Normalize common sequences
+    if ($dayString === 'MTW') $dayString = 'MWF';
+    if ($dayString === 'TTH') $dayString = 'TTH';
+
+    return $dayString ?: '—';
+}
 
     /**
      * =====================

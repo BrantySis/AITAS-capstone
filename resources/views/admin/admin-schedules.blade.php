@@ -63,24 +63,83 @@
 </div>
 
 {{-- ===================== IMPORT FEEDBACK ===================== --}}
-<div class="mb-6">
-    @if(session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
-            {{ session('success') }}
-        </div>
-    @endif
 
-    @if(session('failed') && count(session('failed')) > 0)
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-2">
-            <strong>⚠️ Some rows failed to import:</strong>
-            <ul class="list-disc ml-5 mt-1">
-                @foreach(session('failed') as $fail)
-                    <li>Row {{ $fail['row'] }}: {{ $fail['reason'] }}</li>
-                @endforeach
-            </ul>
+
+{{-- Success Messages --}}
+@if(session('success'))
+    <div class="p-4 mb-4 text-sm text-green-800 bg-green-100 rounded-lg border border-green-300" role="alert">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+                <h3 class="font-semibold">{{ session('success') }}</h3>
+            </div>
         </div>
-    @endif
-</div>
+    </div>
+@endif
+
+{{-- Error Messages --}}
+@if($errors->any())
+    <div class="p-4 mb-4 text-sm text-red-800 bg-red-100 rounded-lg border border-red-300" role="alert">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <div class="flex-1">
+                <h3 class="font-semibold mb-2">❌ Validation Error</h3>
+                <ul class="list-disc list-inside space-y-1">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    </div>
+@endif
+
+{{-- Duplicates from Import --}}
+@if(session('duplicates') && count(session('duplicates')) > 0)
+    <div class="p-4 mb-4 text-sm text-yellow-800 bg-yellow-100 rounded-lg border border-yellow-300" role="alert">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <div class="flex-1">
+                <h3 class="font-semibold mb-2">⚠️ Duplicate Schedules Detected</h3>
+                <p class="mb-2">{{ count(session('duplicates')) }} schedule(s) were skipped:</p>
+                <ul class="list-disc list-inside space-y-1">
+                    @foreach(session('duplicates') as $duplicate)
+                        <li><strong>Row {{ $duplicate['row'] }}:</strong> {{ $duplicate['reason'] }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    </div>
+@endif
+
+{{-- Failed Imports --}}
+@if(session('failed') && count(session('failed')) > 0)
+    <div class="p-4 mb-4 text-sm text-red-800 bg-red-100 rounded-lg border border-red-300" role="alert">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <div class="flex-1">
+                <h3 class="font-semibold mb-2">❌ Import Errors</h3>
+                <p class="mb-2">{{ count(session('failed')) }} row(s) failed to import:</p>
+                <ul class="list-disc list-inside space-y-1">
+                    @foreach(session('failed') as $fail)
+                        <li><strong>Row {{ $fail['row'] }}:</strong> {{ $fail['reason'] }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    </div>
+@endif
+
+{{-- Page-specific alerts from @push --}}
+@stack('page-alerts')
 
     {{-- ===================== IMPORT MODAL ===================== --}}
     <div id="importModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50">
@@ -153,7 +212,9 @@
                         <td class="px-6 py-4">{{ $schedule->subject->semester ?? '—' }}</td>
                         <td class="px-6 py-4">{{ $schedule->subject->school_year ?? '—' }}</td>
                         <td class="px-6 py-4">{{ $schedule->room->room_code ?? 'N/A' }}</td>
-                        <td class="px-6 py-4 font-semibold text-blue-700">{{ strtoupper($schedule->day_of_week ?? '—') }}</td>
+                        <td class="px-6 py-4 font-semibold text-blue-700">
+                        {{ $schedule->day_short ?: '—' }}
+                        </td>
                         <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->start_date)->format('M j, Y') ?? '—' }}</td>
                         <td class="px-6 py-4">{{ \Carbon\Carbon::parse($schedule->end_date)->format('M j, Y') ?? '—' }}</td>
                         <td class="px-6 py-4 text-center">
@@ -168,7 +229,7 @@
                                 data-user-id="{{ $schedule->user_id }}"
                                 data-subject-id="{{ $schedule->subject_id }}"
                                 data-room-id="{{ $schedule->room_id }}"
-                                data-day="{{ $schedule->day_of_week }}"
+                                data-day="{{ is_array($schedule->day_of_week) ? implode(',', $schedule->day_of_week) : $schedule->day_of_week }}"
                                 data-starts-at="{{ \Carbon\Carbon::parse($schedule->starts_at)->format('H:i') }}"
                                 data-ends-at="{{ \Carbon\Carbon::parse($schedule->ends_at)->format('H:i') }}">
                                 Edit
@@ -219,9 +280,15 @@
                         Room: <span class="ml-1 font-semibold text-gray-900">{{ $schedule->room->room_code ?? 'N/A' }}</span>
                     </p>
                     <p class="flex items-center text-blue-600 font-semibold pt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v4H3V4zm0 6h18v10a1 1 0 01-1 1H4a1 1 0 01-1-1V10z" />
+                    </svg>
+                    {{ $schedule->day_short ?: '—' }}
+                    </p>
+                    <!-- <p class="flex items-center text-blue-600 font-semibold pt-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         {{ \Carbon\Carbon::parse($schedule->starts_at)->format('D, M j | h:i A') }} - {{ \Carbon\Carbon::parse($schedule->ends_at)->format('h:i A') }}
-                    </p>
+                    </p> -->
                 </div>
 
                 <div class="flex justify-end gap-3 border-t pt-4">
@@ -230,7 +297,7 @@
                         data-user-id="{{ $schedule->teacher_id ?? $schedule->user_id }}"
                         data-subject-id="{{ $schedule->subject_id }}"
                         data-room-id="{{ $schedule->room_id }}"
-                        data-day="{{ $schedule->day_of_week }}"
+                        data-day="{{ is_array($schedule->day_of_week) ? implode(',', $schedule->day_of_week) : $schedule->day_of_week }}"
                         data-starts-at="{{ \Carbon\Carbon::parse($schedule->starts_at)->format('H:i') }}"
                         data-ends-at="{{ \Carbon\Carbon::parse($schedule->ends_at)->format('H:i') }}">
                         Edit

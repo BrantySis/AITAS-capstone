@@ -134,6 +134,7 @@ Route::middleware(['auth', 'verified.custom', 'teacher'])
         Route::post('/attendance/verify', [AttendanceController::class, 'verifyFace'])->name('attendance.verify');
         Route::get('/history', [AttendanceController::class, 'history'])->name('history');
         Route::get('/attendance/export', [AttendanceController::class, 'export'])->name('attendance.export');
+        Route::get('attendance/export-pdf', [AttendanceController::class, 'exportPdf'])->name('attendance.exportPdf');
 
         // Face Verification
         Route::get('/face-verification', [AttendanceController::class, 'faceVerification'])->name('face.verification');
@@ -147,6 +148,8 @@ Route::middleware(['auth', 'verified.custom', 'teacher'])
         Route::get('notifications', [TeacherNotificationController::class, 'index'])->name('notifications.index');
         Route::patch('notifications/{id}/read', [TeacherNotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::patch('notifications/read-all', [TeacherNotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
+
+
     });
 
 // /*

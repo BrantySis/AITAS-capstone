@@ -81,9 +81,9 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     public function latestAttendance()
-{
-    return $this->hasOne(Attendance::class)
-        ->latestOfMany()
-        ->with(['schedule.room', 'schedule.subject']); // ⚡ Eager load nested
-}
+    {
+        return $this->hasOne(Attendance::class)
+            ->latestOfMany()
+            ->with(['schedule.room', 'schedule.subject']); // ⚡ Eager load nested
+    }
 }
