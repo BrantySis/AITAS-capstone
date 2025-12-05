@@ -27,9 +27,6 @@ class TeacherAttendanceExport implements
         $this->filters = $filters;
     }
 
-    /**
-     * Fetch attendance data based on filters
-     */
     public function collection()
     {
         $status = array_map(fn($s) => strtolower($s), $this->filters['status'] ?? [
@@ -44,7 +41,6 @@ class TeacherAttendanceExport implements
             $query->whereIn('user_id', $this->filters['teacher_ids']);
         }
 
-        // Filter by created_at date instead of schedule starts_at
         if (!empty($this->filters['start_date']) && !empty($this->filters['end_date'])) {
             $from = Carbon::parse($this->filters['start_date'], 'Asia/Manila')->startOfDay();
             $to   = Carbon::parse($this->filters['end_date'], 'Asia/Manila')->endOfDay();
@@ -54,9 +50,7 @@ class TeacherAttendanceExport implements
         }
 
         $attendances = $query->get()
-            ->sortBy(function($attendance) {
-                return $attendance->schedule->teacher->name ?? 'ZZZ';
-            })
+            ->sortBy(fn($attendance) => $attendance->schedule->teacher->name ?? 'ZZZ')
             ->values();
 
         Log::info('TeacherAttendanceExport: Attendance records count', [
@@ -67,9 +61,6 @@ class TeacherAttendanceExport implements
         return $attendances;
     }
 
-    /**
-     * HEADER ROWS
-     */
     public function headings(): array
     {
         $department = $this->filters['department'] ?? 'All Departments';
@@ -109,9 +100,6 @@ class TeacherAttendanceExport implements
         ];
     }
 
-    /**
-     * Style formatting for header
-     */
     public function styles(Worksheet $sheet)
     {
         return [
@@ -124,20 +112,16 @@ class TeacherAttendanceExport implements
         ];
     }
 
-    /**
-     * Auto-merge title row and add summary at the bottom
-     */
     public function registerEvents(): array
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $event->sheet->mergeCells('A1:L1');
-                
-                // Auto-size columns
+
                 foreach (range('A', 'L') as $column) {
                     $event->sheet->getColumnDimension($column)->setAutoSize(true);
                 }
-                
+
                 $lastRow = $event->sheet->getHighestRow();
                 $summaryRow = $lastRow + 2;
                 $attendances = $this->collection();
@@ -189,60 +173,71 @@ class TeacherAttendanceExport implements
         ];
     }
 
-    /**
-     * TABLE ROWS
-     */
     public function map($attendance): array
-{
-    $schedule = $attendance->schedule;
+    {
+        $schedule = $attendance->schedule;
 
-    $timeIn  = $attendance->time_in ? Carbon::parse($attendance->time_in, 'Asia/Manila')->format('g:i A') : '-';
-    $timeOut = $attendance->time_out ? Carbon::parse($attendance->time_out, 'Asia/Manila')->format('g:i A') : '-';
+        // Time In / Out
+        $timeIn  = $attendance->time_in
+            ? Carbon::parse($attendance->time_in, 'Asia/Manila')->format('g:i A')
+            : '-';
+        $timeOut = $attendance->time_out
+            ? Carbon::parse($attendance->time_out, 'Asia/Manila')->format('g:i A')
+            : '-';
 
-    $scheduleTime = 
-        ($schedule->starts_at ? Carbon::parse($schedule->starts_at, 'Asia/Manila')->format('g:i A') : '-') 
-        . ' - ' . 
-        ($schedule->ends_at ? Carbon::parse($schedule->ends_at, 'Asia/Manila')->format('g:i A') : '-');
+        // Schedule Time
+        $scheduleTime =
+            ($schedule->starts_at ? Carbon::parse($schedule->starts_at)->format('g:i A') : '-') . ' - ' .
+            ($schedule->ends_at ? Carbon::parse($schedule->ends_at)->format('g:i A') : '-');
 
-    // --- Convert day_of_week to shorthand without commas ---
-    $dayOfWeek = $schedule->day_of_week;
+        // ---- TYPE NORMALIZATION ----
+        $type = strtolower($schedule->type ?? '');
+        if (in_array($type, ['lecture','lec','le'])) $type = 'LEC';
+        elseif (in_array($type, ['laboratory','lab','l'])) $type = 'LAB';
+        else $type = strtoupper($type ?: '—');
 
-    // Ensure it's a string
-    if (is_array($dayOfWeek)) {
-        $dayOfWeek = implode(',', $dayOfWeek);
+        // ---- DAY NORMALIZATION ----
+        $dayOfWeek = $schedule->day_of_week ?? '';
+        if (is_array($dayOfWeek)) $dayOfWeek = implode(',', $dayOfWeek);
+        $dayOfWeek = strtoupper($dayOfWeek);
+
+        $fullToShort = [
+            'MONDAY'    => 'M',
+            'TUESDAY'   => 'T',
+            'WEDNESDAY' => 'W',
+            'THURSDAY'  => 'TH',
+            'FRIDAY'    => 'F',
+            'SATURDAY'  => 'SAT',
+            'SUNDAY'    => 'SUN',
+        ];
+
+        $daysArray = preg_split('/[,\s]+/', $dayOfWeek);
+        $dayShortArray = [];
+        foreach ($daysArray as $d) {
+            if (isset($fullToShort[$d])) $dayShortArray[] = $fullToShort[$d];
+        }
+
+        $dayOfWeekShorthand = implode('', $dayShortArray);
+        if ($dayOfWeekShorthand === 'MWF') $dayOfWeekShorthand = 'MWF';
+        elseif ($dayOfWeekShorthand === 'TTH') $dayOfWeekShorthand = 'TTH';
+        elseif (in_array($dayOfWeekShorthand, ['SAT','SUN'])) $dayOfWeekShorthand = $dayOfWeekShorthand;
+        else $dayOfWeekShorthand = implode(', ', $dayShortArray);
+
+        return [
+            $attendance->created_at
+                ? Carbon::parse($attendance->created_at, 'Asia/Manila')->format('M d, Y')
+                : '-',
+            $schedule->teacher->name ?? 'N/A',
+            $schedule->teacher->department ?? 'N/A',
+            $schedule->edp_code ?? '—',
+            $schedule->subject->subject_code ?? 'N/A',
+            $schedule->room->room_code ?? 'N/A',
+            $type,
+            $dayOfWeekShorthand,
+            $scheduleTime,
+            $timeIn,
+            $timeOut,
+            ucfirst($attendance->status ?? '—'),
+        ];
     }
-
-    // Normalize to uppercase
-    $dayOfWeek = strtoupper($dayOfWeek);
-
-    // Mapping full day names to shorthand
-    $fullToShort = [
-        'MONDAY' => 'M',
-        'TUESDAY' => 'T',
-        'WEDNESDAY' => 'W',
-        'THURSDAY' => 'TH',
-        'FRIDAY' => 'F',
-        'SATURDAY' => 'SAT',
-        'SUNDAY' => 'SUN',
-    ];
-
-    // Split by comma, map to shorthand, then join without separator
-    $daysArray = array_map('trim', explode(',', $dayOfWeek));
-    $dayOfWeekShorthand = implode('', array_map(fn($d) => $fullToShort[$d] ?? $d, $daysArray));
-
-    return [
-        $attendance->created_at ? Carbon::parse($attendance->created_at, 'Asia/Manila')->format('M d, Y') : '-',
-        $schedule->teacher->name ?? 'N/A',
-        $schedule->teacher->department ?? 'N/A',
-        $schedule->edp_code ?? '—',
-        $schedule->subject->subject_code ?? 'N/A',
-        $schedule->room->room_code ?? 'N/A',
-        ucfirst($schedule->type ?? '—'),
-        $dayOfWeekShorthand, // Outputs MWF, TTH, SAT, SUN
-        $scheduleTime,
-        $timeIn,
-        $timeOut,
-        ucfirst($attendance->status ?? '—'),
-    ];
-}
 }

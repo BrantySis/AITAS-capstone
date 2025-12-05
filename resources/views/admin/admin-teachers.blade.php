@@ -277,7 +277,7 @@
         </button>
         <button type="submit"
             class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition">
-            Export
+            Export Excel
         </button>
     <!-- PDF Export Button -->
 <button formaction="{{ route('admin.attendance.export.pdf') }}"

@@ -33,6 +33,7 @@ class ScheduleSeeder extends Seeder
         $usedEdpCodes = [];
 
         foreach ($teachers as $teacher) {
+            // Assign 1 subject from each department
             $assignedSubjects = [
                 $ccsSubjects->random(),
                 $nursingSubjects->random()
@@ -48,6 +49,7 @@ class ScheduleSeeder extends Seeder
 
                 $dayPattern = $dayPatterns[array_rand($dayPatterns)];
 
+                // Unique EDP code
                 do {
                     $edpCode = str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT);
                 } while (in_array($edpCode, $usedEdpCodes));
@@ -66,7 +68,7 @@ class ScheduleSeeder extends Seeder
                         'starts_at'   => $startTime->format('H:i:s'),
                         'ends_at'     => $endTime->format('H:i:s'),
                         'school_year' => $subject->school_year ?? '2025-2026',
-                        'semester'    => $subject->semester ?? '1st',
+                        'semester'    => $subject->semester ?? '1st', // use text format
                         'start_date'  => now()->startOfMonth()->toDateString(),
                         'end_date'    => now()->endOfMonth()->toDateString(),
                         'room_lat'    => $room->latitude ?? 0.0,

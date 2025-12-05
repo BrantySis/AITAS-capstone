@@ -169,38 +169,83 @@ table.report-table tbody tr:nth-child(even) {
             <th>EDP Code</th>
             <th>Type</th>
             <th>Room</th>
+            <th>Day</th>
+            <th>Schedule Time</th>
             <th>Status</th>
             <th>Time-in</th>
             <th>Time-out</th>
         </tr>
     </thead>
     <tbody>
-        @forelse ($attendances as $a)
+            @forelse ($attendances as $a)
             @php
                 $schedule = $a->schedule;
-                
+
                 $attendanceDate = \Carbon\Carbon::parse($a->created_at, 'Asia/Manila');
                 $timeIn = $a->time_in ? \Carbon\Carbon::parse($a->time_in, 'Asia/Manila')->format('g:i A') : '--';
                 $timeOut = $a->time_out ? \Carbon\Carbon::parse($a->time_out, 'Asia/Manila')->format('g:i A') : '--';
-                
+
+                // Day of week normalization
+                $day = $schedule->day_of_week ?? 'N/A';
+                if (is_array($day)) $day = implode(', ', $day);
+                $day = strtoupper($day);
+
+                $dayMap = [
+                    'MONDAY' => 'M',
+                    'TUESDAY' => 'T',
+                    'WEDNESDAY' => 'W',
+                    'THURSDAY' => 'TH',
+                    'FRIDAY' => 'F',
+                    'SATURDAY' => 'SAT',
+                    'SUNDAY' => 'SUN',
+                ];
+
+                $days = preg_split('/[, ]+/', $day, -1, PREG_SPLIT_NO_EMPTY);
+                $converted = [];
+                foreach ($days as $d) {
+                    if (isset($dayMap[$d])) $converted[] = $dayMap[$d];
+                }
+
+                $convertedStr = implode('', $converted);
+                if ($convertedStr === 'MWF') $day = 'MWF';
+                elseif ($convertedStr === 'TTH') $day = 'TTH';
+                else $day = implode(', ', $converted);
+
+                // Schedule time
+                $schedStart = $schedule->starts_at ? \Carbon\Carbon::parse($schedule->starts_at)->format('g:i A') : '--';
+                $schedEnd = $schedule->ends_at ? \Carbon\Carbon::parse($schedule->ends_at)->format('g:i A') : '--';
+
+                // Type normalization
+                $type = strtolower($schedule->type ?? '');
+                if (in_array($type, ['lecture', 'lec', 'le'])) $type = 'LEC';
+                elseif (in_array($type, ['laboratory', 'lab', 'l'])) $type = 'LAB';
+                else $type = strtoupper($type ?: 'N/A');
+
                 $statusClass = 'status-' . strtolower($a->status ?? 'unknown');
+
             @endphp
+
             <tr>
                 <td>{{ $attendanceDate->format('M d, Y') }}</td>
                 <td>{{ $schedule->teacher->name ?? 'N/A' }}</td>
                 <td>{{ $schedule->subject->subject_code ?? 'N/A' }}</td>
                 <td>{{ $schedule->edp_code ?? 'N/A' }}</td>
-                <td>{{ $schedule->type ?? 'N/A' }}</td>
+                <td>{{ $type }}</td>
                 <td>{{ $schedule->room->room_code ?? 'N/A' }}</td>
+                <td>{{ $day }}</td>
+                <td>{{ $schedStart }} - {{ $schedEnd }}</td>
                 <td class="{{ $statusClass }}">{{ strtoupper($a->status ?? '--') }}</td>
                 <td>{{ $timeIn }}</td>
                 <td>{{ $timeOut }}</td>
             </tr>
         @empty
             <tr>
-                <td colspan="9" style="text-align:center; padding:10px;">No attendance records found for this date range.</td>
+                <td colspan="11" style="text-align:center; padding:10px;">
+                    No attendance records found for this date range.
+                </td>
             </tr>
         @endforelse
+
     </tbody>
 </table>
 
