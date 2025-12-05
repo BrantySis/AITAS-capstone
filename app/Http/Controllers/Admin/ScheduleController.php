@@ -24,54 +24,135 @@ class ScheduleController extends Controller
         'Sun' => ['Sunday'],
     ];
 
-    public function index(Request $request)
-    {
-        $query = Schedule::with(['teacher', 'room', 'subject']);
+public function index(Request $request)
+{
+    $query = Schedule::with(['teacher', 'room', 'subject']);
 
-        if ($search = $request->input('search')) {
-            $query->whereHas('teacher', fn($q) => $q->where('name', 'like', "%$search%"))
-                  ->orWhereHas('subject', fn($q) => $q->where('subject_name', 'like', "%$search%"))
-                  ->orWhereHas('room', fn($q) => $q->where('room_code', 'like', "%$search%"));
-        }
-
-        $nowDate = now()->format('Y-m-d');
-        $nowTime = now()->format('H:i:s');
-
-        if ($filter = $request->input('filter')) {
-            if ($filter === 'in-progress') {
-                $query->where('start_date', '<=', $nowDate)
-                      ->where('end_date', '>=', $nowDate)
-                      ->where('starts_at', '<=', $nowTime)
-                      ->where('ends_at', '>=', $nowTime);
-            } elseif ($filter === 'upcoming') {
-                $query->where(function($q) use ($nowDate, $nowTime) {
-                    $q->where('start_date', '>', $nowDate)
-                      ->orWhere(function($q2) use ($nowDate, $nowTime) {
-                          $q2->where('start_date', '=', $nowDate)
-                             ->where('starts_at', '>', $nowTime);
-                      });
-                });
-            } elseif ($filter === 'missed') {
-                $query->where(function($q) use ($nowDate, $nowTime) {
-                    $q->where('end_date', '<', $nowDate)
-                      ->orWhere(function($q2) use ($nowDate, $nowTime) {
-                          $q2->where('end_date', '=', $nowDate)
-                             ->where('ends_at', '<', $nowTime);
-                      });
-                });
-            }
-        }
-
-        $query->orderBy('start_date', 'asc')->orderBy('starts_at', 'asc');
-
-        $schedules = $query->paginate(10);
-
-        $teachers = User::where('role_id', 2)->get();
-        $rooms = Room::all();
-        $subjects = Subject::all();
-
-        return view('admin.admin-schedules', compact('schedules', 'teachers', 'rooms', 'subjects'));
+    /**
+     * ----------------------------------------
+     * SEARCH (teacher / subject / room / school_year)
+     * ----------------------------------------
+     */
+    if ($search = $request->input('search')) {
+        $query->where(function ($q) use ($search) {
+            $q->whereHas('teacher', fn($t) => $t->where('name', 'like', "%$search%"))
+              ->orWhereHas('subject', fn($s) => $s->where('subject_name', 'like', "%$search%"))
+              ->orWhereHas('room', fn($r) => $r->where('room_code', 'like', "%$search%"))
+              ->orWhere('school_year', 'like', "%$search%");
+        });
     }
+
+    /**
+     * ----------------------------------------
+     * NEW FILTERS (department / semester / school year)
+     * ----------------------------------------
+     */
+
+    // Filter by department (from Subject)
+    if ($department = $request->input('department')) {
+        $query->whereHas('subject', function ($q) use ($department) {
+            $q->where('department', $department);
+        });
+    }
+
+    // Filter by semester
+    if ($semester = $request->input('semester')) {
+        $query->where('semester', $semester);
+    }
+
+    // Filter by school year (dropdown filter)
+    if ($schoolYear = $request->input('school_year')) {
+        $query->where('school_year', $schoolYear);
+    }
+
+    /**
+     * ----------------------------------------
+     * STATUS FILTER (in-progress / upcoming / missed)
+     * ----------------------------------------
+     */
+    $nowDate = now()->format('Y-m-d');
+    $nowTime = now()->format('H:i:s');
+
+    if ($filter = $request->input('filter')) {
+        if ($filter === 'in-progress') {
+            $query->where('start_date', '<=', $nowDate)
+                  ->where('end_date', '>=', $nowDate)
+                  ->where('starts_at', '<=', $nowTime)
+                  ->where('ends_at', '>=', $nowTime);
+        } 
+        elseif ($filter === 'upcoming') {
+            $query->where(function($q) use ($nowDate, $nowTime) {
+                $q->where('start_date', '>', $nowDate)
+                  ->orWhere(function($q2) use ($nowDate, $nowTime) {
+                      $q2->where('start_date', '=', $nowDate)
+                         ->where('starts_at', '>', $nowTime);
+                  });
+            });
+        } 
+        elseif ($filter === 'missed') {
+            $query->where(function($q) use ($nowDate, $nowTime) {
+                $q->where('end_date', '<', $nowDate)
+                  ->orWhere(function($q2) use ($nowDate, $nowTime) {
+                      $q2->where('end_date', '=', $nowDate)
+                         ->where('ends_at', '<', $nowTime);
+                  });
+            });
+        }
+    }
+
+    /**
+     * ----------------------------------------
+     * SORTING + PAGINATION
+     * ----------------------------------------
+     */
+    $query->orderBy('start_date', 'asc')->orderBy('starts_at', 'asc');
+
+    /**
+     * ----------------------------------------
+     * GET COUNTS BEFORE PAGINATION
+     * ----------------------------------------
+     */
+    // Total schedules in database (no filters)
+    $totalSchedulesCount = Schedule::count();
+
+    // Filtered schedules count (with current filters applied)
+    $filteredSchedulesCount = $query->count();
+
+    $schedules = $query->paginate(10);
+
+    /**
+     * ----------------------------------------
+     * GET UNIQUE SCHOOL YEARS FOR DROPDOWN (Before Pagination)
+     * ----------------------------------------
+     */
+    // Get all unique school years from the entire schedules table
+    $schoolYears = Schedule::select('school_year')
+        ->distinct()
+        ->whereNotNull('school_year')
+        ->where('school_year', '!=', '')
+        ->orderBy('school_year', 'desc')
+        ->pluck('school_year');
+
+    /**
+     * ----------------------------------------
+     * LOAD SELECT OPTIONS
+     * ----------------------------------------
+     */
+    $teachers = User::where('role_id', 2)->get();
+    $rooms = Room::all();
+    $subjects = Subject::all();
+
+    return view('admin.admin-schedules', compact(
+        'schedules', 
+        'teachers', 
+        'rooms', 
+        'subjects', 
+        'schoolYears',
+        'totalSchedulesCount',
+        'filteredSchedulesCount'
+    ));
+}
+
 
 public function store(Request $request)
 {
